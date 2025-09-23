@@ -22,19 +22,72 @@ A modern, responsive event management and ticketing platform built with Next.js,
 ## 📁 Project Structure
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Homepage
-│   └── globals.css        # Global styles
-├── components/            # Reusable components
-│   ├── ui/               # UI components (Button, Badge, etc.)
-│   ├── sections/         # Page sections
-│   └── layout/           # Layout components
-├── lib/                  # Utilities and configurations
-├── data/                 # Static data and mock content
-└── types/                # TypeScript definitions
+.
+├── config/                        # Environment & service configurations
+│   └── README.md
+├── docs/                          # Project documentation
+│   └── README.md
+├── public/                        # Static assets served as-is
+│   ├── icons/
+│   │   └── README.md
+│   ├── images/
+│   │   └── README.md
+│   └── qr-templates/
+│       └── README.md
+├── src/
+│   ├── app/                       # Next.js App Router
+│   │   ├── layout.tsx             # Root layout
+│   │   ├── page.tsx               # Homepage
+│   │   └── globals.css            # Global styles
+│   ├── components/                # Reusable components
+│   │   ├── layout/                # Header, Footer, etc.
+│   │   ├── sections/              # Homepage sections (Hero, Features, etc.)
+│   │   ├── ui/                    # UI atoms (Button, Badge, ...)
+│   │   ├── auth/                  # Auth components (planned)
+│   │   │   └── README.md
+│   │   ├── payments/              # Payment UI (planned)
+│   │   │   └── README.md
+│   │   ├── forms/                 # Form elements (planned)
+│   │   │   └── README.md
+│   │   ├── events/                # Event UI (planned)
+│   │   │   └── README.md
+│   │   └── dashboard/             # Dashboards (planned)
+│   │       ├── attendee/
+│   │       │   └── README.md
+│   │       └── organizer/
+│   │           └── README.md
+│   ├── data/                      # Static data & mock content
+│   │   ├── events.ts
+│   │   ├── features.ts
+│   │   ├── pricing.ts
+│   │   └── testimonials.ts
+│   ├── hooks/                     # Custom hooks (planned)
+│   │   └── README.md
+│   ├── lib/                       # Utilities & domain libraries
+│   │   ├── api/                   # API client (planned)
+│   │   │   └── README.md
+│   │   ├── auth/                  # Auth helpers (planned)
+│   │   │   └── README.md
+│   │   ├── payments/              # Payment helpers (planned)
+│   │   │   └── README.md
+│   │   ├── validations/           # Validation schemas (planned)
+│   │   │   └── README.md
+│   │   ├── constants.ts
+│   │   ├── motion.ts
+│   │   └── utils.ts
+│   └── types/                     # TypeScript type definitions (planned)
+│       └── README.md
+├── tests/                         # Testing setup (planned)
+│   └── README.md
+├── tailwind.config.js
+├── next.config.js
+├── tsconfig.json
+└── README.md                      # This file
 ```
+
+Notes:
+- Empty/planned folders contain a short README.md describing intended contents so the structure is visible in Git and future work is guided.
+- Only the homepage is implemented today; other areas are scaffolded for phased development.
 
 ## 🚀 Getting Started
 
@@ -86,6 +139,13 @@ This homepage is designed to support future feature additions:
 - Real-time analytics
 - Mobile applications
 - Multi-language support
+
+### Suggested Next Steps (Phased)
+- Types & API foundations: `src/types`, `src/lib/api`
+- Auth flows: `src/lib/auth`, `src/components/auth`
+- Payments: `src/lib/payments`, `src/components/payments`
+- Dashboards: `src/components/dashboard/*`
+- Forms & validation: `src/components/forms`, `src/lib/validations`
 
 ## 📱 Responsive Design
 
