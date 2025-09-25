@@ -2,8 +2,8 @@ pipeline {
     agent any
     
     environment {
-        DEV_SERVER = '13.59.240.130'
-        QA_SERVER = '13.58.2.162'  
+        DEV_SERVER  = '13.59.240.130'
+        QA_SERVER   = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
     }
     
@@ -82,14 +82,14 @@ pipeline {
     }
 }
 
-def deployToEnvironment(String env, String server, String credentials) {
-    echo "Deploying to ${env.toUpperCase()} environment on ${server}"
+def deployToEnvironment(String environmentName, String server, String credentials) {
+    echo "Deploying to ${environmentName.toUpperCase()} environment on ${server}"
     
     sshagent([credentials]) {
         sh """
             ssh -o StrictHostKeyChecking=no ec2-user@${server} '
                 echo "Connected to \$(hostname)"
-                cd /opt/eventify/${env}
+                cd /opt/eventify/${environmentName}
                 pm2 stop ecosystem.config.js || echo "No processes to stop"
                 
                 cd frontend
@@ -105,5 +105,5 @@ def deployToEnvironment(String env, String server, String credentials) {
         """
     }
     
-    echo "Deployment to ${env.toUpperCase()} completed"
+    echo "Deployment to ${environmentName.toUpperCase()} completed"
 }
