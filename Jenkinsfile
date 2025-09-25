@@ -1,13 +1,6 @@
 pipeline {
     agent any
     
-    environment {
-        DEV_SERVER  = '13.59.240.130'
-        QA_SERVER   = '13.58.2.162'  
-        PROD_SERVER = '18.117.193.239'
-        NODE_VERSION = '22'
-    }
-    
     tools {
         nodejs 'NodeJS-22'
     }
@@ -40,39 +33,41 @@ pipeline {
         }
         
         stage('Deploy to Development') {
-            when { branch 'staging' }
+            when { 
+                branch 'staging'
+            }
             steps {
                 echo "Deploying to Development server"
-                script {
-                    deployToEnvironment('dev', env.DEV_SERVER, 'dev-server-key')
-                }
+                deployToDev()
             }
         }
         
         stage('Deploy to QA') {
-            when { branch 'QA' }
+            when { 
+                branch 'QA'
+            }
             steps {
                 echo "Deploying to QA server"
-                script {
-                    deployToEnvironment('qa', env.QA_SERVER, 'qa-server-key')
-                }
+                deployToQA()
             }
         }
         
         stage('Production Approval') {
-            when { branch 'main' }
+            when { 
+                branch 'main'
+            }
             steps {
                 input message: 'Deploy to Production?', ok: 'Deploy'
             }
         }
         
         stage('Deploy to Production') {
-            when { branch 'main' }
+            when { 
+                branch 'main'
+            }
             steps {
                 echo "Deploying to Production server"
-                script {
-                    deployToEnvironment('prod', env.PROD_SERVER, 'prod-server-key')
-                }
+                deployToProd()
             }
         }
     }
@@ -90,14 +85,12 @@ pipeline {
     }
 }
 
-def deployToEnvironment(String environmentName, String server, String credentials) {
-    echo "Deploying to ${environmentName.toUpperCase()} environment on ${server}"
-    
-    withCredentials([sshUserPrivateKey(credentialsId: credentials, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+def deployToDev() {
+    withCredentials([sshUserPrivateKey(credentialsId: 'dev-server-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
         sh """
-            ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@${server} '
+            ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@13.59.240.130 '
                 echo "Connected to \$(hostname)"
-                cd /opt/eventify/${environmentName}
+                cd /opt/eventify/dev
                 pm2 stop ecosystem.config.js || echo "No processes to stop"
                 
                 cd frontend
@@ -112,6 +105,48 @@ def deployToEnvironment(String environmentName, String server, String credential
             '
         """
     }
-    
-    echo "Deployment to ${environmentName.toUpperCase()} completed"
+}
+
+def deployToQA() {
+    withCredentials([sshUserPrivateKey(credentialsId: 'qa-server-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+        sh """
+            ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@13.58.2.162 '
+                echo "Connected to \$(hostname)"
+                cd /opt/eventify/qa
+                pm2 stop ecosystem.config.js || echo "No processes to stop"
+                
+                cd frontend
+                git fetch origin
+                git reset --hard origin/${env.BRANCH_NAME}
+                npm ci
+                
+                cd ..
+                pm2 start ecosystem.config.js
+                sleep 5
+                pm2 status
+            '
+        """
+    }
+}
+
+def deployToProd() {
+    withCredentials([sshUserPrivateKey(credentialsId: 'prod-server-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+        sh """
+            ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@18.117.193.239 '
+                echo "Connected to \$(hostname)"
+                cd /opt/eventify/prod
+                pm2 stop ecosystem.config.js || echo "No processes to stop"
+                
+                cd frontend
+                git fetch origin
+                git reset --hard origin/${env.BRANCH_NAME}
+                npm ci
+                
+                cd ..
+                pm2 start ecosystem.config.js
+                sleep 5
+                pm2 status
+            '
+        """
+    }
 }
