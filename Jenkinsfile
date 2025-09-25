@@ -94,7 +94,7 @@ def deployToEnvironment(String env, String server, String credentials) {
                 
                 cd frontend
                 git fetch origin
-                git reset --hard origin/\${BRANCH_NAME}
+                git reset --hard origin/${env.BRANCH_NAME}
                 npm ci
                 
                 cd ..
