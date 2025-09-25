@@ -5,6 +5,7 @@ pipeline {
         DEV_SERVER  = '13.59.240.130'
         QA_SERVER   = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
+        NODE_VERSION = '22'
     }
     
     tools {
@@ -15,6 +16,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "Checking out branch: ${env.BRANCH_NAME}"
+                checkout scm
                 script {
                     env.GIT_COMMIT_SHORT = sh(
                         script: "git rev-parse --short HEAD",
@@ -28,6 +30,12 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh 'npm ci'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                sh 'npm run build'
             }
         }
         
@@ -85,9 +93,9 @@ pipeline {
 def deployToEnvironment(String environmentName, String server, String credentials) {
     echo "Deploying to ${environmentName.toUpperCase()} environment on ${server}"
     
-    sshagent([credentials]) {
+    withCredentials([sshUserPrivateKey(credentialsId: credentials, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
         sh """
-            ssh -o StrictHostKeyChecking=no ec2-user@${server} '
+            ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@${server} '
                 echo "Connected to \$(hostname)"
                 cd /opt/eventify/${environmentName}
                 pm2 stop ecosystem.config.js || echo "No processes to stop"
