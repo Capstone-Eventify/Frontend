@@ -7,79 +7,40 @@ pipeline {
         PROD_SERVER = '18.117.193.239'
     }
     
-    tools {
-        nodejs 'NodeJS-22'
-    }
-    
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                checkout scm
-                script {
-                    env.GIT_COMMIT_SHORT = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
-                }
+                git branch: 'main', url: 'https://github.com/Capstone-Eventify/Frontend.git'
             }
         }
         
         stage('Install Dependencies') {
             steps {
-                sh 'npm ci'
+                sh 'npm install'
             }
         }
         
-        stage('Deploy to Development') {
-            when { branch 'staging' }
+        stage('Build') {
             steps {
-                script {
-                    deployToEnvironment('dev', env.DEV_SERVER, 'dev-server-key')
-                }
+                sh 'npm run build'
             }
         }
         
-        stage('Deploy to QA') {
-            when { branch 'QA' }
-            steps {
-                script {
-                    deployToEnvironment('qa', env.QA_SERVER, 'qa-server-key')
-                }
+        stage('Deploy to Dev') {
+            when { 
+                branch 'staging' 
             }
-        }
-        
-        stage('Production Approval') {
-            when { branch 'main' }
             steps {
-                input message: 'Deploy to Production?', ok: 'Deploy'
-            }
-        }
-        
-        stage('Deploy to Production') {
-            when { branch 'main' }
-            steps {
-                script {
-                    deployToEnvironment('prod', env.PROD_SERVER, 'prod-server-key')
-                }
+                sh '''
+                    echo "Deploying to Dev..."
+                '''
             }
         }
     }
-}
-
-def deployToEnvironment(String env, String server, String credentials) {
-    sshagent([credentials]) {
-        sh """
-            ssh -o StrictHostKeyChecking=no ec2-user@${server} '
-                cd /opt/eventify/${env}
-                pm2 stop ecosystem.config.js || echo "No processes to stop"
-                cd frontend
-                git fetch origin
-                git reset --hard origin/${env.BRANCH_NAME}
-                npm ci
-                cd ..
-                pm2 start ecosystem.config.js
-                pm2 status
-            '
-        """
+    
+    post {
+        always {
+            echo 'Pipeline completed!'
+        }
     }
 }
