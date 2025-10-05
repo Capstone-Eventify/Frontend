@@ -7,9 +7,6 @@ pipeline {
         PROD_SERVER = '18.117.193.239'
     }
     
-    tools {
-        nodejs 'NodeJS-22'
-    }
     
     stages {
         stage('Checkout') {
