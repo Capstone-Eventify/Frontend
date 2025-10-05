@@ -7,7 +7,6 @@ pipeline {
         PROD_SERVER = '18.117.193.239'
     }
     
-    
     stages {
         stage('Checkout') {
             steps {
@@ -61,13 +60,22 @@ pipeline {
             }
         }
     }
+    
+    post {
+        success {
+            echo "Deployment completed successfully for branch: ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "Deployment failed for branch: ${env.BRANCH_NAME}"
+        }
+    }
 }
 
-def deployToEnvironment(String env, String server, String credentials) {
+def deployToEnvironment(String envName, String server, String credentials) {
     sshagent([credentials]) {
         sh """
             ssh -o StrictHostKeyChecking=no ec2-user@${server} '
-                cd /opt/eventify/${env}
+                cd /opt/eventify/${envName}
                 pm2 stop ecosystem.config.js || echo "No processes to stop"
                 cd frontend
                 git fetch origin
