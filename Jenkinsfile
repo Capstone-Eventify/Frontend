@@ -92,6 +92,34 @@ def deployToEnvironment(String envName, String server, String credentials, Strin
     echo "Deploying to ${envName.toUpperCase()} on ${server}"
     echo "Using credentials: ${credentials}"
     
+    // Test connection first
+    sshagent([credentials]) {
+        try {
+            echo "=== Testing SSH connection to ${server} ==="
+            sh """
+                ssh -o StrictHostKeyChecking=no \
+                    -o ConnectTimeout=10 \
+                    -o BatchMode=yes \
+                    ec2-user@${server} 'echo "Connection successful"'
+            """
+        } catch (Exception e) {
+            error """
+❌ Cannot connect to ${server}
+Possible issues:
+1. Security Group doesn't allow SSH from Jenkins agent
+2. Server is not running
+3. Network connectivity issues
+
+Please check:
+- AWS Security Groups for ${server}
+- Server is running in EC2 console
+- Jenkins agent can reach the server
+
+Error: ${e.getMessage()}
+"""
+        }
+    }
+    
     sshagent([credentials]) {
         try {
             sh """
