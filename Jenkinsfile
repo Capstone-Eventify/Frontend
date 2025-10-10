@@ -98,60 +98,43 @@ def deployToEnvironment(String envName, String server, String credentials, Strin
                 ssh -o StrictHostKeyChecking=no \
                     -o ConnectTimeout=30 \
                     -o ServerAliveInterval=60 \
-                    ec2-user@${server} '
-                    set -e  # Exit on any error
-                    
-                    echo "=== Connected to \$(hostname) ==="
-                    echo "=== Deploying to ${envName} environment ==="
-                    cd /opt/eventify/${envName}
-                    
-                    # Stop existing processes
-                    echo "=== Stopping PM2 processes ==="
-                    pm2 stop ecosystem.config.js || echo "No processes to stop"
-                    
-                    # Clone or update repository
-                    echo "=== Updating repository ==="
-                    if [ -d "frontend" ]; then
-                        cd frontend
-                        echo "Repository exists, updating..."
-                        git fetch origin
-                        git reset --hard origin/${branchName}
-                        git clean -fd
-                    else
-                        echo "Cloning repository..."
-                        git clone -b ${branchName} https://github.com/Capstone-Eventify/Frontend.git frontend
-                        cd frontend
-                    fi
-                    
-                    # Install dependencies with npm install (faster than npm ci)
-                    echo "=== Installing dependencies ==="
-                    npm config set prefer-offline true
-                    npm config set progress false
-                    npm install --loglevel=error
-                    
-                    # Build if necessary (uncomment if you need to build)
-                    # echo "=== Building application ==="
-                    # npm run build
-                    
-                    # Return to parent directory and start PM2
-                    echo "=== Starting PM2 processes ==="
-                    cd ..
-                    pm2 delete ecosystem.config.js || echo "No processes to delete"
-                    pm2 start ecosystem.config.js
-                    pm2 save
-                    
-                    # Wait and verify
-                    echo "=== Waiting for processes to start ==="
-                    sleep 5
-                    pm2 status
-                    
-                    # Verify processes are running
-                    if pm2 list | grep -q "online"; then
-                        echo "✅ Deployment to ${envName} completed successfully"
-                    else
-                        echo "❌ Processes are not running properly"
-                        pm2 logs --err --lines 20
-                        exit 1
+                    ec2-user@${server} 'set -e && \
+                    echo "=== Connected to \\$(hostname) ===" && \
+                    echo "=== Deploying to ${envName} environment ===" && \
+                    cd /opt/eventify/${envName} && \
+                    echo "=== Stopping PM2 processes ===" && \
+                    (pm2 stop ecosystem.config.js || echo "No processes to stop") && \
+                    echo "=== Updating repository ===" && \
+                    if [ -d "frontend" ]; then \
+                        cd frontend && \
+                        echo "Repository exists, updating..." && \
+                        git fetch origin && \
+                        git reset --hard origin/${branchName} && \
+                        git clean -fd; \
+                    else \
+                        echo "Cloning repository..." && \
+                        git clone -b ${branchName} https://github.com/Capstone-Eventify/Frontend.git frontend && \
+                        cd frontend; \
+                    fi && \
+                    echo "=== Installing dependencies ===" && \
+                    npm config set prefer-offline true && \
+                    npm config set progress false && \
+                    npm install --loglevel=error && \
+                    echo "=== Starting PM2 processes ===" && \
+                    cd .. && \
+                    (pm2 delete ecosystem.config.js || echo "No processes to delete") && \
+                    pm2 start ecosystem.config.js && \
+                    pm2 save && \
+                    echo "=== Waiting for processes to start ===" && \
+                    sleep 5 && \
+                    pm2 status && \
+                    if pm2 list | grep -q "online"; then \
+                        echo "✅ Deployment to ${envName} completed successfully"; \
+                    else \
+                        echo "❌ Processes are not running properly" && \
+                        pm2 logs --err --lines 20 && \
+                        exit 1; \
+                    fi'
             """
         } catch (Exception e) {
             echo "❌ Deployment failed: ${e.getMessage()}"
