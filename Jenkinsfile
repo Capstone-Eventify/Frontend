@@ -6,6 +6,11 @@ pipeline {
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
         SSH_TIMEOUT = '600' // 10 minutes timeout
+        
+        // SSH Credential IDs - UPDATE THESE WITH YOUR ACTUAL CREDENTIAL IDs
+        DEV_CREDENTIALS = 'dev-server-key'    // Replace with your actual Dev credential ID
+        QA_CREDENTIALS = 'qa-server-key'      // Replace with your actual QA credential ID
+        PROD_CREDENTIALS = 'prod-server-key'  // Replace with your actual Prod credential ID
     }
     
     stages {
@@ -34,8 +39,7 @@ pipeline {
             steps {
                 echo "Deploying to Development environment"
                 script {
-                    // Update credential ID to match your Jenkins configuration
-                    deployToEnvironment('dev', env.DEV_SERVER, 'ec2-user', env.BRANCH_NAME)
+                    deployToEnvironment('dev', env.DEV_SERVER, env.DEV_CREDENTIALS, env.BRANCH_NAME)
                 }
             }
         }
@@ -45,8 +49,7 @@ pipeline {
             steps {
                 echo "Deploying to QA environment"
                 script {
-                    // Update credential ID to match your Jenkins configuration
-                    deployToEnvironment('qa', env.QA_SERVER, 'ec2-user', env.BRANCH_NAME)
+                    deployToEnvironment('qa', env.QA_SERVER, env.QA_CREDENTIALS, env.BRANCH_NAME)
                 }
             }
         }
@@ -63,8 +66,7 @@ pipeline {
             steps {
                 echo "Deploying to Production environment"
                 script {
-                    // Update credential ID to match your Jenkins configuration
-                    deployToEnvironment('prod', env.PROD_SERVER, 'ec2-user', env.BRANCH_NAME)
+                    deployToEnvironment('prod', env.PROD_SERVER, env.PROD_CREDENTIALS, env.BRANCH_NAME)
                 }
             }
         }
@@ -88,6 +90,7 @@ pipeline {
 
 def deployToEnvironment(String envName, String server, String credentials, String branchName) {
     echo "Deploying to ${envName.toUpperCase()} on ${server}"
+    echo "Using credentials: ${credentials}"
     
     sshagent([credentials]) {
         try {
