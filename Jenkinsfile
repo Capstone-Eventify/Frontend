@@ -2,11 +2,11 @@ pipeline {
     agent any
     
     environment {
-        DEV_SERVER = '3.22.99.0'  // Removed trailing space
+        DEV_SERVER = '3.22.99.0'
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
+        EMAIL_TO = 'your-email@gmail.com'  // ← ADD YOUR EMAIL HERE
     }
-
     
     stages {
         stage('Checkout') {
@@ -54,9 +54,33 @@ pipeline {
     post {
         success {
             echo "✅ Deployment successful"
+            mail to: "${EMAIL_TO}",
+                 subject: "✅ SUCCESS: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
+                 body: """Deployment successful!
+                 
+Job: ${env.JOB_NAME}
+Branch: ${env.BRANCH_NAME}
+Build Number: ${env.BUILD_NUMBER}
+                 
+View build: ${env.BUILD_URL}
+Console output: ${env.BUILD_URL}console
+"""
         }
         failure {
             echo "❌ Deployment failed"
+            mail to: "${EMAIL_TO}",
+                 subject: "❌ FAILED: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
+                 body: """Deployment failed!
+                 
+Job: ${env.JOB_NAME}
+Branch: ${env.BRANCH_NAME}
+Build Number: ${env.BUILD_NUMBER}
+
+⚠️ Please check the console output for error details.
+                 
+View build: ${env.BUILD_URL}
+Console output: ${env.BUILD_URL}console
+"""
         }
     }
 }
@@ -85,13 +109,11 @@ def deployToServer(String server, String credentials, String env) {
                     npm install --prefer-offline --no-audit
                 }
                 
-                
                 cd ..
                 
                 # Only start/restart frontend
                 pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
                 pm2 save
-                
                 
                 echo "✅ Frontend is running successfully"
                 pm2 status
