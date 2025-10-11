@@ -19,6 +19,7 @@ A modern, responsive event management and ticketing platform built with Next.js,
 - **Icons**: Lucide React
 - **Font**: Inter (Google Fonts)
 
+
 ## 📁 Project Structure
 
 ```
