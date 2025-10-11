@@ -75,10 +75,36 @@ def deployToServer(String server, String credentials, String env) {
                     cd frontend
                 fi
                 
-                npm install
+                # Install dependencies with memory optimization
+                npm install --prefer-offline --no-audit || {
+                    echo "npm install failed, retrying..."
+                    sleep 5
+                    npm install --prefer-offline --no-audit
+                }
+                
                 cd ..
                 pm2 start ecosystem.config.js
                 pm2 save
+                
+                # Health check - wait and verify apps are running
+                echo "Waiting for applications to stabilize..."
+                sleep 15
+                
+                # Check if both apps are online
+                if ! pm2 list | grep -q "online.*eventify-${env}-backend"; then
+                    echo "❌ Backend failed to start properly"
+                    pm2 logs --lines 50
+                    exit 1
+                fi
+                
+                if ! pm2 list | grep -q "online.*eventify-${env}-frontend"; then
+                    echo "❌ Frontend failed to start properly"
+                    pm2 logs --lines 50
+                    exit 1
+                fi
+                
+                echo "✅ Both applications are running successfully"
+                pm2 status
             '
         """
     }
