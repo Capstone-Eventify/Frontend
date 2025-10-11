@@ -92,7 +92,7 @@ def deployToServer(String server, String credentials, String env) {
                 
                 # Health check - only verify frontend is running
                 echo "Waiting for frontend to stabilize..."
-                sleep 15
+                sleep 60
                 
                 if ! pm2 list | grep -q "online.*eventify-${env}-frontend"; then
                     echo "❌ Frontend failed to start properly"
