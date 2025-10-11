@@ -6,6 +6,7 @@ pipeline {
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
     }
+
     
     stages {
         stage('Checkout') {
