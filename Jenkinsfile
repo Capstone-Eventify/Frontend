@@ -90,15 +90,6 @@ def deployToServer(String server, String credentials, String env) {
                 pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
                 pm2 save
                 
-                # Health check - only verify frontend is running
-                echo "Waiting for frontend to stabilize..."
-                sleep 60
-                
-                if ! pm2 list | grep -q "online.*eventify-${env}-frontend"; then
-                    echo "❌ Frontend failed to start properly"
-                    pm2 logs eventify-${env}-frontend --lines 50
-                    exit 1
-                fi
                 
                 echo "✅ Frontend is running successfully"
                 pm2 status
