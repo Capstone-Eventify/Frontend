@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DEV_SERVER = '3.22.99.0 '
+        DEV_SERVER = '3.22.99.0'  // Removed trailing space
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
     }
@@ -65,7 +65,9 @@ def deployToServer(String server, String credentials, String env) {
         sh """
             ssh -o StrictHostKeyChecking=no ec2-user@${server} '
                 cd /opt/eventify/${env}
-                pm2 stop all || true
+                
+                # Only stop frontend
+                pm2 stop eventify-${env}-frontend || true
                 
                 if [ -d frontend ]; then
                     cd frontend
@@ -83,27 +85,22 @@ def deployToServer(String server, String credentials, String env) {
                 }
                 
                 cd ..
-                pm2 start ecosystem.config.js
+                
+                # Only start/restart frontend
+                pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
                 pm2 save
                 
-                # Health check - wait and verify apps are running
-                echo "Waiting for applications to stabilize..."
+                # Health check - only verify frontend is running
+                echo "Waiting for frontend to stabilize..."
                 sleep 15
-                
-                # Check if both apps are online
-                if ! pm2 list | grep -q "online.*eventify-${env}-backend"; then
-                    echo "❌ Backend failed to start properly"
-                    pm2 logs --lines 50
-                    exit 1
-                fi
                 
                 if ! pm2 list | grep -q "online.*eventify-${env}-frontend"; then
                     echo "❌ Frontend failed to start properly"
-                    pm2 logs --lines 50
+                    pm2 logs eventify-${env}-frontend --lines 50
                     exit 1
                 fi
                 
-                echo "✅ Both applications are running successfully"
+                echo "✅ Frontend is running successfully"
                 pm2 status
             '
         """
