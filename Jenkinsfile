@@ -7,7 +7,6 @@ pipeline {
         PROD_SERVER = '18.117.193.239'
         EMAIL_TO = 'thilakediga321@gmail.com'  
     }
-
     
     stages {
         stage('Checkout') {
