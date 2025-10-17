@@ -65,6 +65,13 @@ Build Number: ${env.BUILD_NUMBER}
 View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
+            slackSend(channel: '#jenkins-notify', message: """
+✅ *Build Succeeded!* 🎉
+*Job:* ${env.JOB_NAME}
+*Branch:* ${env.BRANCH_NAME}
+*Build Number:* #${env.BUILD_NUMBER}
+<${env.BUILD_URL}|View build details>
+""")
         }
         failure {
             echo "❌ Deployment failed"
@@ -81,6 +88,42 @@ Build Number: ${env.BUILD_NUMBER}
 View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
+            slackSend(channel: '#jenkins-notify', message: """
+❌ *Build Failed!*
+*Job:* ${env.JOB_NAME}
+*Branch:* ${env.BRANCH_NAME}
+*Build Number:* #${env.BUILD_NUMBER}
+⚠️ Please check the logs for details.
+<${env.BUILD_URL}|View build details>
+""")
+        }
+        unstable {
+            slackSend(channel: '#jenkins-notify', message: """
+⚠️ *Build Unstable!*
+*Job:* ${env.JOB_NAME}
+*Branch:* ${env.BRANCH_NAME}
+*Build Number:* #${env.BUILD_NUMBER}
+Some tests may have failed.
+<${env.BUILD_URL}|View build details>
+""")
+        }
+        notBuilt {
+            slackSend(channel: '#jenkins-notify', message: """
+🚫 *Build Not Executed!*
+*Job:* ${env.JOB_NAME}
+*Branch:* ${env.BRANCH_NAME}
+*Build Number:* #${env.BUILD_NUMBER}
+<${env.BUILD_URL}|View build details>
+""")
+        }
+        aborted {
+            slackSend(channel: '#jenkins-notify', message: """
+🛑 *Build Aborted!*
+*Job:* ${env.JOB_NAME}
+*Branch:* ${env.BRANCH_NAME}
+*Build Number:* #${env.BUILD_NUMBER}
+<${env.BUILD_URL}|View build details>
+""")
         }
     }
 }
