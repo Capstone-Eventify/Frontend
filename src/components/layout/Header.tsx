@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
@@ -8,8 +8,66 @@ import { Button } from '@/components/ui/Button'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false) 
+  const [activeSection, setActiveSection] = useState<string>("home")
 
+  useEffect(() => {
+    const sectionsIds = NAVIGATION_ITEMS.map((item) => item.href.replace("#", ""))
+    const footerEl = document.getElementById('footer')
+  
+    // We'll track which sections are currently visible
+    const visibleSections = new Set<string>()
+  
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const id = entry.target.getAttribute('id')
+        if (!id) return
+  
+        if (entry.isIntersecting) {
+          visibleSections.add(id)
+        } else {
+          visibleSections.delete(id)
+        }
+      })
+  
+      // Remove footer from activeSection if visible
+      if (visibleSections.has('footer')) {
+        setActiveSection('')
+        return
+      }
+  
+      // Check if any section (excluding footer) is visible, if yes set the one with highest visibility
+      const visibleSectionIds = sectionsIds.filter(id => visibleSections.has(id))
+  
+      if (visibleSectionIds.length > 0) {
+        // Optionally, pick the first visible section or do some prioritization
+        setActiveSection(visibleSectionIds[0])
+      } else {
+        // If no sections visible (like top of page or footer), clear active
+        setActiveSection('')
+      }
+  
+    }, { threshold: 0.5 })
+  
+    // Observe all sections
+    sectionsIds.forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+  
+    // Observe footer as well
+    if (footerEl) observer.observe(footerEl)
+  
+    return () => {
+      sectionsIds.forEach((id) => {
+        const el = document.getElementById(id)
+        if (el) observer.unobserve(el)
+      })
+      if (footerEl) observer.unobserve(footerEl)
+    }
+  }, [])
+  
+  
   return (
     <motion.header 
       className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50"
@@ -35,10 +93,16 @@ const Header = () => {
               <motion.div key={item.name} whileHover={{ y: -2 }}>
                 <Link
                   href={item.href}
-                  className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
+                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 border-b-2 ${
+                    activeSection === item.href.replace('#', '')
+                      ? 'border-primary-600 text-primary-600 font-semibold'
+                      : 'border-transparent text-gray-700 hover:border-primary-600 hover:text-primary-600'
+                  }`}
                 >
                   {item.name}
                 </Link>
+
+
               </motion.div>
             ))}
           </nav>
@@ -76,13 +140,19 @@ const Header = () => {
             <div className="flex flex-col space-y-4">
               {NAVIGATION_ITEMS.map((item) => (
                 <Link
-                  key={item.name}
-                  href={item.href}
-                  className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMenuOpen(false)}
+                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 border-b-2 ${
+                  activeSection === item.href.replace('#', '')
+                    ? 'border-primary-600 text-primary-600 font-semibold'
+                    : 'border-transparent text-gray-700 hover:border-primary-600 hover:text-primary-600'
+                }`}
+              >
+                {item.name}
+              </Link>
+              
+              
               ))}
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 <Button variant="outline" size="sm" className="w-full">

@@ -10,14 +10,18 @@ export const SITE_CONFIG = {
 }
 
 export const NAVIGATION_ITEMS = [
+  { name: "Events", href: "#events" },
   { name: "Features", href: "#features" },
+  { name: "Testimonials", href: "#testimonials" },
   { name: "Pricing", href: "#pricing" },
-  { name: "Support", href: "#support" },
+  //{ name: "Support", href: "#support" },
 ]
 
 export const FOOTER_LINKS = {
   product: [
+    { name: "Events", href: "#events" },
     { name: "Features", href: "#features" },
+    { name: "Testimonials", href: "#testimonials" },
     { name: "Pricing", href: "#pricing" },
     { name: "Security", href: "#security" },
   ],
