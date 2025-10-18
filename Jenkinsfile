@@ -48,6 +48,15 @@ pipeline {
             }
         }
         
+        stage('Deploy to Divy') {
+            when { branch 'divy' }
+            steps {
+                script {
+                    deployToEnvironment('divy', env.DEV_SERVER, 'dev-server-key')
+                }
+            }
+        }
+        
         stage('Production Approval') {
             when { branch 'main' }
             steps {
