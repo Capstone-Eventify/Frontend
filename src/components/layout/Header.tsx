@@ -6,9 +6,12 @@ import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false) 
+  const [activeSection, setActiveSection] = useState<string>("home")
+  const { openAuthModal } = useAuth()
 
   return (
     <motion.header 
@@ -45,10 +48,18 @@ const Header = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => openAuthModal('signin')}
+            >
               Sign In
             </Button>
-            <Button variant="primary" size="sm">
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={() => openAuthModal('signup')}
+            >
               Get Started
             </Button>
           </div>
@@ -85,10 +96,26 @@ const Header = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
-                <Button variant="outline" size="sm" className="w-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    openAuthModal('signin')
+                    setIsMenuOpen(false)
+                  }}
+                >
                   Sign In
                 </Button>
-                <Button variant="primary" size="sm" className="w-full">
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    openAuthModal('signup')
+                    setIsMenuOpen(false)
+                  }}
+                >
                   Get Started
                 </Button>
               </div>

@@ -4,8 +4,11 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
+import { useAuth } from '@/contexts/AuthContext'
 
 const HeroSection = () => {
+  const { openAuthModal } = useAuth()
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
@@ -51,6 +54,7 @@ const HeroSection = () => {
               variant="primary"
               size="lg"
               className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 text-lg"
+              onClick={() => openAuthModal('signin', 'attendee')}
             >
               Find Events
             </Button>
@@ -58,6 +62,7 @@ const HeroSection = () => {
               variant="outline"
               size="lg"
               className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg"
+              onClick={() => openAuthModal('signup', 'organizer')}
             >
               Create Event
             </Button>
