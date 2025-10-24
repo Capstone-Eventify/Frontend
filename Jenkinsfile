@@ -5,14 +5,33 @@ pipeline {
         DEV_SERVER = '3.22.99.0'
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
-        EMAIL_TO = 'thilakediga321@gmail.com'  
+        EMAIL_TO = 'thilakediga321@gmail.com'
+        
+        // These will be populated during checkout
+        COMMIT_MSG = ''
+        COMMIT_AUTHOR = ''
+        COMMIT_HASH = ''
+        COMMIT_EMAIL = ''
     }
     
     stages {
         stage('Checkout') {
             steps {
-                echo "Building branch: ${env.BRANCH_NAME}"
-                checkout scm
+                script {
+                    echo "Building branch: ${env.BRANCH_NAME}"
+                    checkout scm
+                    
+                    // Get commit information
+                    env.COMMIT_MSG = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+                    env.COMMIT_AUTHOR = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
+                    env.COMMIT_EMAIL = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
+                    env.COMMIT_HASH = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
+                    env.COMMIT_HASH_FULL = sh(returnStdout: true, script: 'git log -1 --pretty=%H').trim()
+                    
+                    echo "Commit: ${env.COMMIT_MSG}"
+                    echo "Author: ${env.COMMIT_AUTHOR}"
+                    echo "Hash: ${env.COMMIT_HASH}"
+                }
             }
         }
         
@@ -53,78 +72,183 @@ pipeline {
     
     post {
         success {
-            echo "✅ Deployment successful"
-            mail to: "${EMAIL_TO}",
-                 subject: "✅ SUCCESS: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
-                 body: """Deployment successful!
-                 
+            script {
+                def environment = getEnvironmentName(env.BRANCH_NAME)
+                def duration = currentBuild.durationString.replace(' and counting', '')
+                
+                echo "✅ Deployment successful"
+                
+                mail to: "${EMAIL_TO}",
+                     subject: "✅ SUCCESS: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
+                     body: """Deployment successful!
+                     
 Job: ${env.JOB_NAME}
 Branch: ${env.BRANCH_NAME}
 Build Number: ${env.BUILD_NUMBER}
-                 
+Environment: ${environment}
+
+Commit Information:
+- Message: ${env.COMMIT_MSG}
+- Author: ${env.COMMIT_AUTHOR}
+- Hash: ${env.COMMIT_HASH}
+                     
 View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
-            slackSend(channel: '#jenkins-notify', message: """
+                
+                slackSend(
+                    channel: '#jenkins-notify',
+                    color: 'good',
+                    message: """
 ✅ *Build Succeeded!* 🎉
-*Job:* ${env.JOB_NAME}
-*Branch:* ${env.BRANCH_NAME}
-*Build Number:* #${env.BUILD_NUMBER}
-<${env.BUILD_URL}|View build details>
-""")
+
+*Environment:* ${environment}
+*Branch:* \`${env.BRANCH_NAME}\`
+*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
+*Duration:* ${duration}
+
+*Commit Information:*
+📝 *Message:* ${env.COMMIT_MSG}
+👤 *Author:* ${env.COMMIT_AUTHOR}
+🔗 *Hash:* \`${env.COMMIT_HASH}\`
+
+<${env.BUILD_URL}console|View Console Output>
+""".stripIndent()
+                )
+            }
         }
+        
         failure {
-            echo "❌ Deployment failed"
-            mail to: "${EMAIL_TO}",
-                 subject: "❌ FAILED: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
-                 body: """Deployment failed!
-                 
+            script {
+                def environment = getEnvironmentName(env.BRANCH_NAME)
+                def duration = currentBuild.durationString.replace(' and counting', '')
+                
+                echo "❌ Deployment failed"
+                
+                mail to: "${EMAIL_TO}",
+                     subject: "❌ FAILED: ${env.JOB_NAME} [${env.BRANCH_NAME}] - Build #${env.BUILD_NUMBER}",
+                     body: """Deployment failed!
+                     
 Job: ${env.JOB_NAME}
 Branch: ${env.BRANCH_NAME}
 Build Number: ${env.BUILD_NUMBER}
+Environment: ${environment}
+
+Commit Information:
+- Message: ${env.COMMIT_MSG}
+- Author: ${env.COMMIT_AUTHOR}
+- Hash: ${env.COMMIT_HASH}
 
 ⚠️ Please check the console output for error details.
-                 
+                     
 View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
-            slackSend(channel: '#jenkins-notify', message: """
-❌ *Build Failed!*
-*Job:* ${env.JOB_NAME}
-*Branch:* ${env.BRANCH_NAME}
-*Build Number:* #${env.BUILD_NUMBER}
-⚠️ Please check the logs for details.
-<${env.BUILD_URL}|View build details>
-""")
+                
+                slackSend(
+                    channel: '#jenkins-notify',
+                    color: 'danger',
+                    message: """
+❌ *Build Failed!* 💥
+
+*Environment:* ${environment}
+*Branch:* \`${env.BRANCH_NAME}\`
+*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
+*Duration:* ${duration}
+
+*Commit Information:*
+📝 *Message:* ${env.COMMIT_MSG}
+👤 *Author:* ${env.COMMIT_AUTHOR}
+🔗 *Hash:* \`${env.COMMIT_HASH}\`
+
+⚠️ *Action Required:* Check logs for error details
+<${env.BUILD_URL}console|View Console Output>
+""".stripIndent()
+                )
+            }
         }
+        
         unstable {
-            slackSend(channel: '#jenkins-notify', message: """
+            script {
+                def environment = getEnvironmentName(env.BRANCH_NAME)
+                
+                slackSend(
+                    channel: '#jenkins-notify',
+                    color: 'warning',
+                    message: """
 ⚠️ *Build Unstable!*
-*Job:* ${env.JOB_NAME}
-*Branch:* ${env.BRANCH_NAME}
-*Build Number:* #${env.BUILD_NUMBER}
+
+*Environment:* ${environment}
+*Branch:* \`${env.BRANCH_NAME}\`
+*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
+
+*Commit Information:*
+📝 *Message:* ${env.COMMIT_MSG}
+👤 *Author:* ${env.COMMIT_AUTHOR}
+🔗 *Hash:* \`${env.COMMIT_HASH}\`
+
 Some tests may have failed.
-<${env.BUILD_URL}|View build details>
-""")
+<${env.BUILD_URL}console|View Console Output>
+""".stripIndent()
+                )
+            }
         }
+        
         notBuilt {
-            slackSend(channel: '#jenkins-notify', message: """
+            script {
+                slackSend(
+                    channel: '#jenkins-notify',
+                    color: '#808080',
+                    message: """
 🚫 *Build Not Executed!*
-*Job:* ${env.JOB_NAME}
-*Branch:* ${env.BRANCH_NAME}
-*Build Number:* #${env.BUILD_NUMBER}
-<${env.BUILD_URL}|View build details>
-""")
+
+*Branch:* \`${env.BRANCH_NAME}\`
+*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
+
+<${env.BUILD_URL}console|View Console Output>
+""".stripIndent()
+                )
+            }
         }
+        
         aborted {
-            slackSend(channel: '#jenkins-notify', message: """
+            script {
+                def environment = getEnvironmentName(env.BRANCH_NAME)
+                
+                slackSend(
+                    channel: '#jenkins-notify',
+                    color: '#808080',
+                    message: """
 🛑 *Build Aborted!*
-*Job:* ${env.JOB_NAME}
-*Branch:* ${env.BRANCH_NAME}
-*Build Number:* #${env.BUILD_NUMBER}
-<${env.BUILD_URL}|View build details>
-""")
+
+*Environment:* ${environment}
+*Branch:* \`${env.BRANCH_NAME}\`
+*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
+
+*Commit Information:*
+📝 *Message:* ${env.COMMIT_MSG}
+👤 *Author:* ${env.COMMIT_AUTHOR}
+🔗 *Hash:* \`${env.COMMIT_HASH}\`
+
+<${env.BUILD_URL}console|View Console Output>
+""".stripIndent()
+                )
+            }
         }
+    }
+}
+
+// Helper function to get environment name from branch
+def getEnvironmentName(String branch) {
+    switch(branch) {
+        case 'main':
+            return '🚀 Production'
+        case 'QA':
+            return '🧪 QA'
+        case 'staging':
+            return '🔧 Development'
+        default:
+            return '🌿 ' + branch
     }
 }
 
