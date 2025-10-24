@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { UserProvider } from '@/contexts/UserContext'
 import AuthModalWrapper from '@/components/auth/AuthModalWrapper'
+import ConditionalLayout from '@/components/layout/ConditionalLayout'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -34,14 +34,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={inter.className}>
-        <AuthProvider>
-          <Header />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
-          <AuthModalWrapper />
-        </AuthProvider>
+        <UserProvider>
+          <AuthProvider>
+            <ConditionalLayout>
+              {children}
+            </ConditionalLayout>
+            <AuthModalWrapper />
+          </AuthProvider>
+        </UserProvider>
       </body>
     </html>
   )

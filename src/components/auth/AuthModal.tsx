@@ -8,22 +8,29 @@ interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   initialMode?: 'signin' | 'signup'
-  initialUserType?: 'attendee' | 'organizer'
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   isOpen, 
   onClose, 
-  initialMode = 'signin',
-  initialUserType = 'attendee'
+  initialMode = 'signin'
 }) => {
-  const handleAuth = (mode: 'signin' | 'signup', userType: 'attendee' | 'organizer', data: any) => {
-    console.log('Auth data:', { mode, userType, data })
+  const handleAuth = (mode: 'signin' | 'signup', data: any) => {
+    console.log('Auth data:', { mode, data })
     // Here you would typically handle the authentication logic
-    alert(`${mode === 'signin' ? 'Sign In' : 'Sign Up'} as ${userType} with email: ${data.email}`)
-    // Close modal after successful auth
-    onClose()
+    if (mode === 'signin') {
+      console.log('Sign In successful')
+      onClose()
+      // Redirect to home page for existing users
+      window.location.href = '/'
+    } else {
+      console.log('Account created successfully!')
+      onClose()
+      // Redirect to onboarding for new users
+      window.location.href = '/onboarding'
+    }
   }
+
 
   return (
     <AnimatePresence>
@@ -53,7 +60,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <AuthForm 
               onAuth={handleAuth}
               initialMode={initialMode}
-              initialUserType={initialUserType}
             />
           </motion.div>
         </motion.div>

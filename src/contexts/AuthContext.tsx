@@ -3,13 +3,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 type AuthMode = 'signin' | 'signup'
-type UserType = 'attendee' | 'organizer'
 
 interface AuthContextType {
   isAuthModalOpen: boolean
   authMode: AuthMode
-  userType: UserType
-  openAuthModal: (mode: AuthMode, userType?: UserType) => void
+  openAuthModal: (mode: AuthMode) => void
   closeAuthModal: () => void
 }
 
@@ -30,11 +28,9 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('signin')
-  const [userType, setUserType] = useState<UserType>('attendee')
 
-  const openAuthModal = (mode: AuthMode, userType: UserType = 'attendee') => {
+  const openAuthModal = (mode: AuthMode) => {
     setAuthMode(mode)
-    setUserType(userType)
     setIsAuthModalOpen(true)
   }
 
@@ -45,7 +41,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     isAuthModalOpen,
     authMode,
-    userType,
     openAuthModal,
     closeAuthModal
   }

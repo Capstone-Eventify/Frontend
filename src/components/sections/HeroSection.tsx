@@ -54,7 +54,7 @@ const HeroSection = () => {
               variant="primary"
               size="lg"
               className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 text-lg"
-              onClick={() => openAuthModal('signin', 'attendee')}
+              onClick={() => openAuthModal('signin')}
             >
               Find Events
             </Button>
@@ -62,7 +62,7 @@ const HeroSection = () => {
               variant="outline"
               size="lg"
               className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg"
-              onClick={() => openAuthModal('signup', 'organizer')}
+              onClick={() => openAuthModal('signup')}
             >
               Create Event
             </Button>
