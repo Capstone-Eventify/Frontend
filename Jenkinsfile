@@ -109,7 +109,7 @@ Console output: ${env.BUILD_URL}console
                     slackSend(
                         channel: '#jenkins-notify',
                         color: 'good',
-                        tokenCredentialId: 'Slack integration',
+                        tokenCredentialId: 'Slack',
                         message: """✅ *Build Succeeded!* 🎉
 
 *Environment:* ${environment}
@@ -166,7 +166,7 @@ Console output: ${env.BUILD_URL}console
                     slackSend(
                         channel: '#jenkins-notify',
                         color: 'danger',
-                        tokenCredentialId: 'Slack integration',
+                        tokenCredentialId: 'Slack',
                         message: """❌ *Build Failed!* 💥
 
 *Environment:* ${environment}
@@ -201,7 +201,7 @@ Console output: ${env.BUILD_URL}console
                     slackSend(
                         channel: '#jenkins-notify',
                         color: 'warning',
-                        tokenCredentialId: 'Slack integration',
+                        tokenCredentialId: 'Slack',
                         message: """⚠️ *Build Unstable!*
 
 *Environment:* ${environment}
@@ -229,7 +229,7 @@ Some tests may have failed.
                     slackSend(
                         channel: '#jenkins-notify',
                         color: '#808080',
-                        tokenCredentialId: 'Slack integration',
+                        tokenCredentialId: 'Slack',
                         message: """🚫 *Build Not Executed!*
 
 *Branch:* `${env.BRANCH_NAME}`
@@ -255,7 +255,7 @@ Some tests may have failed.
                     slackSend(
                         channel: '#jenkins-notify',
                         color: '#808080',
-                        tokenCredentialId: 'Slack integration',
+                        tokenCredentialId: 'Slack',
                         message: """🛑 *Build Aborted!*
 
 *Environment:* ${environment}
