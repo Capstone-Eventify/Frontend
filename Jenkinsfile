@@ -97,7 +97,7 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'good',
-                    tokenCredentialId: 'Slack',  // CHANGED: Match the actual credential ID
+                    tokenCredentialId: 'Slack integration',  // CHANGED: Match the actual credential ID
                     message: """✅ *Build Succeeded!* 🎉
 
 *Environment:* ${environment}
