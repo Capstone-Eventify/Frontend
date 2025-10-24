@@ -6,12 +6,6 @@ pipeline {
         QA_SERVER = '13.58.2.162'  
         PROD_SERVER = '18.117.193.239'
         EMAIL_TO = 'thilakediga321@gmail.com'
-        
-        // These will be populated during checkout
-        COMMIT_MSG = ''
-        COMMIT_AUTHOR = ''
-        COMMIT_HASH = ''
-        COMMIT_EMAIL = ''
     }
     
     stages {
@@ -21,12 +15,16 @@ pipeline {
                     echo "Building branch: ${env.BRANCH_NAME}"
                     checkout scm
                     
-                    // Get commit information
-                    env.COMMIT_MSG = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
-                    env.COMMIT_AUTHOR = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
-                    env.COMMIT_EMAIL = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
-                    env.COMMIT_HASH = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
-                    env.COMMIT_HASH_FULL = sh(returnStdout: true, script: 'git log -1 --pretty=%H').trim()
+                    // Get commit information - fixed version
+                    def commitMsg = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+                    def commitAuthor = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
+                    def commitEmail = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
+                    def commitHash = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
+                    
+                    env.COMMIT_MSG = commitMsg
+                    env.COMMIT_AUTHOR = commitAuthor
+                    env.COMMIT_EMAIL = commitEmail
+                    env.COMMIT_HASH = commitHash
                     
                     echo "Commit: ${env.COMMIT_MSG}"
                     echo "Author: ${env.COMMIT_AUTHOR}"
@@ -99,6 +97,7 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'good',
+                    tokenCredentialId: 'Slack',  // CHANGED: Match the actual credential ID
                     message: """✅ *Build Succeeded!* 🎉
 
 *Environment:* ${environment}
@@ -146,6 +145,7 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'danger',
+                    tokenCredentialId: 'Slack',  // CHANGED
                     message: """❌ *Build Failed!* 💥
 
 *Environment:* ${environment}
@@ -171,6 +171,7 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'warning',
+                    tokenCredentialId: 'Slack',  // CHANGED
                     message: """⚠️ *Build Unstable!*
 
 *Environment:* ${environment}
@@ -193,6 +194,7 @@ Some tests may have failed.
                 slackSend(
                     channel: '#jenkins-notify',
                     color: '#808080',
+                    tokenCredentialId: 'Slack',  // CHANGED
                     message: """🚫 *Build Not Executed!*
 
 *Branch:* `${env.BRANCH_NAME}`
@@ -210,6 +212,7 @@ Some tests may have failed.
                 slackSend(
                     channel: '#jenkins-notify',
                     color: '#808080',
+                    tokenCredentialId: 'Slack',  // CHANGED
                     message: """🛑 *Build Aborted!*
 
 *Environment:* ${environment}
