@@ -15,20 +15,27 @@ pipeline {
                     echo "Building branch: ${env.BRANCH_NAME}"
                     checkout scm
                     
-                    // Get commit information - fixed version
-                    def commitMsg = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
-                    def commitAuthor = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
-                    def commitEmail = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
-                    def commitHash = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
-                    
-                    env.COMMIT_MSG = commitMsg
-                    env.COMMIT_AUTHOR = commitAuthor
-                    env.COMMIT_EMAIL = commitEmail
-                    env.COMMIT_HASH = commitHash
-                    
-                    echo "Commit: ${env.COMMIT_MSG}"
-                    echo "Author: ${env.COMMIT_AUTHOR}"
-                    echo "Hash: ${env.COMMIT_HASH}"
+                    // Get commit information
+                    try {
+                        def commitMsg = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+                        def commitAuthor = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
+                        def commitEmail = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
+                        def commitHash = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
+                        
+                        env.COMMIT_MSG = commitMsg
+                        env.COMMIT_AUTHOR = commitAuthor
+                        env.COMMIT_EMAIL = commitEmail
+                        env.COMMIT_HASH = commitHash
+                        
+                        echo "Commit: ${env.COMMIT_MSG}"
+                        echo "Author: ${env.COMMIT_AUTHOR}"
+                        echo "Hash: ${env.COMMIT_HASH}"
+                    } catch (Exception e) {
+                        echo "Could not fetch commit info: ${e.getMessage()}"
+                        env.COMMIT_MSG = "Unable to fetch commit message"
+                        env.COMMIT_AUTHOR = "Unknown"
+                        env.COMMIT_HASH = "N/A"
+                    }
                 }
             }
         }
@@ -74,6 +81,10 @@ pipeline {
                 def environment = getEnvironmentName(env.BRANCH_NAME)
                 def duration = currentBuild.durationString.replace(' and counting', '')
                 
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
+                
                 echo "✅ Deployment successful"
                 
                 mail to: "${EMAIL_TO}",
@@ -94,11 +105,12 @@ View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
                 
-                slackSend(
-                    channel: '#jenkins-notify',
-                    color: 'good',
-                    tokenCredentialId: 'Slack integration',  // CHANGED: Match the actual credential ID
-                    message: """✅ *Build Succeeded!* 🎉
+                try {
+                    slackSend(
+                        channel: '#jenkins-notify',
+                        color: 'good',
+                        tokenCredentialId: 'Slack integration',
+                        message: """✅ *Build Succeeded!* 🎉
 
 *Environment:* ${environment}
 *Branch:* `${env.BRANCH_NAME}`
@@ -106,12 +118,16 @@ Console output: ${env.BUILD_URL}console
 *Duration:* ${duration}
 
 *Commit Information:*
-📝 *Message:* ${env.COMMIT_MSG}
-👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* `${env.COMMIT_HASH}`
+📝 *Message:* ${commitMsg}
+👤 *Author:* ${commitAuthor}
+🔗 *Hash:* `${commitHash}`
 
 <${env.BUILD_URL}console|View Console Output>"""
-                )
+                    )
+                    echo "✅ Slack notification sent successfully"
+                } catch (Exception e) {
+                    echo "❌ Slack notification failed: ${e.getMessage()}"
+                }
             }
         }
         
@@ -119,6 +135,10 @@ Console output: ${env.BUILD_URL}console
             script {
                 def environment = getEnvironmentName(env.BRANCH_NAME)
                 def duration = currentBuild.durationString.replace(' and counting', '')
+                
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
                 
                 echo "❌ Deployment failed"
                 
@@ -142,11 +162,12 @@ View build: ${env.BUILD_URL}
 Console output: ${env.BUILD_URL}console
 """
                 
-                slackSend(
-                    channel: '#jenkins-notify',
-                    color: 'danger',
-                    tokenCredentialId: 'Slack',  // CHANGED
-                    message: """❌ *Build Failed!* 💥
+                try {
+                    slackSend(
+                        channel: '#jenkins-notify',
+                        color: 'danger',
+                        tokenCredentialId: 'Slack integration',
+                        message: """❌ *Build Failed!* 💥
 
 *Environment:* ${environment}
 *Branch:* `${env.BRANCH_NAME}`
@@ -154,13 +175,17 @@ Console output: ${env.BUILD_URL}console
 *Duration:* ${duration}
 
 *Commit Information:*
-📝 *Message:* ${env.COMMIT_MSG}
-👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* `${env.COMMIT_HASH}`
+📝 *Message:* ${commitMsg}
+👤 *Author:* ${commitAuthor}
+🔗 *Hash:* `${commitHash}`
 
 ⚠️ *Action Required:* Check logs for error details
 <${env.BUILD_URL}console|View Console Output>"""
-                )
+                    )
+                    echo "✅ Slack failure notification sent"
+                } catch (Exception e) {
+                    echo "❌ Slack notification failed: ${e.getMessage()}"
+                }
             }
         }
         
@@ -168,40 +193,53 @@ Console output: ${env.BUILD_URL}console
             script {
                 def environment = getEnvironmentName(env.BRANCH_NAME)
                 
-                slackSend(
-                    channel: '#jenkins-notify',
-                    color: 'warning',
-                    tokenCredentialId: 'Slack',  // CHANGED
-                    message: """⚠️ *Build Unstable!*
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
+                
+                try {
+                    slackSend(
+                        channel: '#jenkins-notify',
+                        color: 'warning',
+                        tokenCredentialId: 'Slack integration',
+                        message: """⚠️ *Build Unstable!*
 
 *Environment:* ${environment}
 *Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
 *Commit Information:*
-📝 *Message:* ${env.COMMIT_MSG}
-👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* `${env.COMMIT_HASH}`
+📝 *Message:* ${commitMsg}
+👤 *Author:* ${commitAuthor}
+🔗 *Hash:* `${commitHash}`
 
 Some tests may have failed.
 <${env.BUILD_URL}console|View Console Output>"""
-                )
+                    )
+                    echo "✅ Slack unstable notification sent"
+                } catch (Exception e) {
+                    echo "❌ Slack notification failed: ${e.getMessage()}"
+                }
             }
         }
         
         notBuilt {
             script {
-                slackSend(
-                    channel: '#jenkins-notify',
-                    color: '#808080',
-                    tokenCredentialId: 'Slack',  // CHANGED
-                    message: """🚫 *Build Not Executed!*
+                try {
+                    slackSend(
+                        channel: '#jenkins-notify',
+                        color: '#808080',
+                        tokenCredentialId: 'Slack integration',
+                        message: """🚫 *Build Not Executed!*
 
 *Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
 <${env.BUILD_URL}console|View Console Output>"""
-                )
+                    )
+                } catch (Exception e) {
+                    echo "❌ Slack notification failed: ${e.getMessage()}"
+                }
             }
         }
         
@@ -209,23 +247,31 @@ Some tests may have failed.
             script {
                 def environment = getEnvironmentName(env.BRANCH_NAME)
                 
-                slackSend(
-                    channel: '#jenkins-notify',
-                    color: '#808080',
-                    tokenCredentialId: 'Slack',  // CHANGED
-                    message: """🛑 *Build Aborted!*
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
+                
+                try {
+                    slackSend(
+                        channel: '#jenkins-notify',
+                        color: '#808080',
+                        tokenCredentialId: 'Slack integration',
+                        message: """🛑 *Build Aborted!*
 
 *Environment:* ${environment}
 *Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
 *Commit Information:*
-📝 *Message:* ${env.COMMIT_MSG}
-👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* `${env.COMMIT_HASH}`
+📝 *Message:* ${commitMsg}
+👤 *Author:* ${commitAuthor}
+🔗 *Hash:* `${commitHash}`
 
 <${env.BUILD_URL}console|View Console Output>"""
-                )
+                    )
+                } catch (Exception e) {
+                    echo "❌ Slack notification failed: ${e.getMessage()}"
+                }
             }
         }
     }
