@@ -99,21 +99,19 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'good',
-                    message: """
-✅ *Build Succeeded!* 🎉
+                    message: """✅ *Build Succeeded!* 🎉
 
 *Environment:* ${environment}
-*Branch:* \`${env.BRANCH_NAME}\`
+*Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 *Duration:* ${duration}
 
 *Commit Information:*
 📝 *Message:* ${env.COMMIT_MSG}
 👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* \`${env.COMMIT_HASH}\`
+🔗 *Hash:* `${env.COMMIT_HASH}`
 
-<${env.BUILD_URL}console|View Console Output>
-""".stripIndent()
+<${env.BUILD_URL}console|View Console Output>"""
                 )
             }
         }
@@ -148,22 +146,20 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'danger',
-                    message: """
-❌ *Build Failed!* 💥
+                    message: """❌ *Build Failed!* 💥
 
 *Environment:* ${environment}
-*Branch:* \`${env.BRANCH_NAME}\`
+*Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 *Duration:* ${duration}
 
 *Commit Information:*
 📝 *Message:* ${env.COMMIT_MSG}
 👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* \`${env.COMMIT_HASH}\`
+🔗 *Hash:* `${env.COMMIT_HASH}`
 
 ⚠️ *Action Required:* Check logs for error details
-<${env.BUILD_URL}console|View Console Output>
-""".stripIndent()
+<${env.BUILD_URL}console|View Console Output>"""
                 )
             }
         }
@@ -175,21 +171,19 @@ Console output: ${env.BUILD_URL}console
                 slackSend(
                     channel: '#jenkins-notify',
                     color: 'warning',
-                    message: """
-⚠️ *Build Unstable!*
+                    message: """⚠️ *Build Unstable!*
 
 *Environment:* ${environment}
-*Branch:* \`${env.BRANCH_NAME}\`
+*Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
 *Commit Information:*
 📝 *Message:* ${env.COMMIT_MSG}
 👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* \`${env.COMMIT_HASH}\`
+🔗 *Hash:* `${env.COMMIT_HASH}`
 
 Some tests may have failed.
-<${env.BUILD_URL}console|View Console Output>
-""".stripIndent()
+<${env.BUILD_URL}console|View Console Output>"""
                 )
             }
         }
@@ -199,14 +193,12 @@ Some tests may have failed.
                 slackSend(
                     channel: '#jenkins-notify',
                     color: '#808080',
-                    message: """
-🚫 *Build Not Executed!*
+                    message: """🚫 *Build Not Executed!*
 
-*Branch:* \`${env.BRANCH_NAME}\`
+*Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
-<${env.BUILD_URL}console|View Console Output>
-""".stripIndent()
+<${env.BUILD_URL}console|View Console Output>"""
                 )
             }
         }
@@ -218,20 +210,18 @@ Some tests may have failed.
                 slackSend(
                     channel: '#jenkins-notify',
                     color: '#808080',
-                    message: """
-🛑 *Build Aborted!*
+                    message: """🛑 *Build Aborted!*
 
 *Environment:* ${environment}
-*Branch:* \`${env.BRANCH_NAME}\`
+*Branch:* `${env.BRANCH_NAME}`
 *Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>
 
 *Commit Information:*
 📝 *Message:* ${env.COMMIT_MSG}
 👤 *Author:* ${env.COMMIT_AUTHOR}
-🔗 *Hash:* \`${env.COMMIT_HASH}\`
+🔗 *Hash:* `${env.COMMIT_HASH}`
 
-<${env.BUILD_URL}console|View Console Output>
-""".stripIndent()
+<${env.BUILD_URL}console|View Console Output>"""
                 )
             }
         }
