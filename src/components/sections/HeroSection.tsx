@@ -1,13 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/contexts/UserContext'
+import DemoUserSwitcher from '@/components/demo/DemoUserSwitcher'
+import { Users } from 'lucide-react'
 
 const HeroSection = () => {
+  const router = useRouter()
   const { openAuthModal } = useAuth()
+  const { isAuthenticated } = useUser()
+  const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -54,7 +61,19 @@ const HeroSection = () => {
               variant="primary"
               size="lg"
               className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 text-lg"
-              onClick={() => openAuthModal('signin')}
+              onClick={() => {
+                if (isAuthenticated) {
+                  router.push('/dashboard?tab=events')
+                } else {
+                  // Scroll to events section on home page
+                  const eventsSection = document.getElementById('live-events-section')
+                  if (eventsSection) {
+                    eventsSection.scrollIntoView({ behavior: 'smooth' })
+                  } else {
+                    router.push('/#live-events-section')
+                  }
+                }
+              }}
             >
               Find Events
             </Button>
@@ -66,9 +85,26 @@ const HeroSection = () => {
             >
               Create Event
             </Button>
+            {!isAuthenticated && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto border-white/50 text-white/90 hover:bg-white/10 hover:text-white px-8 py-4 text-lg"
+                onClick={() => setShowDemoSwitcher(true)}
+              >
+                <Users size={20} className="mr-2" />
+                Try Demo Users
+              </Button>
+            )}
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Demo User Switcher */}
+      <DemoUserSwitcher
+        isOpen={showDemoSwitcher}
+        onClose={() => setShowDemoSwitcher(false)}
+      />
 
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

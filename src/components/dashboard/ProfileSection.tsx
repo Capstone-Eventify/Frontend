@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   User, 
@@ -8,47 +8,50 @@ import {
   Phone, 
   MapPin, 
   Calendar, 
-  Bell, 
   Shield, 
   CreditCard,
-  Download,
   Edit,
   Save,
   Camera,
-  Eye,
-  EyeOff,
-  CheckCircle
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useUser } from '@/contexts/UserContext'
+import OrganizerApplicationModal from './OrganizerApplicationModal'
 
-// Mock user data
-const userData = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  phone: '+1 (555) 123-4567',
-  location: 'San Francisco, CA',
-  joinDate: 'January 2023',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
-  bio: 'Passionate about technology and innovation. Love attending tech conferences and networking events.',
-  preferences: {
-    emailNotifications: true,
-    smsNotifications: false,
-    marketingEmails: true,
-    eventReminders: true,
-    weeklyDigest: true
-  },
-  stats: {
-    eventsAttended: 12,
-    totalSpent: 450,
-    favoriteCategories: ['Technology', 'Design', 'Business'],
-    networkingScore: 8.5
-  }
+// Mock stats data (in real app, this would come from API)
+const defaultStats = {
+  eventsAttended: 12,
+  totalSpent: 450,
+  favoriteCategories: ['Technology', 'Design', 'Business'],
+  networkingScore: 8.5
 }
 
+
 export default function ProfileSection() {
+  const { user, isOrganizer, isAdmin, canCreateEvents, canAccessAdmin, updateUser } = useUser()
   const [isEditing, setIsEditing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [organizerApplication, setOrganizerApplication] = useState<any>(null)
+  const [showApplicationModal, setShowApplicationModal] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  
+  // Use user data from context with fallbacks
+  const userData = {
+    name: user?.name || 'User',
+    email: user?.email || 'user@example.com',
+    phone: '+1 (555) 123-4567', // Default demo data
+    location: 'San Francisco, CA', // Default demo data
+    joinDate: user?.joinDate ? new Date(user.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
+    avatar: user?.avatar || null, // Use null instead of default image
+    bio: 'Passionate about technology and innovation. Love attending tech conferences and networking events.',
+    stats: defaultStats
+  }
+
   const [formData, setFormData] = useState({
     name: userData.name,
     email: userData.email,
@@ -56,15 +59,93 @@ export default function ProfileSection() {
     location: userData.location,
     bio: userData.bio
   })
-  const [preferences, setPreferences] = useState(userData.preferences)
+
+  // Update formData when user data changes
+  useEffect(() => {
+    setFormData({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      location: userData.location,
+      bio: userData.bio
+    })
+    // Reset avatar preview when user changes
+    setAvatarPreview(null)
+  }, [user?.name, user?.email, user?.avatar])
+
+  // Load organizer application status
+  useEffect(() => {
+    if (typeof window !== 'undefined' && user?.id) {
+      const applications = JSON.parse(localStorage.getItem('eventify_organizer_applications') || '[]')
+      const userApplication = applications.find((app: any) => app.userId === user.id)
+      if (userApplication) {
+        setOrganizerApplication(userApplication)
+      }
+    }
+  }, [user?.id])
 
   const handleSave = () => {
-    // In real app, this would save to API
+    // Update user data
+    if (user) {
+      const updatedAvatar = avatarPreview || user?.avatar || null
+      updateUser({
+        name: formData.name,
+        email: formData.email,
+        avatar: updatedAvatar
+      })
+    }
     setIsEditing(false)
+    setAvatarPreview(null)
   }
 
-  const handlePreferenceChange = (key: string, value: boolean) => {
-    setPreferences(prev => ({ ...prev, [key]: value }))
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file')
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB')
+        return
+      }
+
+      // Create preview using FileReader
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        setAvatarPreview(result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setAvatarPreview(null)
+    // Reset form data
+    setFormData({
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      location: userData.location,
+      bio: userData.bio
+    })
+  }
+
+
+  const handleApplicationSubmitted = () => {
+    // Reload application status after submission
+    if (typeof window !== 'undefined' && user?.id) {
+      const applications = JSON.parse(localStorage.getItem('eventify_organizer_applications') || '[]')
+      const userApplication = applications.find((app: any) => app.userId === user.id)
+      if (userApplication) {
+        setOrganizerApplication(userApplication)
+      }
+    }
   }
 
   return (
@@ -78,7 +159,7 @@ export default function ProfileSection() {
         <div className="flex items-center space-x-3">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <Button variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button onClick={handleSave}>
@@ -101,18 +182,27 @@ export default function ProfileSection() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="text-center">
               <div className="relative inline-block">
-                <img
-                  src={userData.avatar}
-                  alt={userData.name}
-                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
-                />
+                {avatarPreview || user?.avatar ? (
+                  <img
+                    src={avatarPreview || user?.avatar}
+                    alt={userData.name}
+                    className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-gray-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4 border-2 border-gray-200">
+                    <User size={40} className="text-primary-600" />
+                  </div>
+                )}
                 {isEditing && (
-                  <Button
-                    size="sm"
-                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full p-0"
-                  >
+                  <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary-600 hover:bg-primary-700 text-white flex items-center justify-center cursor-pointer transition-colors shadow-lg">
                     <Camera size={16} />
-                  </Button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </label>
                 )}
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">{userData.name}</h2>
@@ -227,88 +317,155 @@ export default function ProfileSection() {
             </div>
           </div>
 
-          {/* Notification Preferences */}
+          {/* Account Status */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
             <div className="space-y-4">
-              {Object.entries(preferences).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {key === 'emailNotifications' && 'Receive email notifications for important updates'}
-                      {key === 'smsNotifications' && 'Receive SMS notifications for urgent updates'}
-                      {key === 'marketingEmails' && 'Receive marketing emails and promotional offers'}
-                      {key === 'eventReminders' && 'Get reminders before your events'}
-                      {key === 'weeklyDigest' && 'Receive weekly summary of events and activities'}
-                    </p>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Role</p>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {isAdmin && (
+                    <Badge variant="error">
+                      Admin
+                    </Badge>
+                  )}
+                  {isOrganizer && !isAdmin && (
+                    <Badge variant="success">
+                      Organizer
+                    </Badge>
+                  )}
+                      {!isOrganizer && !isAdmin && (
+                        <Badge variant="outline">
+                          Attendee
+                        </Badge>
+                      )}
+                </div>
+              </div>
+
+              {/* Status Messages */}
+              {!isOrganizer && !isAdmin && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle size={16} className="text-yellow-600" />
+                    <span className="text-sm text-yellow-800">
+                      To create events, you need to apply for organizer status and get admin approval.
+                    </span>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={(e) => handlePreferenceChange(key, e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                  </label>
                 </div>
-              ))}
+              )}
+
+              {isOrganizer && !isAdmin && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Calendar size={16} className="text-green-600" />
+                    <span className="text-sm text-green-800">
+                      You are an approved organizer! You can create and manage events.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Shield size={16} className="text-red-600" />
+                    <span className="text-sm text-red-800">
+                      Admin access detected! You can manage the platform.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Account Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Change Password</p>
-                  <p className="text-sm text-gray-600">Update your account password</p>
+          {/* Organizer Application - Only show if not already an organizer */}
+          {!isOrganizer && !isAdmin && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Plus size={20} className="mr-2 text-primary-600" />
+                Become an Organizer
+              </h3>
+              
+              {organizerApplication ? (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-lg border ${
+                    organizerApplication.status === 'approved' 
+                      ? 'bg-green-50 border-green-200' 
+                      : organizerApplication.status === 'rejected'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        {organizerApplication.status === 'approved' && <CheckCircle size={20} className="text-green-600" />}
+                        {organizerApplication.status === 'rejected' && <AlertCircle size={20} className="text-red-600" />}
+                        {organizerApplication.status === 'pending' && <Clock size={20} className="text-yellow-600" />}
+                        <span className={`font-medium ${
+                          organizerApplication.status === 'approved' 
+                            ? 'text-green-800' 
+                            : organizerApplication.status === 'rejected'
+                            ? 'text-red-800'
+                            : 'text-yellow-800'
+                        }`}>
+                          Application {organizerApplication.status.charAt(0).toUpperCase() + organizerApplication.status.slice(1)}
+                        </span>
+                      </div>
+                      <Badge 
+                        variant={
+                          organizerApplication.status === 'approved' ? 'success' :
+                          organizerApplication.status === 'rejected' ? 'error' :
+                          'warning'
+                        }
+                      >
+                        {organizerApplication.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700">
+                      {organizerApplication.status === 'pending' && 'Your application is under review. We will notify you once a decision is made.'}
+                      {organizerApplication.status === 'approved' && 'Congratulations! Your organizer application has been approved. You can now create and manage events.'}
+                      {organizerApplication.status === 'rejected' && 'Your application was not approved at this time. You can submit a new application if you have additional information.'}
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-xs text-gray-600">
+                        <strong>Organization:</strong> {organizerApplication.organizationName}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        <strong>Submitted:</strong> {new Date(organizerApplication.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowApplicationModal(true)}
+                    className="w-full"
+                  >
+                    {organizerApplication.status === 'rejected' ? 'Submit New Application' : 'View Application'}
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm">
-                  Change Password
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
+              ) : (
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Two-Factor Authentication</p>
-                  <p className="text-sm text-gray-600">Add an extra layer of security</p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Apply to become an organizer and start creating your own events. Once approved, you'll be able to create, manage, and sell tickets for your events.
+                  </p>
+                  <Button onClick={() => setShowApplicationModal(true)}>
+                    <Plus size={16} className="mr-2" />
+                    Apply to Become an Organizer
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm">
-                  Enable 2FA
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Download Data</p>
-                  <p className="text-sm text-gray-600">Download a copy of your data</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download size={16} className="mr-2" />
-                  Download
-                </Button>
-              </div>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* Danger Zone */}
-          <div className="bg-red-50 rounded-lg border border-red-200 p-6">
-            <h3 className="text-lg font-semibold text-red-900 mb-4">Danger Zone</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-red-900">Delete Account</p>
-                  <p className="text-sm text-red-700">Permanently delete your account and all data</p>
-                </div>
-                <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
-                  Delete Account
-                </Button>
-              </div>
-            </div>
-          </div>
+          {/* Organizer Application Modal */}
+          <OrganizerApplicationModal
+            isOpen={showApplicationModal}
+            onClose={() => {
+              setShowApplicationModal(false)
+            }}
+            existingApplication={organizerApplication}
+            onApplicationSubmitted={handleApplicationSubmitted}
+          />
+
         </div>
       </div>
     </div>

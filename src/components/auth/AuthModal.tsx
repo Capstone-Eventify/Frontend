@@ -2,32 +2,49 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import AuthForm from './AuthForm'
+import { useUser } from '@/contexts/UserContext'
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   initialMode?: 'signin' | 'signup'
+  redirectUrl?: string | null
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   isOpen, 
   onClose, 
-  initialMode = 'signin'
+  initialMode = 'signin',
+  redirectUrl = null
 }) => {
+  const router = useRouter()
+  const { login } = useUser()
+
   const handleAuth = (mode: 'signin' | 'signup', data: any) => {
-    console.log('Auth data:', { mode, data })
-    // Here you would typically handle the authentication logic
-    if (mode === 'signin') {
-      console.log('Sign In successful')
-      onClose()
-      // Redirect to home page for existing users
-      window.location.href = '/'
+    // Create demo user data from form data
+    const userData = {
+      id: `user_${Date.now()}`,
+      name: mode === 'signup' 
+        ? `${data.firstName} ${data.lastName}` 
+        : data.email.split('@')[0], // Use email prefix as name for login
+      email: data.email,
+      role: 'attendee' as const,
+      isAdmin: false,
+      joinDate: new Date().toISOString(),
+    }
+
+    // Set user in context (this will also save to localStorage)
+    login(userData)
+    
+    onClose()
+    
+    // Redirect to the specified URL or dashboard
+    if (redirectUrl) {
+      router.push(redirectUrl)
     } else {
-      console.log('Account created successfully!')
-      onClose()
-      // Redirect to onboarding for new users
-      window.location.href = '/onboarding'
+      router.push('/dashboard')
     }
   }
 

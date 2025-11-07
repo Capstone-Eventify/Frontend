@@ -14,14 +14,19 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useUser } from '@/contexts/UserContext'
 
 interface Notification {
   id: string
   title: string
   message: string
-  type: 'success' | 'warning' | 'info' | 'error'
-  timestamp: string
+  type: 'success' | 'warning' | 'info' | 'error' | 'event_deleted'
+  timestamp?: string
+  reason?: string
+  eventId?: string
+  eventTitle?: string
   isRead: boolean
+  read?: boolean
   action?: {
     label: string
     onClick: () => void
@@ -84,36 +89,126 @@ const notificationIcons = {
   success: CheckCircle,
   warning: AlertCircle,
   info: Info,
-  error: AlertCircle
+  error: AlertCircle,
+  event_deleted: AlertCircle
 }
 
 const notificationColors = {
   success: 'text-green-600 bg-green-50',
   warning: 'text-yellow-600 bg-yellow-50',
   info: 'text-blue-600 bg-blue-50',
-  error: 'text-red-600 bg-red-50'
+  error: 'text-red-600 bg-red-50',
+  event_deleted: 'text-red-600 bg-red-50'
 }
 
 export default function NotificationCenter() {
+  const { user } = useUser()
   const [isOpen, setIsOpen] = useState(false)
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  // Load notifications from localStorage
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('eventify_notifications')
+      if (stored) {
+        try {
+          const storedNotifications = JSON.parse(stored)
+          // Convert stored notifications to the format we need
+          const formattedNotifications: Notification[] = storedNotifications
+            .filter((n: any) => {
+              // Filter: show event_deleted notifications only to the organizer who owns the event
+              // For other types, show to all users (demo purposes)
+              if (n.type === 'event_deleted') {
+                // If organizerId matches current user's ID, show it
+                // Or if organizerId is not set, show to all (demo)
+                return !n.organizerId || n.organizerId === user?.id || !user
+              }
+              return true // Show all other notifications
+            })
+            .map((n: any) => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: n.type || 'info',
+              timestamp: n.timestamp || n.createdAt,
+              reason: n.reason,
+              eventId: n.eventId,
+              eventTitle: n.eventTitle,
+              isRead: n.isRead || n.read || false,
+              action: n.action
+            }))
+          
+          // Merge with mock notifications for demo (excluding duplicates)
+          setNotifications([
+            ...formattedNotifications, 
+            ...mockNotifications.filter(mn => !formattedNotifications.some(fn => fn.id === mn.id))
+          ])
+        } catch (error) {
+          console.error('Error loading notifications:', error)
+          setNotifications(mockNotifications)
+        }
+      } else {
+        setNotifications(mockNotifications)
+      }
+    }
+  }, [user?.id])
+
+  const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-    )
+    const updated = notifications.map(n => n.id === id ? { ...n, isRead: true, read: true } : n)
+    setNotifications(updated)
+    
+    // Update in localStorage
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
+      const updatedStored = stored.map((n: any) => n.id === id ? { ...n, read: true, isRead: true } : n)
+      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    }
   }
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, isRead: true }))
-    )
+    const updated = notifications.map(n => ({ ...n, isRead: true, read: true }))
+    setNotifications(updated)
+    
+    // Update in localStorage
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
+      const updatedStored = stored.map((n: any) => ({ ...n, read: true, isRead: true }))
+      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    }
   }
 
   const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+    const updated = notifications.filter(n => n.id !== id)
+    setNotifications(updated)
+    
+    // Remove from localStorage
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
+      const updatedStored = stored.filter((n: any) => n.id !== id)
+      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    }
+  }
+
+  const formatTimestamp = (timestamp?: string) => {
+    if (!timestamp) return 'Just now'
+    try {
+      const date = new Date(timestamp)
+      const now = new Date()
+      const diff = now.getTime() - date.getTime()
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+
+      if (minutes < 1) return 'Just now'
+      if (minutes < 60) return `${minutes}m ago`
+      if (hours < 24) return `${hours}h ago`
+      if (days < 7) return `${days}d ago`
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    } catch {
+      return timestamp
+    }
   }
 
   return (
@@ -189,8 +284,8 @@ export default function NotificationCenter() {
                 ) : (
                   <div className="divide-y divide-gray-200">
                     {notifications.map((notification) => {
-                      const Icon = notificationIcons[notification.type]
-                      const colors = notificationColors[notification.type]
+                      const Icon = notificationIcons[notification.type as keyof typeof notificationIcons] || Info
+                      const colors = notificationColors[notification.type as keyof typeof notificationColors] || notificationColors.info
                       
                       return (
                         <motion.div
@@ -214,12 +309,18 @@ export default function NotificationCenter() {
                                   <p className="text-sm text-gray-600 mt-1">
                                     {notification.message}
                                   </p>
+                                  {notification.reason && (
+                                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                                      <p className="font-medium text-red-900 mb-1">Reason:</p>
+                                      <p className="text-red-700">{notification.reason}</p>
+                                    </div>
+                                  )}
                                   <p className="text-xs text-gray-500 mt-1">
-                                    {notification.timestamp}
+                                    {formatTimestamp(notification.timestamp)}
                                   </p>
                                 </div>
                                 <div className="flex items-center space-x-1 ml-2">
-                                  {!notification.isRead && (
+                                  {(!notification.isRead && !notification.read) && (
                                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                   )}
                                   <Button
