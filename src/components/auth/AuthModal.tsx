@@ -2,28 +2,52 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import AuthForm from './AuthForm'
+import { useUser } from '@/contexts/UserContext'
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   initialMode?: 'signin' | 'signup'
-  initialUserType?: 'attendee' | 'organizer'
+  redirectUrl?: string | null
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   isOpen, 
   onClose, 
   initialMode = 'signin',
-  initialUserType = 'attendee'
+  redirectUrl = null
 }) => {
-  const handleAuth = (mode: 'signin' | 'signup', userType: 'attendee' | 'organizer', data: any) => {
-    console.log('Auth data:', { mode, userType, data })
-    // Here you would typically handle the authentication logic
-    alert(`${mode === 'signin' ? 'Sign In' : 'Sign Up'} as ${userType} with email: ${data.email}`)
-    // Close modal after successful auth
+  const router = useRouter()
+  const { login } = useUser()
+
+  const handleAuth = (mode: 'signin' | 'signup', data: any) => {
+    // Create demo user data from form data
+    const userData = {
+      id: `user_${Date.now()}`,
+      name: mode === 'signup' 
+        ? `${data.firstName} ${data.lastName}` 
+        : data.email.split('@')[0], // Use email prefix as name for login
+      email: data.email,
+      role: 'attendee' as const,
+      isAdmin: false,
+      joinDate: new Date().toISOString(),
+    }
+
+    // Set user in context (this will also save to localStorage)
+    login(userData)
+    
     onClose()
+    
+    // Redirect to the specified URL or dashboard
+    if (redirectUrl) {
+      router.push(redirectUrl)
+    } else {
+      router.push('/dashboard')
+    }
   }
+
 
   return (
     <AnimatePresence>
@@ -53,7 +77,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <AuthForm 
               onAuth={handleAuth}
               initialMode={initialMode}
-              initialUserType={initialUserType}
             />
           </motion.div>
         </motion.div>
