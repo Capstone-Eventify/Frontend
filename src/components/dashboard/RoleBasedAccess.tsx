@@ -106,10 +106,11 @@ export default function RoleBasedAccess() {
             <Button 
               size="sm" 
               className="bg-red-600 hover:bg-red-700"
-              onClick={() => window.location.href = '/admin'}
+              disabled
+              title="Admin panel not available in demo mode"
             >
               <Shield size={14} className="mr-1" />
-              Go to Admin
+              Admin Panel (Coming Soon)
             </Button>
           </div>
         </div>

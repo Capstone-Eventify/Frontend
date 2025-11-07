@@ -7,7 +7,8 @@ type AuthMode = 'signin' | 'signup'
 interface AuthContextType {
   isAuthModalOpen: boolean
   authMode: AuthMode
-  openAuthModal: (mode: AuthMode) => void
+  redirectUrl: string | null
+  openAuthModal: (mode: AuthMode, redirectUrl?: string) => void
   closeAuthModal: () => void
 }
 
@@ -28,19 +29,23 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('signin')
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 
-  const openAuthModal = (mode: AuthMode) => {
+  const openAuthModal = (mode: AuthMode, redirectUrl?: string) => {
     setAuthMode(mode)
+    setRedirectUrl(redirectUrl || null)
     setIsAuthModalOpen(true)
   }
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false)
+    setRedirectUrl(null)
   }
 
   const value = {
     isAuthModalOpen,
     authMode,
+    redirectUrl,
     openAuthModal,
     closeAuthModal
   }

@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   Calendar, 
@@ -10,20 +11,21 @@ import {
   Clock,
   MapPin,
   Star,
-  ArrowRight,
-  Plus
+  ArrowRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import RoleBasedAccess from './RoleBasedAccess'
+import { useUser } from '@/contexts/UserContext'
 
-// Mock data - in real app, this would come from API
-const stats = [
-  { label: 'Events Attended', value: '12', icon: Calendar, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  { label: 'Active Tickets', value: '3', icon: Ticket, color: 'text-green-600', bgColor: 'bg-green-50' },
-  { label: 'Total Spent', value: '$450', icon: TrendingUp, color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  { label: 'Networking Score', value: '8.5', icon: Users, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-]
+// Calculate total spent from tickets
+const calculateTotalSpent = (tickets: any[]) => {
+  return tickets.reduce((total, ticket) => {
+    if (!ticket || !ticket.price) return total
+    const priceStr = typeof ticket.price === 'string' ? ticket.price : String(ticket.price || '0')
+    const price = parseFloat(priceStr.replace('$', '').replace('FREE', '0') || '0')
+    return total + (isNaN(price) ? 0 : price)
+  }, 0)
+}
 
 const upcomingEvents = [
   {
@@ -66,65 +68,181 @@ const recentActivity = [
 ]
 
 export default function DashboardOverview() {
+  const { user } = useUser()
+  const router = useRouter()
+  const userName = user?.name || 'User'
+  const firstName = userName.split(' ')[0]
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false)
+  const [userTickets, setUserTickets] = useState<any[]>([])
+  const [eventsAttended, setEventsAttended] = useState(0)
+  const [activeTickets, setActiveTickets] = useState(0)
+  const [attendedEvents, setAttendedEvents] = useState<any[]>([])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && user?.id) {
+      // Check if user has seen the welcome banner before
+      const hasSeenWelcome = localStorage.getItem(`eventify_welcome_seen_${user.id}`)
+      if (!hasSeenWelcome) {
+        setShowWelcomeBanner(true)
+        // Mark as seen
+        localStorage.setItem(`eventify_welcome_seen_${user.id}`, 'true')
+      }
+
+      // Load user tickets
+      const storedTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
+      setUserTickets(storedTickets)
+
+      // Calculate events attended (tickets with checkInStatus === 'checked_in')
+      const attendedTickets = storedTickets.filter((ticket: any) => 
+        ticket.checkInStatus === 'checked_in'
+      )
+      setEventsAttended(attendedTickets.length)
+      
+      // Get unique attended events (by eventId or eventTitle)
+      const uniqueAttendedEvents = attendedTickets.reduce((acc: any[], ticket: any) => {
+        const eventId = ticket.eventId || ticket.eventTitle
+        if (!acc.find(e => (e.eventId || e.eventTitle) === eventId)) {
+          acc.push(ticket)
+        }
+        return acc
+      }, [])
+      setAttendedEvents(uniqueAttendedEvents)
+
+      // Calculate active tickets (confirmed tickets that haven't been checked in or are upcoming)
+      const active = storedTickets.filter((ticket: any) => 
+        ticket.status === 'confirmed' && ticket.checkInStatus !== 'checked_in'
+      ).length
+      setActiveTickets(active)
+    }
+  }, [user?.id])
+
+  const handleBrowseEvents = () => {
+    router.replace('/dashboard?tab=events')
+  }
+
+  const handleActiveTicketsClick = () => {
+    router.replace('/dashboard?tab=tickets')
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Welcome back, John! 👋</h1>
-        <p className="text-primary-100 mb-4">Here's what's happening with your events today.</p>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="secondary" size="sm">
-            <Plus size={16} className="mr-2" />
-            Create Event
-          </Button>
-          <Button variant="outline" size="sm" className="text-white border-white hover:bg-white hover:text-primary-600">
-            Browse Events
-          </Button>
-        </div>
-      </div>
+      {/* Welcome Section - Only for first-time users */}
+      {showWelcomeBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white"
+        >
+          <h1 className="text-2xl font-bold mb-2">Welcome back, {firstName}! 👋</h1>
+          <p className="text-primary-100 mb-4">Here's what's happening with your events today.</p>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-white border-white hover:bg-white hover:text-primary-600"
+              onClick={handleBrowseEvents}
+            >
+              Browse Events
+            </Button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-                <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-                  <Icon size={24} className={stat.color} />
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Events */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Upcoming Events</h2>
-              <Button variant="outline" size="sm">
-                View All
-                <ArrowRight size={16} className="ml-2" />
-              </Button>
+        {/* Events Attended - Clickable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0 }}
+          onClick={() => {
+            // Scroll to attended events section or show modal
+            const section = document.getElementById('attended-events-section')
+            if (section) {
+              section.scrollIntoView({ behavior: 'smooth' })
+            }
+          }}
+          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Events Attended</p>
+              <p className="text-2xl font-bold text-gray-900">{eventsAttended}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Calendar size={24} className="text-blue-600" />
             </div>
           </div>
+        </motion.div>
+
+        {/* Active Tickets - Clickable */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onClick={handleActiveTicketsClick}
+          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Active Tickets</p>
+              <p className="text-2xl font-bold text-gray-900">{activeTickets}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+              <Ticket size={24} className="text-green-600" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Total Spent */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Spent</p>
+              <p className="text-2xl font-bold text-gray-900">${calculateTotalSpent(userTickets).toFixed(0)}</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+              <TrendingUp size={24} className="text-purple-600" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Networking Score */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Networking Score</p>
+              <p className="text-2xl font-bold text-gray-900">8.5</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <Users size={24} className="text-orange-600" />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Events Attended Section */}
+      {attendedEvents.length > 0 && (
+        <div id="attended-events-section" className="bg-white rounded-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Events You Attended</h2>
+            <p className="text-sm text-gray-600 mt-1">Events you've checked in to</p>
+          </div>
           <div className="p-6 space-y-4">
-            {upcomingEvents.map((event, index) => (
+            {attendedEvents.map((event, index) => (
               <motion.div
-                key={event.id}
+                key={event.id || index}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -132,88 +250,106 @@ export default function DashboardOverview() {
               >
                 <img
                   src={event.image}
-                  alt={event.title}
+                  alt={event.eventTitle}
                   className="w-12 h-12 rounded-lg object-cover"
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
+                  <h3 className="font-medium text-gray-900 truncate">{event.eventTitle}</h3>
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                     <div className="flex items-center">
                       <Clock size={14} className="mr-1" />
-                      {event.date} at {event.time}
+                      {event.eventDate} {event.eventTime ? `at ${event.eventTime}` : ''}
                     </div>
                     <div className="flex items-center">
                       <MapPin size={14} className="mr-1" />
-                      {event.location}
+                      {event.eventLocation}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">{event.price}</p>
-                  <Badge 
-                    variant={event.status === 'confirmed' ? 'success' : 'warning'}
-                    size="sm"
-                  >
-                    {event.status}
-                  </Badge>
-                </div>
+                <Badge variant="success" size="sm">
+                  Attended
+                </Badge>
               </motion.div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+      {/* Upcoming Events - Events user registered for */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Upcoming Events</h2>
+              <p className="text-sm text-gray-600 mt-1">Events you're registered for</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.replace('/dashboard?tab=tickets')}
+            >
+              View All Tickets
+              <ArrowRight size={16} className="ml-2" />
+            </Button>
           </div>
-          <div className="p-6 space-y-4">
-            {recentActivity.map((activity, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-3"
+        </div>
+        <div className="p-6">
+          {userTickets.filter((t: any) => t.status === 'confirmed' && t.checkInStatus !== 'checked_in').length === 0 ? (
+            <div className="text-center py-8">
+              <Ticket size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-4">No upcoming events</p>
+              <Button 
+                variant="outline"
+                onClick={() => router.replace('/dashboard?tab=events')}
               >
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Star size={16} className="text-primary-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{activity.action}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                Browse Events
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userTickets
+                .filter((t: any) => t.status === 'confirmed' && t.checkInStatus !== 'checked_in')
+                .slice(0, 5)
+                .map((ticket: any, index: number) => (
+                  <motion.div
+                    key={ticket.id || index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center space-x-4 p-4 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/events/${ticket.eventId}`)}
+                  >
+                    <img
+                      src={ticket.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'}
+                      alt={ticket.eventTitle}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate">{ticket.eventTitle}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                        <div className="flex items-center">
+                          <Clock size={14} className="mr-1" />
+                          {ticket.eventDate} {ticket.eventTime ? `at ${ticket.eventTime}` : ''}
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin size={14} className="mr-1" />
+                          {ticket.eventLocation}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">{ticket.price}</p>
+                      <Badge variant="success" size="sm">
+                        {ticket.ticketType || 'Confirmed'}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Role-Based Access Demo */}
-      <RoleBasedAccess />
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Button variant="outline" className="h-20 flex-col space-y-2">
-            <Calendar size={24} />
-            <span>Browse Events</span>
-          </Button>
-          <Button variant="outline" className="h-20 flex-col space-y-2">
-            <Ticket size={24} />
-            <span>My Tickets</span>
-          </Button>
-          <Button variant="outline" className="h-20 flex-col space-y-2">
-            <Plus size={24} />
-            <span>Create Event</span>
-          </Button>
-          <Button variant="outline" className="h-20 flex-col space-y-2">
-            <Users size={24} />
-            <span>Network</span>
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }

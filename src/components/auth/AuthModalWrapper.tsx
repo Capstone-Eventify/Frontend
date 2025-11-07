@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import AuthModal from './AuthModal'
 
 const AuthModalWrapper: React.FC = () => {
-  const { isAuthModalOpen, authMode, closeAuthModal } = useAuth()
+  const { isAuthModalOpen, authMode, redirectUrl, closeAuthModal } = useAuth()
 
   return (
     <AuthModal
       isOpen={isAuthModalOpen}
       onClose={closeAuthModal}
       initialMode={authMode}
+      redirectUrl={redirectUrl}
     />
   )
 }

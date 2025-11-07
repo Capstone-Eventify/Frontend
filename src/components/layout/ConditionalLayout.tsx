@@ -12,14 +12,8 @@ interface ConditionalLayoutProps {
 const ConditionalLayout: React.FC<ConditionalLayoutProps> = ({ children }) => {
   const pathname = usePathname()
   
-  // Pages that should NOT have navigation (onboarding, dashboard, admin, etc.)
-  const noNavigationPages = [
-    '/onboarding',
-    '/dashboard',
-    '/admin'
-  ]
-  
-  const shouldShowNavigation = !noNavigationPages.includes(pathname)
+  // Only show navigation on home page
+  const shouldShowNavigation = pathname === '/'
 
   return (
     <>
