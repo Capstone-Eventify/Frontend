@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DEV_SERVER = '3.22.99.0'
-        QA_SERVER = '3.21.163.196'  
+        QA_SERVER = '3.144.167.185'  
         PROD_SERVER = '18.117.193.239'
         EMAIL_TO = 'thilakediga321@gmail.com'
     }
