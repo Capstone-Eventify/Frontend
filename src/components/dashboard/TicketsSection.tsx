@@ -22,11 +22,13 @@ import { Badge } from '@/components/ui/Badge'
 import QRCodeDisplay from '@/components/events/QRCodeDisplay'
 import RefundRequestModal from '@/components/events/RefundRequestModal'
 import TicketDetailModal from './TicketDetailModal'
+import { eventDetails } from '@/data/eventDetails'
 
 // Mock data
 const tickets = [
   {
     id: '1',
+    eventId: '1', // Tech Innovation Summit 2024
     eventTitle: 'Tech Innovation Summit 2024',
     eventDate: 'Dec 15, 2024',
     eventTime: '9:00 AM - 5:00 PM',
@@ -38,10 +40,12 @@ const tickets = [
     qrCode: 'TECH2024-001',
     seatNumber: 'A-15',
     orderNumber: 'ORD-12345',
+    orderId: 'ORD-12345',
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
   },
   {
     id: '2',
+    eventId: '2', // Digital Marketing Masterclass
     eventTitle: 'Digital Marketing Masterclass',
     eventDate: 'Dec 20, 2024',
     eventTime: '2:00 PM - 6:00 PM',
@@ -53,10 +57,12 @@ const tickets = [
     qrCode: 'DIGITAL2024-002',
     seatNumber: null,
     orderNumber: 'ORD-12346',
+    orderId: 'ORD-12346',
     image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
   },
   {
     id: '3',
+    eventId: '3', // Global Design Conference
     eventTitle: 'Global Design Conference',
     eventDate: 'Jan 5, 2025',
     eventTime: '10:00 AM - 6:00 PM',
@@ -68,10 +74,12 @@ const tickets = [
     qrCode: 'DESIGN2025-003',
     seatNumber: 'VIP-8',
     orderNumber: 'ORD-12347',
+    orderId: 'ORD-12347',
     image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
   },
   {
     id: '4',
+    eventId: '4', // Startup Pitch Competition (if exists) or use a default
     eventTitle: 'Startup Pitch Competition',
     eventDate: 'Jan 12, 2025',
     eventTime: '1:00 PM - 4:00 PM',
@@ -83,6 +91,7 @@ const tickets = [
     qrCode: 'STARTUP2025-004',
     seatNumber: 'B-22',
     orderNumber: 'ORD-12348',
+    orderId: 'ORD-12348',
     image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
   }
 ]
@@ -106,9 +115,32 @@ export default function TicketsSection() {
     // Load tickets from localStorage
     if (typeof window !== 'undefined') {
       const storedTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
+      
+      // Migration: Add eventId to tickets that don't have it
+      // Try to match by eventTitle to eventDetails
+      const migratedTickets = storedTickets.map((ticket: any) => {
+        if (!ticket.eventId && ticket.eventTitle) {
+          // Try to find matching event by title
+          const matchingEvent = eventDetails.find((e: any) => 
+            e.title === ticket.eventTitle || 
+            e.title.toLowerCase().includes(ticket.eventTitle.toLowerCase()) ||
+            ticket.eventTitle.toLowerCase().includes(e.title.toLowerCase())
+          )
+          if (matchingEvent) {
+            return { ...ticket, eventId: matchingEvent.id }
+          }
+        }
+        return ticket
+      })
+      
+      // Update localStorage with migrated tickets
+      if (migratedTickets.some((t: any, i: number) => t.eventId !== storedTickets[i]?.eventId)) {
+        localStorage.setItem('eventify_tickets', JSON.stringify(migratedTickets))
+      }
+      
       // Merge with mock data, prioritizing stored tickets
-      const mergedTickets = [...storedTickets, ...tickets.filter(t => 
-        !storedTickets.some((st: any) => st.id === t.id)
+      const mergedTickets = [...migratedTickets, ...tickets.filter(t => 
+        !migratedTickets.some((st: any) => st.id === t.id)
       )]
       setAllTickets(mergedTickets)
     }
@@ -180,12 +212,15 @@ export default function TicketsSection() {
         return a.id.localeCompare(b.id)
       })
       
+      // Find eventId from any ticket in the group (some old tickets might not have it on first ticket)
+      const eventId = ticketGroup.find((t: any) => t.eventId)?.eventId || ticketGroup[0]?.eventId
+      
       return {
         orderId: ticketGroup[0].orderId || ticketGroup[0].orderNumber,
         orderNumber: ticketGroup[0].orderNumber,
         tickets: sorted,
-        // Use first ticket's info for display
-        eventId: ticketGroup[0].eventId,
+        // Use first ticket's info for display, but ensure eventId is found
+        eventId: eventId,
         eventTitle: ticketGroup[0].eventTitle,
         eventDate: ticketGroup[0].eventDate,
         eventTime: ticketGroup[0].eventTime,

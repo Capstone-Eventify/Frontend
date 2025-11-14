@@ -228,7 +228,7 @@ export default function OrganizerDashboard() {
             <Button variant="outline" size="sm" onClick={() => setActiveView('events')}>
               <Calendar size={16} className="mr-2" />
               Back to Events
-            </Button>
+          </Button>
           )}
           <Button onClick={handleCreateEvent}>
             <Plus size={16} className="mr-2" />
@@ -329,32 +329,32 @@ export default function OrganizerDashboard() {
       {activeView === 'events' && (
         <>
           {/* Organizer Stats - Calculate from actual events */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-lg p-6 border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Events</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-lg p-6 border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Events</p>
                   <p className="text-2xl font-bold text-gray-900">{organizerEvents.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <Calendar size={24} className="text-blue-600" />
-                </div>
-              </div>
-            </motion.div>
+            </div>
+            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Calendar size={24} className="text-blue-600" />
+            </div>
+          </div>
+        </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-lg p-6 border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-lg p-6 border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900">
                     ${(() => {
                       // Calculate from tickets
@@ -374,22 +374,22 @@ export default function OrganizerDashboard() {
                       return '0'
                     })()}
                   </p>
-                </div>
-                <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                  <DollarSign size={24} className="text-green-600" />
-                </div>
-              </div>
-            </motion.div>
+            </div>
+            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+              <DollarSign size={24} className="text-green-600" />
+            </div>
+          </div>
+        </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-lg p-6 border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Total Attendees</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-lg p-6 border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Attendees</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {(() => {
                       // Calculate from tickets
@@ -404,22 +404,22 @@ export default function OrganizerDashboard() {
                       return '0'
                     })()}
                   </p>
-                </div>
-                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
-                  <Users size={24} className="text-purple-600" />
-                </div>
-              </div>
-            </motion.div>
+            </div>
+            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+              <Users size={24} className="text-purple-600" />
+            </div>
+          </div>
+        </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-lg p-6 border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">Active Events</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-lg p-6 border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Active Events</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {organizerEvents.filter((e: any) => {
                       // Check if event hasn't ended
@@ -438,18 +438,18 @@ export default function OrganizerDashboard() {
                       }
                     }).length}
                   </p>
-                </div>
-                <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-                  <Activity size={24} className="text-orange-600" />
-                </div>
-              </div>
-            </motion.div>
+            </div>
+            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <Activity size={24} className="text-orange-600" />
+            </div>
           </div>
+            </motion.div>
+      </div>
 
           {/* My Created Events */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">My Created Events</h2>
                   <p className="text-sm text-gray-600 mt-1">Manage and track your events</p>
@@ -492,13 +492,13 @@ export default function OrganizerDashboard() {
                     <Plus size={16} className="mr-2" />
                     Create Your First Event
                   </Button>
-                </div>
+          </div>
               ) : viewMode === 'grid' ? (
                 // Grid View
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {organizerEvents.map((event, index) => (
-                    <motion.div
-                      key={event.id}
+              <motion.div
+                key={event.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.05 }}
@@ -508,7 +508,7 @@ export default function OrganizerDashboard() {
                       <div className="relative">
                         <img
                           src={event.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'}
-                          alt={event.title}
+                  alt={event.title}
                           className="w-full h-48 object-cover"
                         />
                         <div className="absolute top-3 right-3">
@@ -525,8 +525,8 @@ export default function OrganizerDashboard() {
                           <div className="flex items-center">
                             <Users size={14} className="mr-2" />
                             {event.attendees?.toLocaleString() || 0} attendees
-                          </div>
-                        </div>
+                  </div>
+                </div>
                         <div className="flex flex-wrap gap-2">
                           <Button 
                             variant="outline" 
@@ -590,7 +590,7 @@ export default function OrganizerDashboard() {
                             title="View Waitlist"
                           >
                             <Clock size={14} />
-                          </Button>
+                    </Button>
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -601,22 +601,22 @@ export default function OrganizerDashboard() {
                             }}
                             title="Delete Event"
                           >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
+              </motion.div>
+            ))}
+          </div>
               ) : (
                 // List View
                 <div className="space-y-4">
                   {organizerEvents.map((event, index) => (
-                    <motion.div
+              <motion.div
                       key={event.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
                       className="flex items-center space-x-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer"
                       onClick={() => handleViewEvent(event.id)}
                     >
@@ -625,13 +625,13 @@ export default function OrganizerDashboard() {
                         alt={event.title}
                         className="w-16 h-16 rounded-lg object-cover"
                       />
-                      <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
                         <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                           <span>{event.date}</span>
                           <span>{event.attendees?.toLocaleString() || 0} attendees</span>
-                        </div>
-                      </div>
+          </div>
+        </div>
                       <div className="flex items-center space-x-2">
                         {getStatusBadge(event.status || 'upcoming')}
                         <div className="flex space-x-1">
@@ -645,7 +645,7 @@ export default function OrganizerDashboard() {
                             title="Edit Event"
                           >
                             <Edit size={14} />
-                          </Button>
+          </Button>
                           {(event.status === 'draft') ? (
                             <Button 
                               variant="primary" 
@@ -657,7 +657,7 @@ export default function OrganizerDashboard() {
                               title="Publish Event"
                             >
                               <Globe size={14} />
-                            </Button>
+          </Button>
                           ) : (event.status === 'live' || event.status === 'upcoming') ? (
                             <Button 
                               variant="outline" 
@@ -669,11 +669,11 @@ export default function OrganizerDashboard() {
                               title="Unpublish Event"
                             >
                               <EyeOff size={14} />
-                            </Button>
+          </Button>
                           ) : null}
-                          <Button 
+            <Button
                             variant="outline" 
-                            size="sm"
+              size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleViewAttendees(event.id)
@@ -681,10 +681,10 @@ export default function OrganizerDashboard() {
                             title="View Attendees"
                           >
                             <Users size={14} />
-                          </Button>
-                          <Button 
+            </Button>
+            <Button
                             variant="outline" 
-                            size="sm"
+              size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleViewWaitlist(event.id)
@@ -692,10 +692,10 @@ export default function OrganizerDashboard() {
                             title="View Waitlist"
                           >
                             <Clock size={14} />
-                          </Button>
-                          <Button 
+            </Button>
+            <Button
                             variant="outline" 
-                            size="sm" 
+              size="sm"
                             className="text-red-600 hover:text-red-700"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -704,9 +704,9 @@ export default function OrganizerDashboard() {
                             title="Delete Event"
                           >
                             <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </div>
+            </Button>
+          </div>
+        </div>
                     </motion.div>
                   ))}
                 </div>

@@ -10,6 +10,7 @@ import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/contexts/UserContext'
 import DemoUserSwitcher from '@/components/demo/DemoUserSwitcher'
+import NotificationBell from './NotificationBell'
 
 const Header = () => {
   const router = useRouter()
@@ -66,27 +67,32 @@ const Header = () => {
           </nav>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {isAuthenticated ? (
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsProfileDropdownOpen(true)}
-                onMouseLeave={() => setIsProfileDropdownOpen(false)}
-              >
-                {/* Profile Icon */}
-                <button
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 transition-colors border-2 border-primary-300"
+              <>
+                {/* Notification Bell */}
+                <NotificationBell />
+                
+                {/* Profile Dropdown */}
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setIsProfileDropdownOpen(true)}
+                  onMouseLeave={() => setIsProfileDropdownOpen(false)}
                 >
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name || 'User'}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <User size={20} className="text-primary-600" />
-                  )}
-                </button>
+                  {/* Profile Icon */}
+                  <button
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 transition-colors border-2 border-primary-300"
+                  >
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name || 'User'}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <User size={20} className="text-primary-600" />
+                    )}
+                  </button>
 
                 {/* Dropdown Menu */}
                 <AnimatePresence>
@@ -138,7 +144,8 @@ const Header = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+                </div>
+              </>
             ) : (
               <>
                 <Button 
@@ -193,6 +200,13 @@ const Header = () => {
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 {isAuthenticated ? (
                   <>
+                    {/* Notification Bell for Mobile */}
+                    <div className="px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Notifications</span>
+                        <NotificationBell />
+                      </div>
+                    </div>
                     <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
                       <Button variant="outline" size="sm" className="w-full">
                         Dashboard

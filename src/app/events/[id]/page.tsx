@@ -54,86 +54,94 @@ export default function EventDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isEventOwner, setIsEventOwner] = useState(false)
 
-  // Scroll to top when route changes - run after component fully renders
+  // Scroll to top when route changes - prevent any scroll to bottom
   useEffect(() => {
-    // Disable Next.js scroll restoration temporarily
-    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
-      const originalScrollRestoration = window.history.scrollRestoration
+    if (typeof window === 'undefined') return
+
+    // Set scroll restoration to manual to prevent browser from restoring scroll position
+    const originalScrollRestoration = window.history.scrollRestoration || 'auto'
+    if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual'
-      
-      // Prevent any scroll behavior from smooth scrolling
-      const html = document.documentElement
-      const body = document.body
-      const originalScrollBehavior = html.style.scrollBehavior
-      const originalBodyScrollBehavior = body.style.scrollBehavior
-      
-      html.style.scrollBehavior = 'auto'
-      body.style.scrollBehavior = 'auto'
-      
-      const scrollToTop = () => {
-        // Force scroll to top using multiple methods
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+    
+    // Disable smooth scrolling temporarily
+    const html = document.documentElement
+    const body = document.body
+    const originalHtmlScrollBehavior = html.style.scrollBehavior
+    const originalBodyScrollBehavior = body.style.scrollBehavior
+    
+    html.style.scrollBehavior = 'auto'
+    body.style.scrollBehavior = 'auto'
+    
+    // Immediate scroll to top
+    const scrollToTop = () => {
+      // Use multiple methods to ensure scroll works
+      if (window.scrollY !== 0 || window.pageYOffset !== 0) {
+        window.scrollTo(0, 0)
         window.scroll(0, 0)
+      }
+      if (html.scrollTop !== 0) {
         html.scrollTop = 0
+      }
+      if (body.scrollTop !== 0) {
         body.scrollTop = 0
-        
-        // Note: Don't reset scrollable containers like CommunicationBoard
-        // They should maintain their own scroll position
       }
-      
-      // Scroll immediately
-      scrollToTop()
-      
-      // Use requestAnimationFrame for immediate execution
-      requestAnimationFrame(() => {
+    }
+    
+    // Scroll immediately before anything renders
+    scrollToTop()
+    
+    // Use MutationObserver to catch any DOM changes that might cause scrolling
+    const observer = new MutationObserver(() => {
+      if (window.scrollY > 100) {
         scrollToTop()
-      })
-      
-      // Scroll after render (use multiple timeouts to catch all render cycles)
-      const timeout1 = setTimeout(scrollToTop, 0)
-      const timeout2 = setTimeout(scrollToTop, 50)
-      const timeout3 = setTimeout(scrollToTop, 100)
-      const timeout4 = setTimeout(() => {
-        scrollToTop()
-      }, 200)
-      
-      // Final check after all components have rendered
-      const timeout5 = setTimeout(() => {
-        scrollToTop()
-        // Restore scroll behavior after we're done
-        html.style.scrollBehavior = originalScrollBehavior || ''
-        body.style.scrollBehavior = originalBodyScrollBehavior || ''
-        window.history.scrollRestoration = originalScrollRestoration
-      }, 300)
-      
-      return () => {
-        clearTimeout(timeout1)
-        clearTimeout(timeout2)
-        clearTimeout(timeout3)
-        clearTimeout(timeout4)
-        clearTimeout(timeout5)
-        html.style.scrollBehavior = originalScrollBehavior || ''
-        body.style.scrollBehavior = originalBodyScrollBehavior || ''
-        window.history.scrollRestoration = originalScrollRestoration
       }
+    })
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    })
+    
+    // Scroll after DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', scrollToTop)
     } else {
-      // Fallback for browsers without scrollRestoration
-      const scrollToTop = () => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-        window.scroll(0, 0)
-        document.documentElement.scrollTop = 0
-        document.body.scrollTop = 0
-      }
-      
       scrollToTop()
-      const timeout1 = setTimeout(scrollToTop, 0)
-      const timeout2 = setTimeout(scrollToTop, 100)
-      const timeout3 = setTimeout(scrollToTop, 200)
-      
-      return () => {
-        clearTimeout(timeout1)
-        clearTimeout(timeout2)
-        clearTimeout(timeout3)
+    }
+    
+    // Scroll after render cycles
+    const timeouts = [
+      setTimeout(scrollToTop, 0),
+      setTimeout(scrollToTop, 10),
+      setTimeout(scrollToTop, 50),
+      setTimeout(scrollToTop, 100),
+      setTimeout(scrollToTop, 200),
+    ]
+    
+    // Final scroll and cleanup
+    const finalTimeout = setTimeout(() => {
+      scrollToTop()
+      observer.disconnect()
+      // Restore original scroll behavior
+      html.style.scrollBehavior = originalHtmlScrollBehavior || ''
+      body.style.scrollBehavior = originalBodyScrollBehavior || ''
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = originalScrollRestoration as 'auto' | 'manual'
+      }
+    }, 300)
+    
+    return () => {
+      // Cleanup
+      observer.disconnect()
+      document.removeEventListener('DOMContentLoaded', scrollToTop)
+      timeouts.forEach(timeout => clearTimeout(timeout))
+      clearTimeout(finalTimeout)
+      html.style.scrollBehavior = originalHtmlScrollBehavior || ''
+      body.style.scrollBehavior = originalBodyScrollBehavior || ''
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = originalScrollRestoration as 'auto' | 'manual'
       }
     }
   }, [params.id])
