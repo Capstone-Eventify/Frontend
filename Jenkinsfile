@@ -2,10 +2,12 @@ pipeline {
     agent any
     
     environment {
-        DEV_SERVER = '3.22.99.0'
-        QA_SERVER = '3.144.167.185'  
+        DEV_SERVER = '18.218.232.116'
+        QA_SERVER = '18.218.168.41'  
         PROD_SERVER = '18.117.193.239'
-        EMAIL_TO = 'thilakediga321@gmail.com'
+        
+        // No hardcoded emails - using Jenkins global variables instead!
+        // Variables available from Jenkins: Developers, QA, Product, Backend
     }
     
     stages {
@@ -18,19 +20,23 @@ pipeline {
                     try {
                         def commitMsg = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
                         def commitAuthor = sh(returnStdout: true, script: 'git log -1 --pretty=%an').trim()
+                        def commitEmail = sh(returnStdout: true, script: 'git log -1 --pretty=%ae').trim()
                         def commitHash = sh(returnStdout: true, script: 'git log -1 --pretty=%h').trim()
                         
                         env.COMMIT_MSG = commitMsg
                         env.COMMIT_AUTHOR = commitAuthor
+                        env.COMMIT_EMAIL = commitEmail
                         env.COMMIT_HASH = commitHash
                         
                         echo "Commit: ${env.COMMIT_MSG}"
                         echo "Author: ${env.COMMIT_AUTHOR}"
+                        echo "Email: ${env.COMMIT_EMAIL}"
                         echo "Hash: ${env.COMMIT_HASH}"
                     } catch (Exception e) {
                         echo "Could not fetch commit info: ${e.getMessage()}"
                         env.COMMIT_MSG = "Unable to fetch commit message"
                         env.COMMIT_AUTHOR = "Unknown"
+                        env.COMMIT_EMAIL = ""
                         env.COMMIT_HASH = "N/A"
                     }
                 }
@@ -75,123 +81,184 @@ pipeline {
     post {
         success {
             script {
-                def environment = getEnvironmentName(env.BRANCH_NAME)
-                def duration = currentBuild.durationString.replace(' and counting', '')
-                
-                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
-                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
-                def commitHash = env.COMMIT_HASH ?: 'N/A'
-                
-                echo "✅ Deployment successful"
-                
-                // Email notification
-                mail to: "${EMAIL_TO}",
-                     subject: "✅ SUCCESS: ${environment} - Build #${env.BUILD_NUMBER}",
-                     body: """Deployment successful!
-                     
-Job: ${env.JOB_NAME}
-Branch: ${env.BRANCH_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Environment: ${environment}
-Duration: ${duration}
-
-Commit Information:
-- Message: ${commitMsg}
-- Author: ${commitAuthor}
-- Hash: ${commitHash}
-                     
-View build: ${env.BUILD_URL}
-Console output: ${env.BUILD_URL}console
-"""
-                
-                // Slack notification to #team1
-                try {
-                    slackSend(
-                        channel: '#team1',
-                        color: 'good',
-                        tokenCredentialId: 'Slack',
-                        message: ":white_check_mark: *Build Succeeded!* :tada:\n\n*Environment:* ${environment}\n*Branch:* `${env.BRANCH_NAME}`\n*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>\n*Duration:* ${duration}\n\n*Commit Information:*\n:memo: *Message:* ${commitMsg}\n:bust_in_silhouette: *Author:* ${commitAuthor}\n:link: *Hash:* `${commitHash}`\n\n<${env.BUILD_URL}console|View Console Output>"
-                    )
-                    echo "✅ Slack notification sent to #team1"
-                } catch (Exception e) {
-                    echo "⚠️ Slack failed (email sent): ${e.getMessage()}"
-                }
+                sendNotifications('success')
             }
         }
         
         failure {
             script {
-                def environment = getEnvironmentName(env.BRANCH_NAME)
-                def duration = currentBuild.durationString.replace(' and counting', '')
-                
-                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
-                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
-                def commitHash = env.COMMIT_HASH ?: 'N/A'
-                
-                echo "❌ Deployment failed"
-                
-                // Email notification
-                mail to: "${EMAIL_TO}",
-                     subject: "❌ FAILED: ${environment} - Build #${env.BUILD_NUMBER}",
-                     body: """Deployment failed!
-                     
-Job: ${env.JOB_NAME}
-Branch: ${env.BRANCH_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Environment: ${environment}
-Duration: ${duration}
-
-Commit Information:
-- Message: ${commitMsg}
-- Author: ${commitAuthor}
-- Hash: ${commitHash}
-
-⚠️ Please check the console output for error details.
-                     
-View build: ${env.BUILD_URL}
-Console output: ${env.BUILD_URL}console
-"""
-                
-                // Slack notification
-                try {
-                    slackSend(
-                        channel: '#team1',
-                        color: 'danger',
-                        tokenCredentialId: 'Slack',
-                        message: ":x: *Build Failed!* :boom:\n\n*Environment:* ${environment}\n*Branch:* `${env.BRANCH_NAME}`\n*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>\n*Duration:* ${duration}\n\n*Commit Information:*\n:memo: *Message:* ${commitMsg}\n:bust_in_silhouette: *Author:* ${commitAuthor}\n:link: *Hash:* `${commitHash}`\n\n:warning: *Action Required:* Check logs for error details\n<${env.BUILD_URL}console|View Console Output>"
-                    )
-                    echo "✅ Slack failure notification sent to #team1"
-                } catch (Exception e) {
-                    echo "⚠️ Slack failed (email sent): ${e.getMessage()}"
-                }
+                sendNotifications('failure')
             }
         }
         
         unstable {
             script {
-                def environment = getEnvironmentName(env.BRANCH_NAME)
-                
-                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
-                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
-                def commitHash = env.COMMIT_HASH ?: 'N/A'
-                
-                // Slack notification
-                try {
-                    slackSend(
-                        channel: '#team1',
-                        color: 'warning',
-                        tokenCredentialId: 'Slack',
-                        message: ":warning: *Build Unstable!*\n\n*Environment:* ${environment}\n*Branch:* `${env.BRANCH_NAME}`\n*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>\n\n*Commit Information:*\n:memo: *Message:* ${commitMsg}\n:bust_in_silhouette: *Author:* ${commitAuthor}\n:link: *Hash:* `${commitHash}`\n\nSome tests may have failed.\n<${env.BUILD_URL}console|View Console Output>"
-                    )
-                } catch (Exception e) {
-                    echo "⚠️ Slack failed: ${e.getMessage()}"
-                }
+                sendNotifications('unstable')
             }
         }
     }
 }
 
-// Helper function to get environment name from branch
+// Main notification function
+def sendNotifications(String status) {
+    def environment = getEnvironmentName(env.BRANCH_NAME)
+    def duration = currentBuild.durationString.replace(' and counting', '')
+    
+    def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+    def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+    def commitEmail = env.COMMIT_EMAIL ?: ''
+    def commitHash = env.COMMIT_HASH ?: 'N/A'
+    
+    // Get recipients based on branch and status
+    def recipients = getRecipients(env.BRANCH_NAME, status, commitEmail)
+    
+    echo "${status == 'success' ? '✅' : '❌'} Sending notifications"
+    echo "Recipients: ${recipients}"
+    
+    // Send Email
+    sendEmailNotification(recipients, environment, status, duration, commitMsg, commitAuthor, commitHash)
+    
+    // Send Slack
+    sendSlackNotification(environment, status, duration, commitMsg, commitAuthor, commitHash)
+}
+
+// Determine recipients based on branch, status, and your team structure
+def getRecipients(String branch, String status, String commitEmail) {
+    // Get email lists from Jenkins global variables
+    def developers = env.Developers ?: ''
+    def qaTeam = env.QA ?: ''
+    def product = env.Product ?: ''
+    def backend = env.Backend ?: ''
+    
+    def recipientsList = []
+    
+    switch(branch) {
+        case 'staging':
+            // Development environment - notify developers and backend team
+            recipientsList.add(developers)
+            recipientsList.add(backend)
+            if (status == 'failure' && commitEmail) {
+                recipientsList.add(commitEmail) // Add commit author on failures
+            }
+            break
+            
+        case 'QA':
+            // QA environment - notify QA team, backend, and product on failures
+            recipientsList.add(qaTeam)
+            recipientsList.add(backend)
+            if (status == 'failure') {
+                recipientsList.add(product)
+                if (commitEmail) {
+                    recipientsList.add(commitEmail)
+                }
+            }
+            break
+            
+        case 'main':
+            // Production environment
+            recipientsList.add(backend)
+            recipientsList.add(product)
+            if (status == 'failure') {
+                // On production failures, notify everyone
+                recipientsList.add(developers)
+                recipientsList.add(qaTeam)
+                if (commitEmail) {
+                    recipientsList.add(commitEmail)
+                }
+            }
+            break
+            
+        default:
+            // Feature branches - only backend team and commit author
+            recipientsList.add(backend)
+            if (commitEmail) {
+                recipientsList.add(commitEmail)
+            }
+    }
+    
+    // Filter out empty strings, remove duplicates, and join
+    def uniqueRecipients = recipientsList.findAll { it && it.trim() }.unique().join(',')
+    
+    return uniqueRecipients ?: 'thilakediga321@gmail.com' // Fallback email
+}
+
+// Send email notification
+def sendEmailNotification(String recipients, String environment, String status, String duration, String commitMsg, String commitAuthor, String commitHash) {
+    if (!recipients || recipients.trim().isEmpty()) {
+        echo "⚠️ No email recipients configured, skipping email"
+        return
+    }
+    
+    def statusEmoji = status == 'success' ? '✅' : (status == 'failure' ? '❌' : '⚠️')
+    def statusText = status.toUpperCase()
+    
+    def subject = "${statusEmoji} ${statusText}: ${environment} - Build #${env.BUILD_NUMBER}"
+    
+    def body = """
+${statusEmoji} BUILD ${statusText}
+
+ENVIRONMENT: ${environment}
+BRANCH: ${env.BRANCH_NAME}
+BUILD NUMBER: ${env.BUILD_NUMBER}
+DURATION: ${duration}
+
+COMMIT INFORMATION:
+📝 Message: ${commitMsg}
+👤 Author: ${commitAuthor}
+🔗 Hash: ${commitHash}
+
+${status == 'failure' ? '⚠️ ACTION REQUIRED: Please check the console output for error details.\n' : ''}
+VIEW BUILD: ${env.BUILD_URL}
+CONSOLE OUTPUT: ${env.BUILD_URL}console
+
+---
+Automated Jenkins CI/CD Notification
+"""
+    
+    try {
+        mail(
+            to: recipients,
+            subject: subject,
+            body: body
+        )
+        echo "✅ Email sent successfully to: ${recipients}"
+    } catch (Exception e) {
+        echo "❌ Failed to send email: ${e.getMessage()}"
+    }
+}
+
+// Send Slack notification
+def sendSlackNotification(String environment, String status, String duration, String commitMsg, String commitAuthor, String commitHash) {
+    def emoji = status == 'success' ? ':white_check_mark:' : (status == 'failure' ? ':x:' : ':warning:')
+    def color = status == 'success' ? 'good' : (status == 'failure' ? 'danger' : 'warning')
+    def statusText = status == 'success' ? 'Succeeded' : (status == 'failure' ? 'Failed' : 'Unstable')
+    
+    def message = "${emoji} *Build ${statusText}!* ${status == 'success' ? ':tada:' : ':boom:'}\n\n" +
+                  "*Environment:* ${environment}\n" +
+                  "*Branch:* `${env.BRANCH_NAME}`\n" +
+                  "*Build:* <${env.BUILD_URL}|#${env.BUILD_NUMBER}>\n" +
+                  "*Duration:* ${duration}\n\n" +
+                  "*Commit Information:*\n" +
+                  ":memo: ${commitMsg}\n" +
+                  ":bust_in_silhouette: ${commitAuthor}\n" +
+                  ":link: `${commitHash}`\n\n" +
+                  (status == 'failure' ? ":warning: *Action Required:* Check logs for error details\n" : "") +
+                  "<${env.BUILD_URL}console|View Console Output>"
+    
+    try {
+        slackSend(
+            channel: '#team1',
+            color: color,
+            tokenCredentialId: 'Slack',
+            message: message
+        )
+        echo "✅ Slack notification sent to #team1"
+    } catch (Exception e) {
+        echo "⚠️ Slack notification failed: ${e.getMessage()}"
+    }
+}
+
+// Helper function to get environment name
 def getEnvironmentName(String branch) {
     switch(branch) {
         case 'main':
