@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react'
+import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
@@ -17,7 +17,6 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
   const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
-  const [activeSection, setActiveSection] = useState<string>("home")
   const { openAuthModal } = useAuth()
   const { isAuthenticated, user, logout } = useUser()
 
