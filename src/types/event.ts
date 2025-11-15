@@ -3,6 +3,8 @@ export interface TicketTier {
   name: string
   price: number
   description?: string
+  quantity?: number // Total quantity available for this tier
+  available?: number // Remaining quantity available for this tier
 }
 
 export interface WaitlistEntry {
