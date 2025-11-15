@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   LogOut,
-  ChevronDown,
   Heart,
   Shield,
   ChevronLeft,
@@ -37,6 +36,7 @@ import FavoritesSection from '@/components/dashboard/FavoritesSection'
 import OrganizerDashboard from '@/components/dashboard/OrganizerDashboard'
 import SettingsModal from '@/components/dashboard/SettingsModal'
 import AdminDashboard from '@/components/dashboard/AdminDashboard'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin'
 
@@ -139,28 +139,62 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        >
-          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-        </Button>
+      {/* Top Header Bar - Visible on all pages */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center space-x-4">
+          {/* Mobile Menu Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="lg:hidden"
+          >
+            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </Button>
+          
+          {/* Logo/Name */}
+          <h1 
+            onClick={() => router.push('/')}
+            className="text-xl lg:text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
+          >
+            Eventify
+          </h1>
+        </div>
+        
+        {/* Right Side Actions */}
+        <div className="flex items-center space-x-3">
+          {/* Notification Bell */}
+          <NotificationBell />
+          
+          {/* User Avatar and Name */}
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center border-2 border-primary-300">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name || 'User'}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <User size={16} className="text-primary-600" />
+              )}
+            </div>
+            {/* User Name - Hidden on very small screens, shown on sm and up */}
+            <span className="hidden sm:inline text-sm font-medium text-gray-900">{user?.name || 'User'}</span>
+          </div>
+        </div>
       </div>
 
       <div className="flex">
         {/* Sidebar - Always visible on desktop, collapsible */}
-        <div className={`hidden lg:block bg-white border-r border-gray-200 min-h-screen transition-all duration-300 ${
+        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 ${
           isSidebarCollapsed ? 'w-16' : 'w-64'
-        }`}>
+        }`} style={{ height: 'calc(100vh - 60px)' }}>
           <div className="flex flex-col h-full relative">
             {/* Collapse Toggle */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-6 z-10 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 shadow-sm"
+              className="absolute -right-3 top-4 z-10 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 shadow-sm"
             >
               {isSidebarCollapsed ? (
                 <ChevronRight size={14} className="text-gray-600" />
@@ -169,67 +203,8 @@ function DashboardContent() {
               )}
             </button>
 
-            {/* Logo */}
-            <div className={`p-6 border-b border-gray-200 ${isSidebarCollapsed ? 'px-2' : ''}`}>
-              {isSidebarCollapsed ? (
-                <button
-                  onClick={() => router.push('/')}
-                  className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto hover:bg-primary-700 transition-colors cursor-pointer"
-                >
-                  <span className="text-white font-bold text-sm">E</span>
-                </button>
-              ) : (
-                <h2 
-                  onClick={() => router.push('/')}
-                  className="text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
-                >
-                  Eventify
-                </h2>
-              )}
-            </div>
-
-            {/* User Info */}
-            {!isSidebarCollapsed && (
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name || 'User'}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User size={20} className="text-primary-600" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
-                    <p className="text-xs text-gray-500 truncate">{user?.email || 'user@example.com'}</p>
-                  </div>
-                  <ChevronDown size={16} className="text-gray-400" />
-                </div>
-              </div>
-            )}
-
-            {isSidebarCollapsed && (
-              <div className="p-2 border-b border-gray-200 flex justify-center">
-                {user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.name || 'User'}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-primary-600" />
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Navigation */}
-            <nav className={`flex-1 space-y-2 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
+            <nav className={`flex-1 space-y-2 pt-4 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
               {getNavigationItems(canCreateEvents, isAdmin).map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id
@@ -307,37 +282,10 @@ function DashboardContent() {
         {isSidebarOpen && (
           <div className="lg:hidden fixed inset-0 z-50">
             <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsSidebarOpen(false)} />
-            <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
+              <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
               <div className="flex flex-col h-full">
-                {/* Logo */}
-                <div className="p-6 border-b border-gray-200">
-                  <h2 
-                    onClick={() => {
-                      router.push('/')
-                      setIsSidebarOpen(false)
-                    }}
-                    className="text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
-                  >
-                    Eventify
-                  </h2>
-                </div>
-
-                {/* User Info */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User size={20} className="text-primary-600" />
-                    </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email || 'user@example.com'}</p>
-                </div>
-                    <ChevronDown size={16} className="text-gray-400" />
-                  </div>
-                </div>
-
                 {/* Navigation */}
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 p-4 pt-6 space-y-2">
                   {getNavigationItems(canCreateEvents, isAdmin).map((item) => {
                     const Icon = item.icon
                     const isActive = activeSection === item.id
@@ -394,9 +342,9 @@ function DashboardContent() {
         )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-screen">
+            <div className="flex-1 flex flex-col" style={{ minHeight: 'calc(100vh - 60px)' }}>
               {/* Content Area */}
-              <main className="flex-1 p-4 lg:p-6 pb-24">
+              <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto">
             <motion.div
               key={activeSection}
               initial={{ opacity: 0, y: 20 }}

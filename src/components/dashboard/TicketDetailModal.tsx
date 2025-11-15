@@ -47,7 +47,29 @@ export default function TicketDetailModal({
   // Check if this is an order group (has tickets array) or a single ticket
   const isOrderGroup = ticket.tickets && Array.isArray(ticket.tickets)
   const tickets = isOrderGroup ? ticket.tickets : [ticket]
-  const displayTicket = isOrderGroup ? ticket : ticket // Use first ticket for display info
+  
+  // For order groups, use the order group object, but ensure eventId is available
+  // Try multiple sources: order group eventId, first ticket eventId, or any ticket's eventId
+  const getEventId = () => {
+    if (isOrderGroup) {
+      // Try order group first
+      if (ticket.eventId) return ticket.eventId
+      // Then try first ticket
+      if (tickets[0]?.eventId) return tickets[0].eventId
+      // Then try any ticket in the group
+      const ticketWithEventId = tickets.find((t: any) => t.eventId)
+      if (ticketWithEventId?.eventId) return ticketWithEventId.eventId
+    } else {
+      // Single ticket
+      return ticket.eventId
+    }
+    return null
+  }
+  
+  const eventId = getEventId()
+  const displayTicket = isOrderGroup 
+    ? { ...ticket, eventId }
+    : { ...ticket, eventId: eventId || ticket.eventId }
 
   // Group tickets by tier
   const ticketsByTier = tickets.reduce((acc: Record<string, any[]>, t: any) => {
@@ -60,13 +82,25 @@ export default function TicketDetailModal({
   }, {})
 
   const handleViewEvent = () => {
-    router.push(`/events/${displayTicket.eventId}`)
+    const finalEventId = displayTicket.eventId || eventId
+    if (!finalEventId) {
+      console.error('Event ID not found in ticket', { ticket, tickets, displayTicket })
+      alert('Event information not available. The event may have been removed.')
+      return
+    }
+    router.push(`/events/${finalEventId}`)
     onClose()
   }
 
   const handleUpgrade = () => {
+    const finalEventId = displayTicket.eventId || eventId
+    if (!finalEventId) {
+      console.error('Event ID not found in ticket', { ticket, tickets, displayTicket })
+      alert('Event information not available. The event may have been removed.')
+      return
+    }
     // Navigate to event page to show current tickets and upgrade options
-    router.push(`/events/${displayTicket.eventId}`)
+    router.push(`/events/${finalEventId}`)
     onClose()
   }
 
