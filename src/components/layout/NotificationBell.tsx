@@ -57,12 +57,24 @@ const notificationColors = {
   waitlist_approved: 'text-blue-600 bg-blue-50 border-blue-200'
 }
 
-export default function NotificationBell() {
+interface NotificationBellProps {
+  onOpen?: () => void
+  isProfileOpen?: boolean
+}
+
+export default function NotificationBell({ onOpen, isProfileOpen = false }: NotificationBellProps) {
   const router = useRouter()
   const { user, isAuthenticated } = useUser()
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const notificationRef = useRef<HTMLDivElement>(null)
+
+  // Close notification dropdown when profile dropdown opens
+  useEffect(() => {
+    if (isProfileOpen && isOpen) {
+      setIsOpen(false)
+    }
+  }, [isProfileOpen, isOpen])
 
   // Load notifications from localStorage
   useEffect(() => {
@@ -240,10 +252,15 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative" ref={notificationRef}>
+    <div className="relative z-50" ref={notificationRef}>
       {/* Notification Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen)
+          if (!isOpen && onOpen) {
+            onOpen()
+          }
+        }}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-label="Notifications"
       >
@@ -274,14 +291,14 @@ export default function NotificationBell() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-lg border border-gray-200 shadow-xl z-50 max-h-[600px] flex flex-col"
+              className="absolute right-0 top-full mt-2 w-[90vw] max-w-[450px] sm:w-[450px] bg-white rounded-lg border border-gray-200 shadow-xl z-[60] max-h-[600px] min-h-[300px] flex flex-col overflow-hidden"
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 rounded-t-lg">
                 <div className="flex items-center space-x-2">
-                  <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 whitespace-nowrap">Notifications</h3>
                   {unreadCount > 0 && (
-                    <Badge className="bg-red-500 text-white border-0">
+                    <Badge className="bg-red-500 text-white border-0 whitespace-nowrap">
                       {unreadCount} new
                     </Badge>
                   )}
@@ -292,7 +309,7 @@ export default function NotificationBell() {
                       variant="outline"
                       size="sm"
                       onClick={markAllAsRead}
-                      className="text-xs"
+                      className="text-xs whitespace-nowrap"
                     >
                       Mark all read
                     </Button>
@@ -309,12 +326,15 @@ export default function NotificationBell() {
               </div>
 
               {/* Notifications List */}
-              <div className="flex-1 overflow-y-auto max-h-[500px]">
+              <div className="flex-1 overflow-y-auto max-h-[500px] min-h-[200px]">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <Bell size={48} className="mx-auto text-gray-300 mb-3" />
-                    <p className="text-gray-600 font-medium">No notifications</p>
-                    <p className="text-sm text-gray-500 mt-1">You're all caught up!</p>
+                  <div className="p-8 text-center flex flex-col items-center justify-center min-h-[200px]">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Bell size={32} className="text-gray-400" />
+                    </div>
+                    <p className="text-gray-700 font-semibold text-base mb-1">No notifications</p>
+                    <p className="text-sm text-gray-500">You're all caught up!</p>
+                    <p className="text-xs text-gray-400 mt-2">We'll notify you when there's something new</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200">
@@ -332,22 +352,22 @@ export default function NotificationBell() {
                           }`}
                           onClick={() => handleNotificationClick(notification)}
                         >
-                          <div className="flex items-start space-x-3">
+                          <div className="flex items-start space-x-3 gap-3">
                             <div className={`w-10 h-10 ${colors} rounded-full flex items-center justify-center flex-shrink-0 border-2`}>
                               <Icon size={18} />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <p className="text-sm font-semibold text-gray-900">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <p className="text-sm font-semibold text-gray-900 whitespace-normal break-words">
                                       {notification.title}
                                     </p>
                                     {(!notification.isRead && !notification.read) && (
                                       <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                  <p className="text-sm text-gray-600 mt-1 whitespace-normal break-words leading-relaxed">
                                     {notification.message}
                                   </p>
                                   {notification.reason && (
@@ -392,7 +412,7 @@ export default function NotificationBell() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="w-full"
+                    className="w-full whitespace-nowrap"
                     onClick={() => {
                       router.push('/dashboard')
                       setIsOpen(false)

@@ -207,11 +207,11 @@ const EventForm: React.FC<EventFormProps> = ({
         className="bg-gradient-to-br from-white via-primary-50/30 to-primary-100/20 rounded-3xl shadow-2xl overflow-hidden border border-primary-200/50"
       >
         {/* Header */}
-        <div className="px-8 py-6 bg-gradient-to-r from-primary-600 to-primary-700 text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">
+        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-gradient-to-r from-primary-600 to-primary-700 text-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-2 break-words">
             {mode === 'create' ? 'Create New Event' : 'Edit Event'}
           </h1>
-          <p className="text-primary-100 text-sm">
+          <p className="text-primary-100 text-xs sm:text-sm break-words">
             {mode === 'create' 
               ? 'Fill in the details to create your event' 
               : 'Update your event information'
@@ -220,10 +220,10 @@ const EventForm: React.FC<EventFormProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
           {/* Basic Information */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <div className="space-y-4 sm:space-y-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2 break-words">
               <Tag className="w-5 h-5 text-primary-600" />
               Basic Information
             </h2>

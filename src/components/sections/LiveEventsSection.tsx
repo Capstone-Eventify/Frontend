@@ -12,12 +12,16 @@ import { liveEvents } from '@/data/events'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
+import ShareEventModal from '@/components/events/ShareEventModal'
+import { EventDetail } from '@/types/event'
 
 const LiveEventsSection = () => {
   const router = useRouter()
   const { isAuthenticated } = useUser()
   const { openAuthModal } = useAuth()
   const [favorites, setFavorites] = useState<string[]>([])
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [selectedEventForShare, setSelectedEventForShare] = useState<EventDetail | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -46,14 +50,37 @@ const LiveEventsSection = () => {
     localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
   }
 
-  const handleShare = (eventId: string, e: React.MouseEvent) => {
+  const handleShare = (event: any, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // Share functionality can be added here
-    const url = `${window.location.origin}/events/${eventId}`
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Event link copied to clipboard!')
-    })
+    
+    // Convert event to EventDetail format
+    const eventToShare: EventDetail = {
+      id: event.id,
+      title: event.title,
+      description: event.description || '',
+      fullDescription: event.description || '',
+      date: event.date || '',
+      time: event.time || '',
+      location: event.location || '',
+      isOnline: event.location?.toLowerCase().includes('online') || false,
+      category: event.category || '',
+      image: event.image || '',
+      price: event.price || 'FREE',
+      ticketTiers: [],
+      maxAttendees: event.maxAttendees || 0,
+      attendees: event.attendees || 0,
+      status: event.status || 'live',
+      organizer: {
+        id: 'unknown',
+        name: 'Event Organizer',
+        email: 'organizer@example.com'
+      },
+      createdAt: new Date().toISOString()
+    }
+    
+    setSelectedEventForShare(eventToShare)
+    setShowShareModal(true)
   }
 
   const handleEventClick = (eventId: string) => {
@@ -81,10 +108,10 @@ const LiveEventsSection = () => {
                 Live Events
               </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 px-4">
               Happening Now
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
               Join these exciting events currently taking place.
             </p>
           </motion.div>
@@ -128,7 +155,7 @@ const LiveEventsSection = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => handleShare(event.id, e)}
+                        onClick={(e) => handleShare(event, e)}
                         className="bg-white/90 backdrop-blur-sm"
                       >
                         <Share2 size={16} />
@@ -214,6 +241,17 @@ const LiveEventsSection = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Share Event Modal */}
+      {showShareModal && selectedEventForShare && (
+        <ShareEventModal
+          event={selectedEventForShare}
+          onClose={() => {
+            setShowShareModal(false)
+            setSelectedEventForShare(null)
+          }}
+        />
+      )}
     </section>
   )
 }

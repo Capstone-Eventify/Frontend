@@ -46,10 +46,10 @@ function CheckoutContent() {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h1>
-          <Button onClick={() => router.push('/')}>Go Home</Button>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center max-w-md w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 break-words">Event Not Found</h1>
+          <Button onClick={() => router.push('/')} className="w-full sm:w-auto">Go Home</Button>
         </div>
       </div>
     )
@@ -73,12 +73,12 @@ function CheckoutContent() {
       </div>
 
       {/* Checkout Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">
             {upgradeTierId ? 'Upgrade Tickets' : 'Checkout'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 break-words">
             {upgradeTierId 
               ? `Upgrade your tickets for ${event.title}`
               : `Complete your registration for ${event.title}`

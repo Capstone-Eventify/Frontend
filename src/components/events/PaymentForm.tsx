@@ -91,47 +91,56 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
 
     setIsProcessing(true)
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      // In production, this would use Stripe Elements
+      // For now, we'll use a simplified flow that works with the backend
+      // The actual Stripe integration would require @stripe/stripe-js package
+      
+      // Simulate payment processing (replace with actual Stripe integration)
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-    setIsProcessing(false)
-    onComplete()
+      setIsProcessing(false)
+      onComplete()
+    } catch (error) {
+      setIsProcessing(false)
+      setErrors({ cardNumber: 'Payment failed. Please try again.' })
+    }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment Information</h3>
-        <p className="text-gray-600 text-sm">Complete your purchase for {eventTitle}</p>
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">Payment Information</h3>
+        <p className="text-xs sm:text-sm text-gray-600 break-words">Complete your purchase for {eventTitle}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Card Number */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Card Number
           </label>
           <div className="relative">
-            <CreditCard size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <CreditCard size={18} className="sm:w-5 sm:h-5 absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={formData.cardNumber}
               onChange={(e) => handleInputChange('cardNumber', e.target.value)}
               placeholder="1234 5678 9012 3456"
-              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+              className={`w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                 errors.cardNumber ? 'border-red-300' : 'border-gray-300'
               }`}
               maxLength={19}
             />
           </div>
           {errors.cardNumber && (
-            <p className="text-sm text-red-600 mt-1">{errors.cardNumber}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cardNumber}</p>
           )}
         </div>
 
         {/* Cardholder Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Cardholder Name
           </label>
           <input
@@ -139,19 +148,19 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
             value={formData.cardName}
             onChange={(e) => handleInputChange('cardName', e.target.value)}
             placeholder="John Doe"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
               errors.cardName ? 'border-red-300' : 'border-gray-300'
             }`}
           />
           {errors.cardName && (
-            <p className="text-sm text-red-600 mt-1">{errors.cardName}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cardName}</p>
           )}
         </div>
 
         {/* Expiry and CVV */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
               Expiry Date
             </label>
             <input
@@ -159,17 +168,17 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
               value={formData.expiryDate}
               onChange={(e) => handleInputChange('expiryDate', e.target.value)}
               placeholder="MM/YY"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                 errors.expiryDate ? 'border-red-300' : 'border-gray-300'
               }`}
               maxLength={5}
             />
             {errors.expiryDate && (
-              <p className="text-sm text-red-600 mt-1">{errors.expiryDate}</p>
+              <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.expiryDate}</p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
               CVV
             </label>
             <input
@@ -177,20 +186,20 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
               value={formData.cvv}
               onChange={(e) => handleInputChange('cvv', e.target.value)}
               placeholder="123"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                 errors.cvv ? 'border-red-300' : 'border-gray-300'
               }`}
               maxLength={4}
             />
             {errors.cvv && (
-              <p className="text-sm text-red-600 mt-1">{errors.cvv}</p>
+              <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cvv}</p>
             )}
           </div>
         </div>
 
         {/* ZIP Code */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             ZIP Code
           </label>
           <input
@@ -198,28 +207,28 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
             value={formData.zipCode}
             onChange={(e) => handleInputChange('zipCode', e.target.value)}
             placeholder="12345"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
               errors.zipCode ? 'border-red-300' : 'border-gray-300'
             }`}
             maxLength={5}
           />
           {errors.zipCode && (
-            <p className="text-sm text-red-600 mt-1">{errors.zipCode}</p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.zipCode}</p>
           )}
         </div>
 
         {/* Total */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-gray-900">Total Amount</span>
-            <span className="text-2xl font-bold text-primary-600">${total.toFixed(2)}</span>
+            <span className="text-base sm:text-lg font-semibold text-gray-900">Total Amount</span>
+            <span className="text-xl sm:text-2xl font-bold text-primary-600">${total.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Security Notice */}
-        <div className="flex items-start gap-2 text-sm text-gray-600">
-          <Lock size={16} className="mt-0.5 flex-shrink-0" />
-          <p>
+        <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
+          <Lock size={14} className="sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" />
+          <p className="break-words">
             Your payment information is secure. This is a demo transaction and no actual payment will be processed.
           </p>
         </div>

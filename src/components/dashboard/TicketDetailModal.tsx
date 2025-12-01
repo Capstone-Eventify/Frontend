@@ -123,14 +123,14 @@ export default function TicketDetailModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Ticket Details</h2>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10">
+              <div className="min-w-0 flex-1 pr-2">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">Ticket Details</h2>
                 {isOrderGroup && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
                     {tickets.length} {tickets.length === 1 ? 'Ticket' : 'Tickets'} in this order
                   </p>
                 )}
@@ -145,8 +145,8 @@ export default function TicketDetailModal({
               </Button>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Left Column - Ticket Image & QR */}
                 <div className="lg:col-span-1 space-y-4">
                   {/* Event Image */}

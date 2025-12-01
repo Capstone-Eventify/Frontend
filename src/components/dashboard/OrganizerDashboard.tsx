@@ -219,9 +219,9 @@ export default function OrganizerDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Organizer Dashboard</h1>
-          <p className="text-gray-600">Manage your events and track performance</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Organizer Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600 break-words">Manage your events and track performance</p>
         </div>
         <div className="flex items-center space-x-3">
           {activeView === 'analytics' && (
@@ -238,14 +238,14 @@ export default function OrganizerDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="relative">
-        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 inline-flex">
+      <div className="relative overflow-x-auto">
+        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 inline-flex min-w-0">
           <button
             onClick={() => {
               setActiveView('events')
               setSelectedEventForAnalytics(null)
             }}
-            className={`relative px-6 py-2.5 text-sm font-semibold rounded-md transition-all duration-200 ${
+            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 whitespace-nowrap ${
               activeView === 'events'
                 ? 'text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -262,7 +262,7 @@ export default function OrganizerDashboard() {
           </button>
           <button
             onClick={() => setActiveView('analytics')}
-            className={`relative px-6 py-2.5 text-sm font-semibold rounded-md transition-all duration-200 ${
+            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 whitespace-nowrap ${
               activeView === 'analytics'
                 ? 'text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -289,24 +289,24 @@ export default function OrganizerDashboard() {
               eventTitle={organizerEvents.find(e => e.id === selectedEventForAnalytics)?.title}
             />
           ) : (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Select an Event to View Analytics</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 break-words">Select an Event to View Analytics</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {organizerEvents.map((event) => (
                   <motion.div
                     key={event.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer"
+                    className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer"
                     onClick={() => handleViewAnalytics(event.id)}
                   >
                     <img
                       src={event.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'}
                       alt={event.title}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
+                      className="w-full h-24 sm:h-32 object-cover rounded-lg mb-2 sm:mb-3"
                     />
-                    <h3 className="font-semibold text-gray-900 mb-1">{event.title}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{event.date}</p>
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 break-words line-clamp-2">{event.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 truncate">{event.date}</p>
                     <Button variant="outline" size="sm" className="w-full">
                       <BarChart3 size={14} className="mr-2" />
                       View Analytics
@@ -329,19 +329,19 @@ export default function OrganizerDashboard() {
       {activeView === 'events' && (
         <>
           {/* Organizer Stats - Calculate from actual events */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg p-6 border border-gray-200"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Events</p>
-                  <p className="text-2xl font-bold text-gray-900">{organizerEvents.length}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Events</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{organizerEvents.length}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Calendar size={24} className="text-blue-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Calendar size={20} className="sm:w-6 sm:h-6 text-blue-600" />
             </div>
           </div>
         </motion.div>
@@ -350,12 +350,12 @@ export default function OrganizerDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-lg p-6 border border-gray-200"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Revenue</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
                     ${(() => {
                       // Calculate from tickets
                       if (typeof window !== 'undefined') {
@@ -375,8 +375,8 @@ export default function OrganizerDashboard() {
                     })()}
                   </p>
             </div>
-            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-              <DollarSign size={24} className="text-green-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <DollarSign size={20} className="sm:w-6 sm:h-6 text-green-600" />
             </div>
           </div>
         </motion.div>
@@ -385,12 +385,12 @@ export default function OrganizerDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg p-6 border border-gray-200"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Attendees</p>
-                  <p className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Attendees</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
                     {(() => {
                       // Calculate from tickets
                       if (typeof window !== 'undefined') {
@@ -405,8 +405,8 @@ export default function OrganizerDashboard() {
                     })()}
                   </p>
             </div>
-            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
-              <Users size={24} className="text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Users size={20} className="sm:w-6 sm:h-6 text-purple-600" />
             </div>
           </div>
         </motion.div>
@@ -415,12 +415,12 @@ export default function OrganizerDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-lg p-6 border border-gray-200"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Active Events</p>
-                  <p className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Active Events</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
                     {organizerEvents.filter((e: any) => {
                       // Check if event hasn't ended
                       try {
@@ -439,20 +439,20 @@ export default function OrganizerDashboard() {
                     }).length}
                   </p>
             </div>
-            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-              <Activity size={24} className="text-orange-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Activity size={20} className="sm:w-6 sm:h-6 text-orange-600" />
             </div>
           </div>
-            </motion.div>
+        </motion.div>
       </div>
 
           {/* My Created Events */}
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">My Created Events</h2>
-                  <p className="text-sm text-gray-600 mt-1">Manage and track your events</p>
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 break-words">My Created Events</h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">Manage and track your events</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   {/* View Mode Toggle */}
@@ -483,11 +483,11 @@ export default function OrganizerDashboard() {
                 </div>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {organizerEvents.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-4">You haven't created any events yet.</p>
+                <div className="text-center py-8 sm:py-12">
+                  <Calendar size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-sm sm:text-base text-gray-600 mb-4 px-4">You haven't created any events yet.</p>
                   <Button onClick={handleCreateEvent}>
                     <Plus size={16} className="mr-2" />
                     Create Your First Event
@@ -495,7 +495,7 @@ export default function OrganizerDashboard() {
           </div>
               ) : viewMode === 'grid' ? (
                 // Grid View
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {organizerEvents.map((event, index) => (
               <motion.div
                 key={event.id}
@@ -515,19 +515,19 @@ export default function OrganizerDashboard() {
                           {getStatusBadge(event.status || 'upcoming')}
                         </div>
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{event.title}</h3>
-                        <div className="space-y-2 text-sm text-gray-600 mb-4">
+                      <div className="p-3 sm:p-4">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 line-clamp-2 break-words">{event.title}</h3>
+                        <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                           <div className="flex items-center">
-                            <Calendar size={14} className="mr-2" />
-                            {event.date}
+                            <Calendar size={12} className="sm:w-3.5 sm:h-3.5 mr-1.5 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">{event.date}</span>
                           </div>
                           <div className="flex items-center">
-                            <Users size={14} className="mr-2" />
-                            {event.attendees?.toLocaleString() || 0} attendees
+                            <Users size={12} className="sm:w-3.5 sm:h-3.5 mr-1.5 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">{event.attendees?.toLocaleString() || 0} attendees</span>
                   </div>
                 </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -610,29 +610,29 @@ export default function OrganizerDashboard() {
           </div>
               ) : (
                 // List View
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {organizerEvents.map((event, index) => (
               <motion.div
                       key={event.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                      className="flex items-center space-x-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer"
+                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 cursor-pointer"
                       onClick={() => handleViewEvent(event.id)}
                     >
                       <img
                         src={event.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'}
                         alt={event.title}
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-full sm:w-16 sm:h-16 h-32 sm:h-16 rounded-lg object-cover flex-shrink-0"
                       />
-                <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                          <span>{event.date}</span>
-                          <span>{event.attendees?.toLocaleString() || 0} attendees</span>
+                <div className="flex-1 min-w-0 w-full sm:w-auto">
+                        <h3 className="text-sm sm:text-base font-medium text-gray-900 break-words mb-1 sm:mb-0">{event.title}</h3>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-1">
+                          <span className="truncate">{event.date}</span>
+                          <span className="truncate">{event.attendees?.toLocaleString() || 0} attendees</span>
           </div>
         </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                         {getStatusBadge(event.status || 'upcoming')}
                         <div className="flex space-x-1">
                           <Button 

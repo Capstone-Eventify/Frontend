@@ -36,7 +36,7 @@ export default function QuickActions({ activeSection, onNavigate }: QuickActions
 
   const handleCreateEvent = () => {
     if (canCreateEvents) {
-      handleNavigate('organizer')
+      router.replace('/dashboard?tab=organizer&create=true')
     } else {
       // Open organizer application or show message
       handleNavigate('profile')

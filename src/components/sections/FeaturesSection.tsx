@@ -38,7 +38,7 @@ const FeaturesSection = () => {
             variants={fadeInUp}
             className="text-center space-y-4"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 px-4">
               Everything You Need to Succeed
             </h2>
           </motion.div>

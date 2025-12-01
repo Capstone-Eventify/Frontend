@@ -37,10 +37,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuth, className, initialMode = 's
     setMode('forgot-password')
   }
 
-  const handleForgotPassword = (email: string) => {
-    console.log('Password reset requested for:', email)
-    // Here you would typically make an API call to your backend
-    // to send the password reset email
+  const handleForgotPassword = async (email: string) => {
+    try {
+      // API call commented out for now
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/forgotpassword`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({ email }),
+      // })
+      // const data = await response.json()
+      // if (!response.ok) {
+      //   console.error('Password reset error:', data.message)
+      // }
+      console.log('Password reset requested for:', email)
+    } catch (error) {
+      console.error('Password reset request failed:', error)
+    }
   }
 
 

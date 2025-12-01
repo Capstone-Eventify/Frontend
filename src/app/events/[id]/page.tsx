@@ -239,7 +239,98 @@ export default function EventDetailPage() {
     setIsFavorite(!isFavorite)
   }
 
+  // Helper function to check if event has ended
+  const isEventEnded = () => {
+    // Check status first
+    if (event.status === 'ended' || event.status === 'cancelled') {
+      return true
+    }
+    
+    // Check if end date/time has passed
+    if (event.endDate) {
+      try {
+        // Parse end date (e.g., "Dec 15, 2024")
+        const dateParts = event.endDate.split(', ')
+        if (dateParts.length >= 2) {
+          const year = parseInt(dateParts[1])
+          const monthDay = dateParts[0].split(' ')
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const month = monthNames.indexOf(monthDay[0])
+          const day = parseInt(monthDay[1])
+          
+          // Parse end time if available (e.g., "5:00 PM")
+          let endHour = 23
+          let endMinute = 59
+          if (event.endTime) {
+            const timeMatch = event.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i)
+            if (timeMatch) {
+              let hour = parseInt(timeMatch[1])
+              const minute = parseInt(timeMatch[2])
+              const period = timeMatch[3].toUpperCase()
+              
+              if (period === 'PM' && hour !== 12) hour += 12
+              if (period === 'AM' && hour === 12) hour = 0
+              
+              endHour = hour
+              endMinute = minute
+            }
+          }
+          
+          const eventEndDateTime = new Date(year, month, day, endHour, endMinute)
+          const now = new Date()
+          
+          return eventEndDateTime < now
+        }
+      } catch {
+        // If parsing fails, fall back to checking start date
+        if (event.date) {
+          try {
+            const dateParts = event.date.split(', ')
+            if (dateParts.length >= 2) {
+              const year = parseInt(dateParts[1])
+              const monthDay = dateParts[0].split(' ')
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+              const month = monthNames.indexOf(monthDay[0])
+              const day = parseInt(monthDay[1])
+              const eventDate = new Date(year, month, day)
+              const now = new Date()
+              return eventDate < now
+            }
+          } catch {
+            return false
+          }
+        }
+      }
+    }
+    
+    // Fall back to checking start date if no end date
+    if (event.date) {
+      try {
+        const dateParts = event.date.split(', ')
+        if (dateParts.length >= 2) {
+          const year = parseInt(dateParts[1])
+          const monthDay = dateParts[0].split(' ')
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const month = monthNames.indexOf(monthDay[0])
+          const day = parseInt(monthDay[1])
+          const eventDate = new Date(year, month, day)
+          const now = new Date()
+          return eventDate < now
+        }
+      } catch {
+        return false
+      }
+    }
+    
+    return false
+  }
+
   const handleRegister = () => {
+    // Check if event has ended
+    if (isEventEnded()) {
+      return
+    }
+    
     // Admins cannot register for events
     if (isAdmin) {
       return
@@ -369,8 +460,8 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Event Images */}
@@ -428,8 +519,8 @@ export default function EventDetailPage() {
                       </Badge>
                     )}
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-3">{event.title}</h1>
-                  <p className="text-lg text-gray-600">{event.description}</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 break-words">{event.title}</h1>
+                  <p className="text-base sm:text-lg text-gray-600 break-words">{event.description}</p>
                   {isRegistered && (
                     <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2 text-green-700">
@@ -526,10 +617,10 @@ export default function EventDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-6 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">About This Event</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">About This Event</h2>
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line break-words">
                 {event.fullDescription}
               </p>
             </motion.div>
@@ -539,9 +630,9 @@ export default function EventDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl p-6 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Organizer</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Organizer</h2>
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                   {event.organizer.avatar ? (
@@ -765,7 +856,7 @@ export default function EventDetailPage() {
               </div>
 
               {/* Registration Actions */}
-              {(isAdmin || isEventOwner) ? null : !isRegistered && event.status !== 'ended' && event.status !== 'cancelled' ? (
+              {(isAdmin || isEventOwner) ? null : !isRegistered && !isEventEnded() ? (
                 <Button
                   variant="primary"
                   size="lg"
@@ -786,11 +877,11 @@ export default function EventDetailPage() {
                     View All My Tickets
                   </Button>
                 </div>
-              ) : (event.status === 'ended' || event.status === 'cancelled') ? (
+              ) : isEventEnded() ? (
                 <div className="border-t border-gray-200 pt-4">
                   <div className="text-center py-4">
                     <p className="text-gray-600 font-medium">
-                      {event.status === 'ended' ? 'This event has ended' : 'This event has been cancelled'}
+                      {event.status === 'cancelled' ? 'This event has been cancelled' : 'This event has ended'}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">Registration is no longer available</p>
                   </div>
@@ -822,7 +913,7 @@ export default function EventDetailPage() {
       </div>
 
       {/* Share Modal */}
-      {showShareModal && (
+      {showShareModal && event && (
         <ShareEventModal
           event={event}
           onClose={() => setShowShareModal(false)}

@@ -41,6 +41,92 @@ interface CheckoutFlowProps {
   upgradeTierId?: string
 }
 
+// Helper function to check if event has ended
+const isEventEnded = (event: EventDetail) => {
+  // Check status first
+  if (event.status === 'ended' || event.status === 'cancelled') {
+    return true
+  }
+  
+  // Check if end date/time has passed
+  if (event.endDate) {
+    try {
+      // Parse end date (e.g., "Dec 15, 2024")
+      const dateParts = event.endDate.split(', ')
+      if (dateParts.length >= 2) {
+        const year = parseInt(dateParts[1])
+        const monthDay = dateParts[0].split(' ')
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const month = monthNames.indexOf(monthDay[0])
+        const day = parseInt(monthDay[1])
+        
+        // Parse end time if available (e.g., "5:00 PM")
+        let endHour = 23
+        let endMinute = 59
+        if (event.endTime) {
+          const timeMatch = event.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i)
+          if (timeMatch) {
+            let hour = parseInt(timeMatch[1])
+            const minute = parseInt(timeMatch[2])
+            const period = timeMatch[3].toUpperCase()
+            
+            if (period === 'PM' && hour !== 12) hour += 12
+            if (period === 'AM' && hour === 12) hour = 0
+            
+            endHour = hour
+            endMinute = minute
+          }
+        }
+        
+        const eventEndDateTime = new Date(year, month, day, endHour, endMinute)
+        const now = new Date()
+        
+        return eventEndDateTime < now
+      }
+    } catch {
+      // If parsing fails, fall back to checking start date
+      if (event.date) {
+        try {
+          const dateParts = event.date.split(', ')
+          if (dateParts.length >= 2) {
+            const year = parseInt(dateParts[1])
+            const monthDay = dateParts[0].split(' ')
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            const month = monthNames.indexOf(monthDay[0])
+            const day = parseInt(monthDay[1])
+            const eventDate = new Date(year, month, day)
+            const now = new Date()
+            return eventDate < now
+          }
+        } catch {
+          return false
+        }
+      }
+    }
+  }
+  
+  // Fall back to checking start date if no end date
+  if (event.date) {
+    try {
+      const dateParts = event.date.split(', ')
+      if (dateParts.length >= 2) {
+        const year = parseInt(dateParts[1])
+        const monthDay = dateParts[0].split(' ')
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const month = monthNames.indexOf(monthDay[0])
+        const day = parseInt(monthDay[1])
+        const eventDate = new Date(year, month, day)
+        const now = new Date()
+        return eventDate < now
+      }
+    } catch {
+      return false
+    }
+  }
+  
+  return false
+}
+
 export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps) {
   const router = useRouter()
   const { user } = useUser()
@@ -52,6 +138,9 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
   const [promoApplied, setPromoApplied] = useState(false)
   const [willGoToWaitlist, setWillGoToWaitlist] = useState(false)
   const [currentAttendees, setCurrentAttendees] = useState(event.attendees || 0)
+  
+  // Check if event has ended
+  const eventHasEnded = isEventEnded(event)
 
   const [isUpgrade, setIsUpgrade] = useState(false)
   const [currentTierPrice, setCurrentTierPrice] = useState(0)
@@ -199,7 +288,42 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
     }
   }
 
+  // Prevent checkout if event has ended - show message and redirect
+  if (eventHasEnded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg border border-gray-200 shadow-lg p-6 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Event Has Ended</h2>
+          <p className="text-gray-600 mb-6">
+            {event.status === 'cancelled' 
+              ? 'This event has been cancelled.' 
+              : 'This event has ended. Registration is no longer available.'}
+          </p>
+          <Button
+            variant="primary"
+            onClick={() => router.push(`/events/${event.id}`)}
+            className="w-full"
+          >
+            Return to Event Page
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const handlePaymentComplete = () => {
+    // Double check event hasn't ended before completing payment
+    if (eventHasEnded) {
+      alert('This event has ended. Registration is no longer available.')
+      router.push(`/events/${event.id}`)
+      return
+    }
+    
     const totalRequestedTickets = ticketSelections.reduce((sum, sel) => sum + sel.quantity, 0)
     const remainingCapacity = event.maxAttendees - currentAttendees
     
@@ -300,31 +424,31 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
         return (
           <div className="space-y-4">
             {isUpgrade && upgradeTierId && (
-              <div className="bg-gradient-to-r from-blue-50 to-primary-50 border-2 border-primary-300 rounded-lg p-5">
-                <div className="flex items-start gap-3 mb-4">
+              <div className="bg-gradient-to-r from-blue-50 to-primary-50 border-2 border-primary-300 rounded-lg p-3 sm:p-4 lg:p-5">
+                <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <div className="flex-shrink-0">
-                    <ArrowUp className="w-6 h-6 text-primary-600 mt-0.5" />
+                    <ArrowUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 mt-0.5" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 mb-2">Ticket Upgrade - Payment Required</h4>
-                    <p className="text-sm text-gray-700 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm sm:text-base font-bold text-gray-900 mb-2 break-words">Ticket Upgrade - Payment Required</h4>
+                    <p className="text-xs sm:text-sm text-gray-700 mb-3 break-words">
                       You're upgrading your ticket to a higher tier. Pay the price difference to complete the upgrade.
                     </p>
-                    <div className="bg-white rounded-lg p-3 space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Current Ticket Price:</span>
-                        <span className="font-semibold text-gray-900">${currentTierPrice.toFixed(2)}</span>
+                    <div className="bg-white rounded-lg p-2 sm:p-3 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-600 truncate">Current Ticket Price:</span>
+                        <span className="font-semibold text-gray-900 whitespace-nowrap">${currentTierPrice.toFixed(2)}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">New Tier Price:</span>
-                        <span className="font-semibold text-gray-900">${ticketSelections[0]?.price.toFixed(2) || '0.00'}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-600 truncate">New Tier Price:</span>
+                        <span className="font-semibold text-gray-900 whitespace-nowrap">${ticketSelections[0]?.price.toFixed(2) || '0.00'}</span>
                       </div>
-                      <div className="flex items-center justify-between pt-2 border-t-2 border-gray-200">
-                        <span className="text-gray-900 font-bold">Amount to Pay (Upgrade Cost):</span>
-                        <span className="text-primary-600 font-bold text-lg">${upgradeCost.toFixed(2)}</span>
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t-2 border-gray-200">
+                        <span className="text-gray-900 font-bold truncate">Amount to Pay:</span>
+                        <span className="text-primary-600 font-bold text-base sm:text-lg whitespace-nowrap">${upgradeCost.toFixed(2)}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 mt-3 italic">
+                    <p className="text-xs text-gray-600 mt-2 sm:mt-3 italic break-words">
                       Note: This upgrade will be in addition to your existing ticket. Your original ticket will remain valid.
                     </p>
                   </div>
@@ -353,10 +477,10 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
                 </div>
               </div>
             )}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Current Capacity:</span>
-                <span className="font-medium text-gray-900">
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+              <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+                <span className="text-gray-600 truncate">Current Capacity:</span>
+                <span className="font-medium text-gray-900 whitespace-nowrap">
                   {currentAttendees} / {event.maxAttendees} attendees
                 </span>
               </div>
@@ -371,8 +495,8 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
         )
       case 'attendees':
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Attendee Information</h3>
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 break-words">Attendee Information</h3>
             {ticketSelections.flatMap((selection, selIndex) => {
               const startIndex = ticketSelections
                 .slice(0, selIndex)
@@ -381,36 +505,36 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
               return Array(selection.quantity).fill(null).map((_, ticketIndex) => {
                 const attendeeIndex = startIndex + ticketIndex
                 return (
-                  <div key={`${selIndex}-${ticketIndex}`} className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-gray-900">
+                  <div key={`${selIndex}-${ticketIndex}`} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 lg:p-6">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+                      <h4 className="text-sm sm:text-base font-semibold text-gray-900 break-words min-w-0 flex-1">
                         {selection.tierName} - Ticket {ticketIndex + 1}
                       </h4>
-                      <Badge>${selection.price}</Badge>
+                      <Badge className="flex-shrink-0">${selection.price}</Badge>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           Full Name *
                         </label>
                         <input
                           type="text"
                           value={attendees[attendeeIndex]?.name || ''}
                           onChange={(e) => handleAttendeeChange(attendeeIndex, 'name', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           placeholder="John Doe"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           Email Address *
                         </label>
                         <input
                           type="email"
                           value={attendees[attendeeIndex]?.email || ''}
                           onChange={(e) => handleAttendeeChange(attendeeIndex, 'email', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           placeholder="john@example.com"
                           required
                         />

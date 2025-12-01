@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, Download, CheckCircle, Clock, User, Mail, Calendar, Ticket } from 'lucide-react'
+import { X, Search, Download, CheckCircle, Clock, User, Mail, Calendar, Ticket, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import QRCodeScanner from './QRCodeScanner'
 
 interface Attendee {
   id: string
@@ -32,6 +33,7 @@ export default function AttendeeManagement({
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all')
+  const [showQRScanner, setShowQRScanner] = useState(false)
 
   useEffect(() => {
     // Load tickets from localStorage and filter by eventId
@@ -55,7 +57,7 @@ export default function AttendeeManagement({
     }
   }, [eventId])
 
-  const handleCheckIn = (attendeeId: string) => {
+  const handleCheckIn = async (attendeeId: string, qrCode?: string) => {
     const updatedAttendees = attendees.map(att => 
       att.id === attendeeId 
         ? { ...att, checkInStatus: 'checked_in' as const }
@@ -67,10 +69,30 @@ export default function AttendeeManagement({
     const allTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
     const updatedTickets = allTickets.map((ticket: any) => 
       ticket.id === attendeeId
-        ? { ...ticket, checkInStatus: 'checked_in' }
+        ? { ...ticket, checkInStatus: 'checked_in', checkedInAt: new Date().toISOString() }
         : ticket
     )
     localStorage.setItem('eventify_tickets', JSON.stringify(updatedTickets))
+
+    // API call commented out for now
+    // try {
+    //   const token = localStorage.getItem('token')
+    //   if (token) {
+    //     await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/tickets/${attendeeId}/checkin`, {
+    //       method: 'POST',
+    //       headers: {
+    //         'Authorization': `Bearer ${token}`,
+    //         'Content-Type': 'application/json'
+    //       }
+    //     })
+    //   }
+    // } catch (error) {
+    //   console.error('Failed to sync check-in with backend:', error)
+    // }
+  }
+
+  const handleQRCheckIn = async (ticketId: string, qrCode: string) => {
+    await handleCheckIn(ticketId, qrCode)
   }
 
   const handleExport = () => {
@@ -145,13 +167,13 @@ export default function AttendeeManagement({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Attendee Management</h2>
-              <p className="text-gray-600 mt-1">{eventTitle}</p>
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+            <div className="min-w-0 flex-1 pr-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 break-words">Attendee Management</h2>
+              <p className="text-sm sm:text-base text-gray-600 mt-1 break-words truncate">{eventTitle}</p>
             </div>
             <Button
               variant="outline"
@@ -164,28 +186,28 @@ export default function AttendeeManagement({
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 p-6 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Total Attendees</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Total Attendees</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Checked In</p>
-              <p className="text-2xl font-bold text-green-600">{stats.checkedIn}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Checked In</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.checkedIn}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Pending</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.pending}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-              <p className="text-2xl font-bold text-primary-600">${stats.revenue.toFixed(2)}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Total Revenue</p>
+              <p className="text-xl sm:text-2xl font-bold text-primary-600">${stats.revenue.toFixed(2)}</p>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="p-6 border-b border-gray-200 flex-shrink-0">
-            <div className="flex flex-col lg:flex-row gap-4">
+          <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+            <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -226,14 +248,24 @@ export default function AttendeeManagement({
                   No Show
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-              >
-                <Download size={16} className="mr-2" />
-                Export CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowQRScanner(true)}
+                >
+                  <QrCode size={16} className="mr-2" />
+                  Scan QR Code
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                >
+                  <Download size={16} className="mr-2" />
+                  Export CSV
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -303,6 +335,33 @@ export default function AttendeeManagement({
           </div>
         </motion.div>
       </div>
+
+      {/* QR Code Scanner */}
+      {showQRScanner && (
+        <QRCodeScanner
+          isOpen={showQRScanner}
+          onClose={() => {
+            setShowQRScanner(false)
+            // Reload attendees after scanning
+            const allTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
+            const eventTickets = allTickets.filter((ticket: any) => ticket.eventId === eventId)
+            const attendeeList: Attendee[] = eventTickets.map((ticket: any) => ({
+              id: ticket.id,
+              name: ticket.attendeeName || 'Guest',
+              email: ticket.attendeeEmail || '',
+              ticketType: ticket.ticketType,
+              purchaseDate: ticket.purchaseDate,
+              price: typeof ticket.price === 'string' ? parseFloat(ticket.price.replace('$', '')) : ticket.price || 0,
+              checkInStatus: ticket.checkInStatus || 'pending',
+              qrCode: ticket.qrCode,
+              orderNumber: ticket.orderNumber
+            }))
+            setAttendees(attendeeList)
+          }}
+          eventId={eventId}
+          onCheckIn={handleQRCheckIn}
+        />
+      )}
     </AnimatePresence>
   )
 }

@@ -15,15 +15,14 @@ import {
   LogOut,
   Heart,
   Shield,
-  ChevronLeft,
-  ChevronRight,
   Zap,
   BarChart3,
   Users,
   FileText,
   CheckCircle,
   MessageSquare,
-  Search
+  Search,
+  QrCode
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useUser } from '@/contexts/UserContext'
@@ -37,8 +36,10 @@ import OrganizerDashboard from '@/components/dashboard/OrganizerDashboard'
 import SettingsModal from '@/components/dashboard/SettingsModal'
 import AdminDashboard from '@/components/dashboard/AdminDashboard'
 import NotificationBell from '@/components/layout/NotificationBell'
+import QRCodeScanner from '@/components/dashboard/QRCodeScanner'
+import SupportTickets from '@/components/support/SupportTickets'
 
-type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin'
+type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin' | 'support'
 
 const getNavigationItems = (canCreateEvents: boolean, isAdmin: boolean) => {
   if (isAdmin) {
@@ -51,13 +52,14 @@ const getNavigationItems = (canCreateEvents: boolean, isAdmin: boolean) => {
     ]
   }
   
-  // Regular users see: Overview, Events, Tickets, Favorites, Profile, Organizer (if approved)
+  // Regular users see: Overview, Events, Tickets, Favorites, Profile, Support, Organizer (if approved)
   return [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'tickets', label: 'My Tickets', icon: Ticket },
     { id: 'favorites', label: 'Favorites', icon: Heart },
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'support', label: 'Support', icon: MessageSquare },
     ...(canCreateEvents ? [{ id: 'organizer', label: 'Organizer', icon: Plus }] : []),
   ]
 }
@@ -67,17 +69,20 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  // Sidebar should always stay expanded - removed collapse functionality
+  const [isSidebarCollapsed] = useState(false)
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [selectedEventForQRScan, setSelectedEventForQRScan] = useState<string>('')
   const { user, isOrganizer, canCreateEvents, isAuthenticated, isAdmin, logout } = useUser()
   const { openAuthModal } = useAuth()
 
   // Check for query params to set active section - updates when URL changes
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['overview', 'events', 'tickets', 'favorites', 'profile', 'organizer', 'admin'].includes(tab)) {
+    if (tab && ['overview', 'events', 'tickets', 'favorites', 'profile', 'organizer', 'admin', 'support'].includes(tab)) {
       setActiveSection(tab as DashboardSection)
     } else {
       setActiveSection('overview')
@@ -132,6 +137,8 @@ function DashboardContent() {
         )
       case 'admin':
         return <AdminDashboard />
+      case 'support':
+        return <SupportTickets />
       default:
         return <DashboardOverview />
     }
@@ -155,7 +162,7 @@ function DashboardContent() {
           {/* Logo/Name */}
           <h1 
             onClick={() => router.push('/')}
-            className="text-xl lg:text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
+            className="text-lg sm:text-xl lg:text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors break-words"
           >
             Eventify
           </h1>
@@ -187,21 +194,11 @@ function DashboardContent() {
 
       <div className="flex">
         {/* Sidebar - Always visible on desktop, collapsible */}
-        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 ${
+        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 fixed left-0 top-[60px] bottom-0 ${
           isSidebarCollapsed ? 'w-16' : 'w-64'
-        }`} style={{ height: 'calc(100vh - 60px)' }}>
-          <div className="flex flex-col h-full relative">
-            {/* Collapse Toggle */}
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-4 z-10 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 shadow-sm"
-            >
-              {isSidebarCollapsed ? (
-                <ChevronRight size={14} className="text-gray-600" />
-              ) : (
-                <ChevronLeft size={14} className="text-gray-600" />
-              )}
-            </button>
+        }`}>
+          <div className="flex flex-col h-full relative overflow-y-auto">
+            {/* Collapse Toggle - Removed to prevent sidebar from collapsing */}
 
             {/* Navigation */}
             <nav className={`flex-1 space-y-2 pt-4 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
@@ -342,7 +339,7 @@ function DashboardContent() {
         )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col" style={{ minHeight: 'calc(100vh - 60px)' }}>
+            <div className={`flex-1 flex flex-col ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`} style={{ minHeight: 'calc(100vh - 60px)' }}>
               {/* Content Area */}
               <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto">
             <motion.div
@@ -416,6 +413,25 @@ function DashboardContent() {
                 else if (canCreateEvents || isOrganizer) {
                   actions = [
                     { 
+                      id: 'scan-qr-code', 
+                      label: 'Scan QR Code', 
+                      icon: QrCode, 
+                      onClick: () => {
+                        // Get first event from organizer's events or use a generic eventId
+                        if (typeof window !== 'undefined') {
+                          const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
+                          const organizerEvents = storedEvents.filter((e: any) => e.organizerId === user?.id || !e.organizerId)
+                          if (organizerEvents.length > 0) {
+                            setSelectedEventForQRScan(organizerEvents[0].id)
+                          } else {
+                            // Use a generic eventId - scanner will check all tickets
+                            setSelectedEventForQRScan('all')
+                          }
+                          setShowQRScanner(true)
+                        }
+                      } 
+                    },
+                    { 
                       id: 'create-event', 
                       label: 'Create Event', 
                       icon: Plus, 
@@ -477,8 +493,7 @@ function DashboardContent() {
                       label: 'Contact Support', 
                       icon: MessageSquare, 
                       onClick: () => {
-                        // Could open a support modal or navigate to support page
-                        alert('Contact support feature coming soon!')
+                        handleSectionChange('support' as DashboardSection)
                       } 
                     },
                   ]
@@ -542,6 +557,30 @@ function DashboardContent() {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
       />
+
+      {/* QR Code Scanner */}
+      {showQRScanner && (
+        <QRCodeScanner
+          isOpen={showQRScanner}
+          onClose={() => {
+            setShowQRScanner(false)
+            setSelectedEventForQRScan('')
+          }}
+          eventId={selectedEventForQRScan || 'all'}
+          onCheckIn={async (ticketId: string, qrCode: string) => {
+            // Handle check-in logic
+            if (typeof window !== 'undefined') {
+              const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
+              const updatedTickets = tickets.map((t: any) => 
+                t.id === ticketId
+                  ? { ...t, checkInStatus: 'checked_in', checkedInAt: new Date().toISOString() }
+                  : t
+              )
+              localStorage.setItem('eventify_tickets', JSON.stringify(updatedTickets))
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

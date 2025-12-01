@@ -132,10 +132,10 @@ export default function DashboardOverview() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white"
+          className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-4 sm:p-6 text-white"
         >
-          <h1 className="text-2xl font-bold mb-2">Welcome back, {firstName}! 👋</h1>
-          <p className="text-primary-100 mb-4">Here's what's happening with your events today.</p>
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 break-words">Welcome back, {firstName}! 👋</h1>
+          <p className="text-sm sm:text-base text-primary-100 mb-4">Here's what's happening with your events today.</p>
           <div className="flex flex-wrap gap-3">
             <Button 
               variant="outline" 
@@ -150,7 +150,7 @@ export default function DashboardOverview() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Events Attended - Clickable */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -163,15 +163,15 @@ export default function DashboardOverview() {
               section.scrollIntoView({ behavior: 'smooth' })
             }
           }}
-          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Events Attended</p>
-              <p className="text-2xl font-bold text-gray-900">{eventsAttended}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Events Attended</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{eventsAttended}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Calendar size={24} className="text-blue-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Calendar size={20} className="sm:w-6 sm:h-6 text-blue-600" />
             </div>
           </div>
         </motion.div>
@@ -182,15 +182,15 @@ export default function DashboardOverview() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onClick={handleActiveTicketsClick}
-          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Active Tickets</p>
-              <p className="text-2xl font-bold text-gray-900">{activeTickets}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Active Tickets</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{activeTickets}</p>
             </div>
-            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-              <Ticket size={24} className="text-green-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Ticket size={20} className="sm:w-6 sm:h-6 text-green-600" />
             </div>
           </div>
         </motion.div>
@@ -200,15 +200,15 @@ export default function DashboardOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Spent</p>
-              <p className="text-2xl font-bold text-gray-900">${calculateTotalSpent(userTickets).toFixed(0)}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Spent</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">${calculateTotalSpent(userTickets).toFixed(0)}</p>
             </div>
-            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
-              <TrendingUp size={24} className="text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <TrendingUp size={20} className="sm:w-6 sm:h-6 text-purple-600" />
             </div>
           </div>
         </motion.div>
@@ -218,15 +218,15 @@ export default function DashboardOverview() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow"
+          className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Networking Score</p>
-              <p className="text-2xl font-bold text-gray-900">8.5</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Networking Score</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">8.5</p>
             </div>
-            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-              <Users size={24} className="text-orange-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+              <Users size={20} className="sm:w-6 sm:h-6 text-orange-600" />
             </div>
           </div>
         </motion.div>

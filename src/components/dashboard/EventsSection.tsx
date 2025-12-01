@@ -25,6 +25,7 @@ import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
 import EventFormModal from './EventFormModal'
 import NotificationModal from '@/components/events/NotificationModal'
+import ShareEventModal from '@/components/events/ShareEventModal'
 import { eventDetails } from '@/data/eventDetails'
 
 // Mock data
@@ -137,6 +138,8 @@ export default function EventsSection() {
   const [editingEvent, setEditingEvent] = useState<any>(null)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   const [selectedEventForNotification, setSelectedEventForNotification] = useState<any>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [selectedEventForShare, setSelectedEventForShare] = useState<any>(null)
 
   // Load data on mount
   useEffect(() => {
@@ -227,10 +230,40 @@ export default function EventsSection() {
   const handleShare = (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    const url = `${window.location.origin}/events/${eventId}`
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Event link copied to clipboard!')
-    })
+    
+    // Find the event from eventDetails or allEvents
+    const eventFromDetails = eventDetails.find(ev => ev.id === eventId)
+    const eventFromAll = allEvents.find(ev => ev.id === eventId)
+    
+    // Convert to EventDetail format
+    const eventToShare = eventFromDetails || (eventFromAll ? {
+      id: eventFromAll.id,
+      title: eventFromAll.title,
+      description: eventFromAll.description || '',
+      fullDescription: eventFromAll.description || '',
+      date: eventFromAll.date || '',
+      time: eventFromAll.time || '',
+      location: eventFromAll.location || '',
+      isOnline: eventFromAll.location?.toLowerCase().includes('online') || false,
+      category: eventFromAll.category || '',
+      image: eventFromAll.image || '',
+      price: eventFromAll.price || 'FREE',
+      ticketTiers: [],
+      maxAttendees: eventFromAll.maxAttendees || 0,
+      attendees: eventFromAll.attendees || 0,
+      status: eventFromAll.status || 'upcoming',
+      organizer: {
+        id: eventFromAll.organizerId || 'unknown',
+        name: 'Event Organizer',
+        email: 'organizer@example.com'
+      },
+      createdAt: new Date().toISOString()
+    } : null)
+    
+    if (eventToShare) {
+      setSelectedEventForShare(eventToShare)
+      setShowShareModal(true)
+    }
   }
 
   const handleEventClick = (eventId: string) => {
@@ -819,6 +852,17 @@ export default function EventsSection() {
           }}
           eventTitle={selectedEventForNotification.title}
           eventId={selectedEventForNotification.id}
+        />
+      )}
+
+      {/* Share Event Modal */}
+      {showShareModal && selectedEventForShare && (
+        <ShareEventModal
+          event={selectedEventForShare}
+          onClose={() => {
+            setShowShareModal(false)
+            setSelectedEventForShare(null)
+          }}
         />
       )}
     </div>
