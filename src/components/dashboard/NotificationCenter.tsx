@@ -36,6 +36,18 @@ interface Notification {
 // Mock notifications
 const mockNotifications: Notification[] = [
   {
+    id: 'push_notification_summary',
+    title: 'Push Notifications Enabled',
+    message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
+    type: 'success',
+    timestamp: new Date().toISOString(),
+    isRead: false,
+    action: {
+      label: 'View Settings',
+      onClick: () => console.log('View notification settings')
+    }
+  },
+  {
     id: '1',
     title: 'Event Registration Confirmed',
     message: 'Your registration for Tech Innovation Summit 2024 has been confirmed.',
@@ -138,17 +150,44 @@ export default function NotificationCenter() {
               action: n.action
             }))
           
+          // Ensure push notification summary is present
+          const hasPushNotif = formattedNotifications.some((n: any) => n.id === 'push_notification_summary')
+          const allMockNotifs = hasPushNotif 
+            ? mockNotifications.filter(mn => mn.id !== 'push_notification_summary')
+            : mockNotifications
+
           // Merge with mock notifications for demo (excluding duplicates)
-          setNotifications([
+          const merged = [
             ...formattedNotifications, 
-            ...mockNotifications.filter(mn => !formattedNotifications.some(fn => fn.id === mn.id))
-          ])
+            ...allMockNotifs.filter(mn => !formattedNotifications.some(fn => fn.id === mn.id))
+          ]
+          
+          // Sort to put push notification summary first
+          merged.sort((a, b) => {
+            if (a.id === 'push_notification_summary') return -1
+            if (b.id === 'push_notification_summary') return 1
+            return 0
+          })
+          
+          setNotifications(merged)
         } catch (error) {
           console.error('Error loading notifications:', error)
-          setNotifications(mockNotifications)
+          // Ensure push notification summary is first
+          const sorted = [...mockNotifications].sort((a, b) => {
+            if (a.id === 'push_notification_summary') return -1
+            if (b.id === 'push_notification_summary') return 1
+            return 0
+          })
+          setNotifications(sorted)
         }
       } else {
-        setNotifications(mockNotifications)
+        // Ensure push notification summary is first
+        const sorted = [...mockNotifications].sort((a, b) => {
+          if (a.id === 'push_notification_summary') return -1
+          if (b.id === 'push_notification_summary') return 1
+          return 0
+        })
+        setNotifications(sorted)
       }
     }
   }, [user?.id])

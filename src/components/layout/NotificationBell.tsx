@@ -86,11 +86,30 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
     const loadNotifications = () => {
       try {
         const stored = localStorage.getItem('eventify_notifications')
+        
+        // Push notification summary - always include this
+        const pushNotificationSummary: Notification = {
+          id: 'push_notification_summary',
+          title: 'Push Notifications Enabled',
+          message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          isRead: false,
+          action: {
+            label: 'View Settings',
+            onClick: () => {
+              router.push('/dashboard?tab=profile')
+            }
+          }
+        }
+        
         if (stored) {
           const storedNotifications = JSON.parse(stored)
           // Filter notifications based on user and type
           const filteredNotifications: Notification[] = storedNotifications
             .filter((n: any) => {
+              // Exclude push notification summary from stored notifications (we'll add it fresh)
+              if (n.id === 'push_notification_summary') return false
               // Show event_deleted notifications only to the organizer who owns the event
               if (n.type === 'event_deleted') {
                 return !n.organizerId || n.organizerId === user?.id
@@ -110,23 +129,47 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
               isRead: n.isRead || n.read || false,
               action: n.action
             }))
-            .sort((a: Notification, b: Notification) => {
-              // Sort by unread first, then by timestamp
-              if (a.isRead !== b.isRead) {
-                return a.isRead ? 1 : -1
-              }
-              const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0
-              const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0
-              return bTime - aTime
-            })
           
-          setNotifications(filteredNotifications)
+          // Add push notification summary at the beginning
+          const allNotifications = [pushNotificationSummary, ...filteredNotifications]
+          
+          // Sort: push notification first, then by unread status, then by timestamp
+          allNotifications.sort((a: Notification, b: Notification) => {
+            // Push notification always first
+            if (a.id === 'push_notification_summary') return -1
+            if (b.id === 'push_notification_summary') return 1
+            
+            // Sort by unread first, then by timestamp
+            if (a.isRead !== b.isRead) {
+              return a.isRead ? 1 : -1
+            }
+            const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0
+            const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0
+            return bTime - aTime
+          })
+          
+          setNotifications(allNotifications)
         } else {
-          setNotifications([])
+          // No stored notifications, just show push notification summary
+          setNotifications([pushNotificationSummary])
         }
       } catch (error) {
         console.error('Error loading notifications:', error)
-        setNotifications([])
+        // On error, still show push notification summary
+        setNotifications([{
+          id: 'push_notification_summary',
+          title: 'Push Notifications Enabled',
+          message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          isRead: false,
+          action: {
+            label: 'View Settings',
+            onClick: () => {
+              router.push('/dashboard?tab=profile')
+            }
+          }
+        }])
       }
     }
 

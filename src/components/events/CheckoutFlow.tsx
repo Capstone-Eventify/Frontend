@@ -21,6 +21,7 @@ import TicketTierSelector from './TicketTierSelector'
 import PromoCodeInput from './PromoCodeInput'
 import PaymentForm from './PaymentForm'
 import { useUser } from '@/contexts/UserContext'
+import { sendRegistrationEmail, sendWaitlistEmail } from '@/lib/emailNotifications'
 
 interface TicketSelection {
   tierId: string
@@ -355,6 +356,22 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
       const existingWaitlist = JSON.parse(localStorage.getItem('eventify_waitlist') || '[]')
       localStorage.setItem('eventify_waitlist', JSON.stringify([...existingWaitlist, ...waitlistEntries]))
       
+      // Send email notification to organizer for each waitlist entry
+      if (event.organizer?.email) {
+        waitlistEntries.forEach(entry => {
+          sendWaitlistEmail(
+            event.organizer.email,
+            event.organizer.name || 'Organizer',
+            event.id,
+            event.title,
+            entry.userName,
+            entry.userEmail,
+            entry.quantity,
+            entry.ticketTierName
+          )
+        })
+      }
+      
       // Show waitlist confirmation
       alert(`You've been added to the waitlist. The organizer will review your request and notify you.`)
       router.push('/dashboard?tab=tickets&waitlist=true')
@@ -402,6 +419,42 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
       })
 
       localStorage.setItem('eventify_tickets', JSON.stringify([...tickets, ...newTickets]))
+      
+      // Send email notifications to organizer for each ticket purchase
+      if (event.organizer?.email) {
+        // Group tickets by attendee and ticket type to send consolidated emails
+        const ticketGroups = newTickets.reduce((acc: any, ticket: any) => {
+          const key = `${ticket.attendeeEmail}_${ticket.ticketTierId}`
+          if (!acc[key]) {
+            acc[key] = {
+              attendeeName: ticket.attendeeName,
+              attendeeEmail: ticket.attendeeEmail,
+              ticketType: ticket.ticketType,
+              ticketTierId: ticket.ticketTierId,
+              quantity: 0,
+              totalAmount: 0
+            }
+          }
+          acc[key].quantity += 1
+          acc[key].totalAmount += parseFloat(String(ticket.price).replace('$', '')) || 0
+          return acc
+        }, {})
+
+        // Send one email per attendee/ticket type combination
+        Object.values(ticketGroups).forEach((group: any) => {
+          sendRegistrationEmail(
+            event.organizer.email,
+            event.organizer.name || 'Organizer',
+            event.id,
+            event.title,
+            group.attendeeName,
+            group.attendeeEmail,
+            group.quantity,
+            group.ticketType,
+            group.totalAmount
+          )
+        })
+      }
       
       // Update event attendees count
       const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
@@ -616,6 +669,12 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
             total={calculateTotal()}
             onComplete={handlePaymentComplete}
             eventTitle={event.title}
+            eventId={event.id}
+            ticketTierId={ticketSelections[0]?.tierId}
+            quantity={ticketSelections.reduce((sum, sel) => sum + sel.quantity, 0)}
+            promoCode={promoCode || undefined}
+            discount={discount || undefined}
+            attendees={attendees}
           />
         )
       default:

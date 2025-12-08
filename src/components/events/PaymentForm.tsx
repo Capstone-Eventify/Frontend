@@ -1,235 +1,174 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CreditCard, Lock, CheckCircle } from 'lucide-react'
+import { Lock, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import {
+  PaymentElement,
+  useStripe,
+  useElements
+} from '@stripe/react-stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
+import getStripe from '@/lib/stripe'
 
 interface PaymentFormProps {
   total: number
   onComplete: () => void
   eventTitle: string
+  eventId: string
+  ticketTierId?: string
+  quantity: number
+  promoCode?: string
+  discount?: number
+  attendees?: Array<{ name: string; email: string }>
+  paymentIntentId?: string
 }
 
-export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFormProps) {
-  const [formData, setFormData] = useState({
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardName: '',
-    zipCode: ''
-  })
+// Inner component that uses Stripe hooks
+function PaymentFormInner({ 
+  total, 
+  onComplete, 
+  eventTitle,
+  eventId,
+  ticketTierId,
+  quantity,
+  promoCode,
+  discount,
+  attendees = [],
+  paymentIntentId
+}: PaymentFormProps) {
+  const stripe = useStripe()
+  const elements = useElements()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const handleInputChange = (field: string, value: string) => {
-    let formattedValue = value
-
-    // Format card number (add spaces every 4 digits)
-    if (field === 'cardNumber') {
-      formattedValue = value.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim()
-      if (formattedValue.length > 19) formattedValue = formattedValue.slice(0, 19)
-    }
-
-    // Format expiry date (MM/YY)
-    if (field === 'expiryDate') {
-      formattedValue = value.replace(/\D/g, '')
-      if (formattedValue.length >= 2) {
-        formattedValue = formattedValue.slice(0, 2) + '/' + formattedValue.slice(2, 4)
-      }
-    }
-
-    // Format CVV (3-4 digits only)
-    if (field === 'cvv') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 4)
-    }
-
-    // Format ZIP (5 digits)
-    if (field === 'zipCode') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 5)
-    }
-
-    setFormData(prev => ({ ...prev, [field]: formattedValue }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.cardNumber.replace(/\s/g, '').match(/^\d{13,16}$/)) {
-      newErrors.cardNumber = 'Invalid card number'
-    }
-
-    if (!formData.expiryDate.match(/^\d{2}\/\d{2}$/)) {
-      newErrors.expiryDate = 'Invalid expiry date (MM/YY)'
-    }
-
-    if (!formData.cvv.match(/^\d{3,4}$/)) {
-      newErrors.cvv = 'Invalid CVV'
-    }
-
-    if (!formData.cardName.trim()) {
-      newErrors.cardName = 'Cardholder name is required'
-    }
-
-    if (!formData.zipCode.match(/^\d{5}$/)) {
-      newErrors.zipCode = 'Invalid ZIP code'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) {
+    if (!stripe || !elements) {
+      setError('Payment system not ready. Please wait...')
       return
     }
 
     setIsProcessing(true)
+    setError(null)
 
     try {
-      // In production, this would use Stripe Elements
-      // For now, we'll use a simplified flow that works with the backend
-      // The actual Stripe integration would require @stripe/stripe-js package
-      
-      // Simulate payment processing (replace with actual Stripe integration)
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Confirm payment with Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: 'if_required',
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard?tab=tickets&success=true`
+        }
+      })
 
+      if (stripeError) {
+        setError(stripeError.message || 'Payment failed')
+        setIsProcessing(false)
+        return
+      }
+
+      if (paymentIntent?.status === 'succeeded' && paymentIntentId) {
+        // Confirm payment with backend
+        const token = localStorage.getItem('token')
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/payments/confirm`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              paymentIntentId,
+              eventId,
+              ticketTierId,
+              quantity,
+              attendees,
+              promoCode,
+              discount
+            })
+          }
+        )
+
+        const data = await response.json()
+
+        if (data.success) {
+          onComplete()
+        } else {
+          setError(data.message || 'Failed to confirm payment')
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Payment processing failed')
+    } finally {
       setIsProcessing(false)
-      onComplete()
-    } catch (error) {
-      setIsProcessing(false)
-      setErrors({ cardNumber: 'Payment failed. Please try again.' })
     }
   }
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">Payment Information</h3>
-        <p className="text-xs sm:text-sm text-gray-600 break-words">Complete your purchase for {eventTitle}</p>
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+          Payment Information
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-600 break-words">
+          Complete your purchase for {eventTitle}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Card Number */}
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-            Card Number
-          </label>
-          <div className="relative">
-            <CreditCard size={18} className="sm:w-5 sm:h-5 absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={formData.cardNumber}
-              onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-              placeholder="1234 5678 9012 3456"
-              className={`w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                errors.cardNumber ? 'border-red-300' : 'border-gray-300'
-              }`}
-              maxLength={19}
-            />
-          </div>
-          {errors.cardNumber && (
-            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cardNumber}</p>
-          )}
-        </div>
-
-        {/* Cardholder Name */}
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-            Cardholder Name
-          </label>
-          <input
-            type="text"
-            value={formData.cardName}
-            onChange={(e) => handleInputChange('cardName', e.target.value)}
-            placeholder="John Doe"
-            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.cardName ? 'border-red-300' : 'border-gray-300'
-            }`}
+        {/* Stripe Payment Element */}
+        <div className="bg-white border border-gray-300 rounded-lg p-4">
+          <PaymentElement 
+            options={{
+              layout: 'tabs',
+              business: {
+                name: 'Eventify'
+              },
+              fields: {
+                billingDetails: {
+                  address: 'auto'
+                }
+              }
+            }}
+            onReady={() => {
+              console.log('Payment Element is ready')
+            }}
           />
-          {errors.cardName && (
-            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cardName}</p>
-          )}
-        </div>
-
-        {/* Expiry and CVV */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-              Expiry Date
-            </label>
-            <input
-              type="text"
-              value={formData.expiryDate}
-              onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-              placeholder="MM/YY"
-              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                errors.expiryDate ? 'border-red-300' : 'border-gray-300'
-              }`}
-              maxLength={5}
-            />
-            {errors.expiryDate && (
-              <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.expiryDate}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-              CVV
-            </label>
-            <input
-              type="text"
-              value={formData.cvv}
-              onChange={(e) => handleInputChange('cvv', e.target.value)}
-              placeholder="123"
-              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                errors.cvv ? 'border-red-300' : 'border-gray-300'
-              }`}
-              maxLength={4}
-            />
-            {errors.cvv && (
-              <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.cvv}</p>
-            )}
-          </div>
-        </div>
-
-        {/* ZIP Code */}
-        <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-            ZIP Code
-          </label>
-          <input
-            type="text"
-            value={formData.zipCode}
-            onChange={(e) => handleInputChange('zipCode', e.target.value)}
-            placeholder="12345"
-            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.zipCode ? 'border-red-300' : 'border-gray-300'
-            }`}
-            maxLength={5}
-          />
-          {errors.zipCode && (
-            <p className="text-xs sm:text-sm text-red-600 mt-1">{errors.zipCode}</p>
-          )}
         </div>
 
         {/* Total */}
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center justify-between">
-            <span className="text-base sm:text-lg font-semibold text-gray-900">Total Amount</span>
-            <span className="text-xl sm:text-2xl font-bold text-primary-600">${total.toFixed(2)}</span>
+            <span className="text-base sm:text-lg font-semibold text-gray-900">
+              Total Amount
+            </span>
+            <span className="text-xl sm:text-2xl font-bold text-primary-600">
+              ${total.toFixed(2)}
+            </span>
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2"
+          >
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-red-600 text-sm">{error}</p>
+          </motion.div>
+        )}
 
         {/* Security Notice */}
         <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
           <Lock size={14} className="sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" />
           <p className="break-words">
-            Your payment information is secure. This is a demo transaction and no actual payment will be processed.
+            Your payment information is secure and encrypted. Powered by Stripe.
           </p>
         </div>
 
@@ -239,7 +178,7 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
           variant="primary"
           size="lg"
           className="w-full"
-          disabled={isProcessing}
+          disabled={isProcessing || !stripe}
         >
           {isProcessing ? (
             <>
@@ -253,7 +192,7 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
           ) : (
             <>
               <Lock size={16} className="mr-2" />
-              Complete Payment
+              Complete Payment ${total.toFixed(2)}
             </>
           )}
         </Button>
@@ -262,3 +201,132 @@ export default function PaymentForm({ total, onComplete, eventTitle }: PaymentFo
   )
 }
 
+// Wrapper component with Stripe Elements provider
+export default function PaymentForm(props: PaymentFormProps) {
+  const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const initStripe = async () => {
+      try {
+        const stripe = await getStripe()
+        setStripePromise(Promise.resolve(stripe))
+      } catch (error) {
+        console.error('Failed to initialize Stripe:', error)
+        setError('Failed to initialize payment system')
+        setIsLoading(false)
+      }
+    }
+    initStripe()
+  }, [])
+
+  // Create payment intent once Stripe is loaded
+  useEffect(() => {
+    if (!stripePromise) return
+
+    const createIntent = async () => {
+      try {
+        // Get token if available (optional in mock mode)
+        const token = localStorage.getItem('token') || 'test_token'
+
+        // Create payment intent - backend uses mock auth (no database required)
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/payments/create-intent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              eventId: props.eventId,
+              ticketTierId: props.ticketTierId,
+              quantity: props.quantity,
+              promoCode: props.promoCode,
+              discount: props.discount,
+              amount: props.total // Send total amount directly (no database needed)
+            })
+          }
+        )
+
+        const data = await response.json()
+
+        if (data.success) {
+          setClientSecret(data.data.clientSecret)
+          setPaymentIntentId(data.data.paymentIntentId)
+        } else {
+          setError(data.message || 'Failed to initialize payment')
+        }
+      } catch (err) {
+        setError('Network error. Please try again.')
+        console.error('Error creating payment intent:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    createIntent()
+  }, [stripePromise, props.eventId, props.ticketTierId, props.quantity, props.promoCode, props.discount])
+
+  if (isLoading || !stripePromise) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <p className="ml-3 text-gray-600">Initializing payment...</p>
+      </div>
+    )
+  }
+
+  if (error || !clientSecret) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-600 font-semibold">Payment Initialization Failed</p>
+              <p className="text-red-600 text-sm mt-1">{error || 'Failed to initialize payment. Please try again.'}</p>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => window.location.reload()}
+          className="w-full"
+        >
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Elements 
+      stripe={stripePromise} 
+      options={{
+        clientSecret: clientSecret,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: '#8b5cf6',
+            colorBackground: '#ffffff',
+            colorText: '#1f2937',
+            colorDanger: '#ef4444',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '8px'
+          }
+        },
+        locale: 'en'
+      }}
+    >
+      <PaymentFormInner 
+        {...props} 
+        paymentIntentId={paymentIntentId || undefined}
+      />
+    </Elements>
+  )
+}

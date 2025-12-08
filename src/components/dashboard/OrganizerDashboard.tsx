@@ -23,7 +23,12 @@ import {
   Grid3x3,
   List,
   Globe,
-  EyeOff
+  EyeOff,
+  Bell,
+  Ticket,
+  MessageSquare,
+  TrendingDown,
+  Info
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -31,7 +36,9 @@ import EventFormModal from './EventFormModal'
 import AttendeeManagement from './AttendeeManagement'
 import EventAnalytics from './EventAnalytics'
 import WaitlistManagement from './WaitlistManagement'
+import EmailInbox from './EmailInbox'
 import { EventDetail } from '@/types/event'
+import { getOrganizerEmails } from '@/lib/emailNotifications'
 
 // Mock data for organizer dashboard
 const organizerStats = {
@@ -80,6 +87,104 @@ const recentActivity = [
   { action: 'Analytics report generated', time: '2 days ago', type: 'analytics' }
 ]
 
+// Mock organizer notifications
+const getMockOrganizerNotifications = () => {
+  const now = new Date()
+  const notifications = [
+    {
+      id: 'push_notification_summary',
+      title: 'Push Notifications Active',
+      message: 'Push notifications are now enabled! You will receive instant alerts for new registrations, payments, waitlist entries, and event updates.',
+      type: 'success',
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      icon: 'notification'
+    },
+    {
+      id: `notif_${Date.now()}_1`,
+      title: 'New Event Posted',
+      message: 'Your event "Tech Innovation Summit 2024" has been successfully published and is now live!',
+      type: 'success',
+      timestamp: new Date(now.getTime() - 30 * 60000).toISOString(), // 30 minutes ago
+      isRead: false,
+      icon: 'event'
+    },
+    {
+      id: `notif_${Date.now()}_2`,
+      title: 'New Registration',
+      message: '5 new attendees registered for "Digital Marketing Masterclass" in the last hour.',
+      type: 'info',
+      timestamp: new Date(now.getTime() - 2 * 3600 * 1000).toISOString(), // 2 hours ago
+      isRead: false,
+      icon: 'registration'
+    },
+    {
+      id: `notif_${Date.now()}_3`,
+      title: 'Payment Received',
+      message: 'You received $250 from ticket sales for "Global Design Conference".',
+      type: 'success',
+      timestamp: new Date(now.getTime() - 4 * 3600 * 1000).toISOString(), // 4 hours ago
+      isRead: false,
+      icon: 'payment'
+    },
+    {
+      id: `notif_${Date.now()}_4`,
+      title: 'Event Almost Full',
+      message: '"Tech Innovation Summit 2024" has reached 85% capacity. Consider adding more tickets!',
+      type: 'warning',
+      timestamp: new Date(now.getTime() - 6 * 3600 * 1000).toISOString(), // 6 hours ago
+      isRead: false,
+      icon: 'capacity'
+    },
+    {
+      id: `notif_${Date.now()}_5`,
+      title: 'New Waitlist Entry',
+      message: '3 people joined the waitlist for "Startup Pitch Competition".',
+      type: 'info',
+      timestamp: new Date(now.getTime() - 8 * 3600 * 1000).toISOString(), // 8 hours ago
+      isRead: true,
+      icon: 'waitlist'
+    },
+    {
+      id: `notif_${Date.now()}_6`,
+      title: 'Event Starting Soon',
+      message: 'Your event "Digital Marketing Masterclass" starts in 2 days. Time to send reminders!',
+      type: 'warning',
+      timestamp: new Date(now.getTime() - 12 * 3600 * 1000).toISOString(), // 12 hours ago
+      isRead: false,
+      icon: 'reminder'
+    },
+    {
+      id: `notif_${Date.now()}_7`,
+      title: 'High Engagement',
+      message: 'Your event "Tech Innovation Summit 2024" has been viewed 1,234 times this week!',
+      type: 'success',
+      timestamp: new Date(now.getTime() - 24 * 3600 * 1000).toISOString(), // 1 day ago
+      isRead: true,
+      icon: 'engagement'
+    },
+    {
+      id: `notif_${Date.now()}_8`,
+      title: 'Refund Request',
+      message: '1 attendee requested a refund for "Global Design Conference". Review in payments.',
+      type: 'error',
+      timestamp: new Date(now.getTime() - 2 * 24 * 3600 * 1000).toISOString(), // 2 days ago
+      isRead: false,
+      icon: 'refund'
+    }
+  ]
+  
+  // Initialize notifications in localStorage if not exists
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('eventify_organizer_notifications')
+    if (!stored) {
+      localStorage.setItem('eventify_organizer_notifications', JSON.stringify(notifications))
+    }
+  }
+  
+  return notifications
+}
+
 export default function OrganizerDashboard() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -90,8 +195,9 @@ export default function OrganizerDashboard() {
   const [selectedEventForAttendees, setSelectedEventForAttendees] = useState<string | null>(null)
   const [selectedEventForAnalytics, setSelectedEventForAnalytics] = useState<string | null>(null)
   const [selectedEventForWaitlist, setSelectedEventForWaitlist] = useState<string | null>(null)
-  const [activeView, setActiveView] = useState<'events' | 'analytics'>('events')
+  const [activeView, setActiveView] = useState<'events' | 'analytics' | 'emails'>('events')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     // Load events from localStorage
@@ -102,6 +208,63 @@ export default function OrganizerDashboard() {
         !storedEvents.some((se: any) => se.id === e.id)
       )]
       setOrganizerEvents(mergedEvents)
+      
+      // Load organizer notifications
+      const storedNotifications = localStorage.getItem('eventify_organizer_notifications')
+      let loadedNotifications: any[] = []
+      
+      if (storedNotifications) {
+        try {
+          loadedNotifications = JSON.parse(storedNotifications)
+        } catch {
+          loadedNotifications = getMockOrganizerNotifications()
+        }
+      } else {
+        loadedNotifications = getMockOrganizerNotifications()
+      }
+
+      // Ensure push notification summary is always present
+      const hasPushNotif = loadedNotifications.some((n: any) => n.id === 'push_notification_summary')
+      if (!hasPushNotif) {
+        const pushNotif = {
+          id: 'push_notification_summary',
+          title: 'Push Notifications Active',
+          message: 'Push notifications are now enabled! You will receive instant alerts for new registrations, payments, waitlist entries, and event updates.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          isRead: false,
+          icon: 'notification'
+        }
+        loadedNotifications = [pushNotif, ...loadedNotifications]
+        localStorage.setItem('eventify_organizer_notifications', JSON.stringify(loadedNotifications))
+      }
+      
+      setNotifications(loadedNotifications)
+
+      // Also add email notifications to the notifications list
+      const userData = JSON.parse(localStorage.getItem('eventify_user') || '{}')
+      if (userData.email) {
+        const emails = getOrganizerEmails(userData.email)
+        const emailNotifications = emails
+          .filter(email => !email.isRead)
+          .slice(0, 3) // Show only 3 most recent unread emails
+          .map(email => ({
+            id: `email_notif_${email.id}`,
+            title: email.subject,
+            message: email.body.substring(0, 100) + '...',
+            type: email.type === 'registration' ? 'success' : email.type === 'waitlist' ? 'info' : 'info',
+            timestamp: email.timestamp,
+            isRead: email.isRead,
+            icon: email.type === 'registration' ? 'registration' : email.type === 'waitlist' ? 'waitlist' : 'info'
+          }))
+        
+        // Merge email notifications with existing notifications
+        setNotifications(prev => {
+          const existingIds = new Set(prev.map(n => n.id))
+          const newEmailNotifs = emailNotifications.filter(n => !existingIds.has(n.id))
+          return [...newEmailNotifs, ...prev]
+        })
+      }
     }
   }, [])
 
@@ -215,6 +378,50 @@ export default function OrganizerDashboard() {
     setOrganizerEvents(updatedOrganizerEvents)
   }
 
+  const formatNotificationTime = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp)
+      const now = new Date()
+      const diff = now.getTime() - date.getTime()
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+
+      if (minutes < 1) return 'Just now'
+      if (minutes < 60) return `${minutes}m ago`
+      if (hours < 24) return `${hours}h ago`
+      if (days < 7) return `${days}d ago`
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    } catch {
+      return 'Recently'
+    }
+  }
+
+  const getNotificationIcon = (icon: string) => {
+    switch (icon) {
+      case 'event': return Calendar
+      case 'registration': return Users
+      case 'payment': return DollarSign
+      case 'capacity': return AlertCircle
+      case 'waitlist': return Clock
+      case 'reminder': return Bell
+      case 'engagement': return TrendingUp
+      case 'refund': return TrendingDown
+      case 'notification': return Bell
+      default: return Info
+    }
+  }
+
+  const markNotificationAsRead = (id: string) => {
+    const updated = notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+    setNotifications(updated)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('eventify_organizer_notifications', JSON.stringify(updated))
+    }
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -277,8 +484,33 @@ export default function OrganizerDashboard() {
             )}
             <span className="relative z-10">Analytics</span>
           </button>
+          <button
+            onClick={() => setActiveView('emails')}
+            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 whitespace-nowrap ${
+              activeView === 'emails'
+                ? 'text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {activeView === 'emails' && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute inset-0 bg-primary-600 rounded-md"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1">
+              <Bell size={14} />
+              Emails
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Emails View */}
+      {activeView === 'emails' && (
+        <EmailInbox />
+      )}
 
       {/* Analytics View */}
       {activeView === 'analytics' && (
@@ -328,6 +560,119 @@ export default function OrganizerDashboard() {
       {/* Events View */}
       {activeView === 'events' && (
         <>
+          {/* Notifications Section */}
+          {notifications.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Bell size={20} className="text-primary-600" />
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Notifications</h2>
+                  {unreadCount > 0 && (
+                    <Badge className="bg-red-500 text-white border-0">
+                      {unreadCount} new
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {notifications.slice(0, 5).map((notification) => {
+                  const Icon = getNotificationIcon(notification.icon)
+                  const colorConfig = {
+                    success: {
+                      bg: 'bg-green-50',
+                      border: 'border-green-200',
+                      text: 'text-green-700',
+                      iconBg: 'bg-green-100'
+                    },
+                    warning: {
+                      bg: 'bg-yellow-50',
+                      border: 'border-yellow-200',
+                      text: 'text-yellow-700',
+                      iconBg: 'bg-yellow-100'
+                    },
+                    info: {
+                      bg: 'bg-blue-50',
+                      border: 'border-blue-200',
+                      text: 'text-blue-700',
+                      iconBg: 'bg-blue-100'
+                    },
+                    error: {
+                      bg: 'bg-red-50',
+                      border: 'border-red-200',
+                      text: 'text-red-700',
+                      iconBg: 'bg-red-100'
+                    }
+                  }
+                  const colors = colorConfig[notification.type as keyof typeof colorConfig] || colorConfig.info
+                  
+                  return (
+                    <motion.div
+                      key={notification.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      onClick={() => markNotificationAsRead(notification.id)}
+                      className={`p-3 sm:p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                        notification.isRead ? 'bg-gray-50' : colors.bg
+                      } ${colors.border}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 ${colors.iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <Icon size={16} className={colors.text} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className={`text-sm font-semibold ${colors.text} break-words`}>
+                              {notification.title}
+                            </h3>
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1 break-words">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {formatNotificationTime(notification.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+              {notifications.length > 5 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        // Could navigate to full notifications page
+                        console.log('View all notifications')
+                      }}
+                    >
+                      View All Notifications ({notifications.length})
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setActiveView('emails')}
+                    >
+                      <Bell size={14} className="mr-2" />
+                      View Emails
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Organizer Stats - Calculate from actual events */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <motion.div
