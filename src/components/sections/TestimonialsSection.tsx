@@ -23,15 +23,15 @@ const TestimonialsSection = () => {
             variants={fadeInUp}
             className="text-center space-y-4"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 px-4">
               Trusted by Event Organizers Worldwide
             </h2>
-            <div className="flex items-center justify-center gap-8 text-2xl font-bold text-gray-600">
-              <span>50K+ Events Created</span>
-              <span>•</span>
-              <span>2M+ Tickets Sold</span>
-              <span>•</span>
-              <span>150+ Countries</span>
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 md:gap-8 text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-600 px-4">
+              <span className="whitespace-nowrap">50K+ Events Created</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="whitespace-nowrap">2M+ Tickets Sold</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="whitespace-nowrap">150+ Countries</span>
             </div>
           </motion.div>
 
@@ -44,7 +44,7 @@ const TestimonialsSection = () => {
               <motion.div
                 key={testimonial.id}
                 variants={fadeInUp}
-                className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300"
+                className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 md:p-8 hover:shadow-xl transition-shadow duration-300"
               >
                 {/* Stars */}
                 <div className="flex items-center gap-1 mb-6">

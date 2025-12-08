@@ -7,10 +7,35 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
   }
   
   body {
     @apply text-gray-900 bg-white;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Ensure text renders horizontally in buttons and dropdowns */
+  button, .dropdown-menu, [role="menu"], [role="menuitem"] {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+  }
+  
+  button span, .dropdown-menu span, [role="menuitem"] span {
+    display: inline-block;
+    white-space: normal;
+    word-break: break-word;
+  }
+  
+  * {
+    max-width: 100%;
+  }
+  
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
   }
 }
 

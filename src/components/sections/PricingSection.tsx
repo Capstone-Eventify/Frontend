@@ -25,10 +25,10 @@ const PricingSection = () => {
             variants={fadeInUp}
             className="text-center space-y-4"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 px-4">
               Choose Your Plan
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
               Start for free and scale as you grow. No hidden fees, no long-term contracts.
             </p>
           </motion.div>
@@ -71,9 +71,9 @@ const PricingSection = () => {
               <motion.div
                 key={plan.id}
                 variants={fadeInUp}
-                className={`relative rounded-2xl p-8 ${
+                className={`relative rounded-2xl p-6 sm:p-8 ${
                   plan.popular
-                    ? 'bg-primary-600 text-white shadow-2xl scale-105'
+                    ? 'bg-primary-600 text-white shadow-2xl sm:scale-105'
                     : 'bg-white border border-gray-200 shadow-lg'
                 }`}
               >

@@ -1,11 +1,17 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
+import { useAuth } from '@/contexts/AuthContext'
+import { useUser } from '@/contexts/UserContext'
 
 const CTASection = () => {
+  const router = useRouter()
+  const { openAuthModal } = useAuth()
+  const { isAuthenticated, canCreateEvents, isOrganizer } = useUser()
   return (
     <section className="relative py-20 overflow-hidden">
       {/* Background with Gradient */}
@@ -46,14 +52,14 @@ const CTASection = () => {
         >
           <motion.h2
             variants={fadeInUp}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight px-4"
           >
             Ready to Create Your Next Event?
           </motion.h2>
 
           <motion.p
             variants={fadeInUp}
-            className="text-xl md:text-2xl text-primary-100 max-w-3xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl text-primary-100 max-w-3xl mx-auto leading-relaxed px-4"
           >
             Join thousands of successful event organizers who trust Eventify to bring their vision to life.
           </motion.p>
@@ -65,7 +71,19 @@ const CTASection = () => {
             <Button
               variant="outline"
               size="lg"
-              className="bg-white text-primary-600 hover:bg-primary-50 border-white px-8 py-4 text-lg font-semibold"
+              className="bg-white text-primary-600 hover:bg-primary-50 border-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold w-full sm:w-auto"
+              onClick={() => {
+                if (isAuthenticated && (canCreateEvents || isOrganizer)) {
+                  // Navigate directly to dashboard create event page
+                  router.push('/dashboard?tab=organizer&create=true')
+                } else if (isAuthenticated) {
+                  // User is logged in but not an organizer - navigate to profile to apply
+                  router.push('/dashboard?tab=profile')
+                } else {
+                  // Not logged in - open signup modal
+                  openAuthModal('signup')
+                }
+              }}
             >
               Start Creating Events
             </Button>

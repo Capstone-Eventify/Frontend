@@ -19,6 +19,7 @@ A modern, responsive event management and ticketing platform built with Next.js,
 - **Icons**: Lucide React
 - **Font**: Inter (Google Fonts)
 
+
 ## 📁 Project Structure
 
 ```
@@ -173,4 +174,5 @@ The application is fully responsive and optimized for:
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License.// Test deployment
+// Pipeline test - Thu Sep 25 01:05:44 EDT 2025
