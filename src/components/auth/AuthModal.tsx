@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import AuthForm from './AuthForm'
 import { useUser } from '@/contexts/UserContext'
+import { getApiUrl } from '@/lib/api'
 
 interface AuthModalProps {
   isOpen: boolean
