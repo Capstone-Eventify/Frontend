@@ -283,7 +283,8 @@ def deployToServer(String server, String credentials, String env) {
                 
                 if [ -d frontend ]; then
                     cd frontend
-                    git pull origin ${BRANCH_NAME}
+                    git fetch origin ${BRANCH_NAME}
+                    git reset --hard origin/${BRANCH_NAME}
                 else
                     git clone -b ${BRANCH_NAME} https://github.com/Capstone-Eventify/Frontend.git frontend
                     cd frontend
