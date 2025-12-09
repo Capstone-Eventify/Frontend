@@ -21,7 +21,6 @@ import TicketTierSelector from './TicketTierSelector'
 import PromoCodeInput from './PromoCodeInput'
 import PaymentForm from './PaymentForm'
 import { useUser } from '@/contexts/UserContext'
-import { getApiUrl } from '@/lib/api'
 // REMOVED: Mock email notifications - Backend handles email sending
 
 interface TicketSelection {
@@ -155,7 +154,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
         const upgradeTier = event.ticketTiers.find(tier => tier.id === upgradeTierId)
         if (upgradeTier && user) {
           try {
-            const apiUrl = getApiUrl()
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
             const token = localStorage.getItem('token')
             
             if (!token) return
@@ -229,7 +228,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
     // Fetch current attendees from API
     const fetchAttendees = async () => {
       try {
-        const apiUrl = getApiUrl()
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
         
         if (!token || !user) return

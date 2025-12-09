@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import AuthForm from './AuthForm'
 import { useUser } from '@/contexts/UserContext'
-import { getApiUrl } from '@/lib/api'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -23,30 +22,89 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const router = useRouter()
   const { login } = useUser()
 
-  const handleAuth = (mode: 'signin' | 'signup', data: any) => {
-    // Create demo user data from form data
-    const userData = {
-      id: `user_${Date.now()}`,
-      name: mode === 'signup' 
-        ? `${data.firstName} ${data.lastName}` 
-        : data.email.split('@')[0], // Use email prefix as name for login
-      email: data.email,
-      role: 'attendee' as const,
-      isAdmin: false,
-      joinDate: new Date().toISOString(),
+  const handleAuth = async (mode: 'signin' | 'signup', data: any) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login'
+      
+      // Call real API for authentication
+      const response = await fetch(`${apiUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(mode === 'signup' ? {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          role: 'ATTENDEE'
+        } : {
+          email: data.email,
+          password: data.password
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        // Store token
+        if (result.data.token) {
+          localStorage.setItem('token', result.data.token)
+        }
+
+        // Format user data to match frontend User interface
+        const userData = {
+          id: result.data.user.id,
+          name: result.data.user.name || `${result.data.user.firstName} ${result.data.user.lastName}`,
+          email: result.data.user.email,
+          role: result.data.user.role?.toLowerCase() || 'attendee',
+          isAdmin: result.data.user.role === 'admin',
+          joinDate: result.data.user.joinDate || result.data.user.createdAt || new Date().toISOString(),
+          hasCompletedOnboarding: result.data.user.hasCompletedOnboarding || false
+        }
+
+        // Set user in context (this will also save to localStorage)
+        login(userData)
+        
+        onClose()
+        
+        // For new signups, redirect to onboarding if not completed
+        // For sign-ins, go directly to dashboard or redirectUrl
+        if (mode === 'signup' && result.data.isNewUser && !result.data.user.hasCompletedOnboarding) {
+          router.push('/onboarding')
+        } else if (redirectUrl) {
+          router.push(redirectUrl)
+        } else {
+          router.push('/dashboard')
+        }
+      } else {
+        // Show error message
+        alert(result.message || 'Authentication failed. Please try again.')
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error)
+      alert('Authentication failed. Please check your connection and try again.')
     }
 
-    // Set user in context (this will also save to localStorage)
-    login(userData)
-    
-    onClose()
-    
-    // Redirect to the specified URL or dashboard
-    if (redirectUrl) {
-      router.push(redirectUrl)
-    } else {
-      router.push('/dashboard')
-    }
+    // COMMENTED OUT: Mock/demo user flow for testing
+    // const userData = {
+    //   id: `user_${Date.now()}`,
+    //   name: mode === 'signup' 
+    //     ? `${data.firstName} ${data.lastName}` 
+    //     : data.email.split('@')[0],
+    //   email: data.email,
+    //   role: 'attendee' as const,
+    //   isAdmin: false,
+    //   joinDate: new Date().toISOString(),
+    // }
+    // login(userData)
+    // onClose()
+    // if (redirectUrl) {
+    //   router.push(redirectUrl)
+    // } else {
+    //   router.push('/dashboard')
+    // }
   }
 
 

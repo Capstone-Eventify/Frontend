@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
 
-import { getApiUrl } from '@/lib/api'
 export default function FavoritesSection() {
   const router = useRouter()
   const { isAuthenticated, user } = useUser()
@@ -34,7 +33,7 @@ export default function FavoritesSection() {
 
   const loadFavorites = async () => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -63,7 +62,7 @@ export default function FavoritesSection() {
 
   const removeFavorite = async (eventId: string) => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) return

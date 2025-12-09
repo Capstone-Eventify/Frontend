@@ -39,7 +39,6 @@ import NotificationBell from '@/components/layout/NotificationBell'
 import QRCodeScanner from '@/components/dashboard/QRCodeScanner'
 import SupportTickets from '@/components/support/SupportTickets'
 
-import { getApiUrl } from '@/lib/api'
 type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin' | 'support'
 
 const getNavigationItems = (canCreateEvents: boolean, isAdmin: boolean) => {
@@ -444,7 +443,7 @@ function DashboardContent() {
                         // Fetch organizer's events from API to get event ID for QR scanner
                         const fetchEventForQR = async () => {
                           try {
-                            const apiUrl = getApiUrl()
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
                             const token = localStorage.getItem('token')
                             if (token && user?.id) {
                               const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
@@ -614,7 +613,7 @@ function DashboardContent() {
           onCheckIn={async (ticketId: string, qrCode: string) => {
             // Handle check-in via API
             try {
-              const apiUrl = getApiUrl()
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
               const token = localStorage.getItem('token')
               if (token) {
                 const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/check-in`, {

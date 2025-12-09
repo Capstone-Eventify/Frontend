@@ -32,7 +32,6 @@ import UpgradeTicketModal from '@/components/events/UpgradeTicketModal'
 import OrganizerProfileModal from '@/components/events/OrganizerProfileModal'
 import AdminDeleteEventModal from '@/components/dashboard/AdminDeleteEventModal'
 
-import { getApiUrl } from '@/lib/api'
 export default function EventDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -150,7 +149,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const apiUrl = getApiUrl()
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         
         // Fetch event from API
         const response = await fetch(`${apiUrl}/api/events/${params.id}`)
@@ -249,7 +248,7 @@ export default function EventDetailPage() {
     }
 
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -456,7 +455,7 @@ export default function EventDetailPage() {
     if (!event) return
 
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) {

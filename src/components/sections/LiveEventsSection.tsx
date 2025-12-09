@@ -12,48 +12,128 @@ import { liveEvents } from '@/data/events'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
+import ShareEventModal from '@/components/events/ShareEventModal'
+import { EventDetail } from '@/types/event'
 
 const LiveEventsSection = () => {
   const router = useRouter()
   const { isAuthenticated } = useUser()
   const { openAuthModal } = useAuth()
   const [favorites, setFavorites] = useState<string[]>([])
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [selectedEventForShare, setSelectedEventForShare] = useState<EventDetail | null>(null)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('eventify_favorites')
-      if (stored) {
-        setFavorites(JSON.parse(stored))
+    const loadFavorites = async () => {
+      if (!isAuthenticated) return
+      
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) return
+
+        const response = await fetch(`${apiUrl}/api/favorites/ids`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setFavorites(data.data || [])
+          }
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error)
       }
     }
-  }, [])
 
-  const toggleFavorite = (eventId: string, e: React.MouseEvent) => {
+    loadFavorites()
+  }, [isAuthenticated])
+
+  const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
     if (!isAuthenticated) {
-      // Open auth modal with redirect URL to the event detail page
       openAuthModal('signin', `/events/${eventId}`)
       return
     }
 
-    const newFavorites = favorites.includes(eventId)
-      ? favorites.filter(id => id !== eventId)
-      : [...favorites, eventId]
-    
-    setFavorites(newFavorites)
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        openAuthModal('signin', `/events/${eventId}`)
+        return
+      }
+
+      const isCurrentlyFavorite = favorites.includes(eventId)
+      
+      if (isCurrentlyFavorite) {
+        // Remove from favorites
+        const response = await fetch(`${apiUrl}/api/favorites/${eventId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          setFavorites(favorites.filter(id => id !== eventId))
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`${apiUrl}/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId })
+        })
+        if (response.ok) {
+          setFavorites([...favorites, eventId])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
   }
 
-  const handleShare = (eventId: string, e: React.MouseEvent) => {
+  const handleShare = (event: any, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // Share functionality can be added here
-    const url = `${window.location.origin}/events/${eventId}`
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Event link copied to clipboard!')
-    })
+    
+    // Convert event to EventDetail format
+    const eventToShare: EventDetail = {
+      id: event.id,
+      title: event.title,
+      description: event.description || '',
+      fullDescription: event.description || '',
+      date: event.date || '',
+      time: event.time || '',
+      location: event.location || '',
+      isOnline: event.location?.toLowerCase().includes('online') || false,
+      category: event.category || '',
+      image: event.image || '',
+      price: event.price || 'FREE',
+      ticketTiers: [],
+      maxAttendees: event.maxAttendees || 0,
+      attendees: event.attendees || 0,
+      status: event.status || 'live',
+      organizer: {
+        id: 'unknown',
+        name: 'Event Organizer',
+        email: 'organizer@example.com'
+      },
+      createdAt: new Date().toISOString()
+    }
+    
+    setSelectedEventForShare(eventToShare)
+    setShowShareModal(true)
   }
 
   const handleEventClick = (eventId: string) => {
@@ -81,10 +161,10 @@ const LiveEventsSection = () => {
                 Live Events
               </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 px-4">
               Happening Now
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
               Join these exciting events currently taking place.
             </p>
           </motion.div>
@@ -109,6 +189,7 @@ const LiveEventsSection = () => {
                       src={event.image}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover"
                     />
                     <div className="absolute top-4 left-4">
@@ -128,7 +209,7 @@ const LiveEventsSection = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => handleShare(event.id, e)}
+                        onClick={(e) => handleShare(event, e)}
                         className="bg-white/90 backdrop-blur-sm"
                       >
                         <Share2 size={16} />
@@ -214,6 +295,17 @@ const LiveEventsSection = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Share Event Modal */}
+      {showShareModal && selectedEventForShare && (
+        <ShareEventModal
+          event={selectedEventForShare}
+          onClose={() => {
+            setShowShareModal(false)
+            setSelectedEventForShare(null)
+          }}
+        />
+      )}
     </section>
   )
 }

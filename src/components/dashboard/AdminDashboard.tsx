@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
 
-import { getApiUrl } from '@/lib/api'
 interface OrganizerApplication {
   id: string
   userId: string
@@ -77,7 +76,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const apiUrl = getApiUrl()
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
         
         if (!token) return
@@ -130,7 +129,7 @@ export default function AdminDashboard() {
 
   const handleApprove = async (application: OrganizerApplication) => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -205,7 +204,7 @@ export default function AdminDashboard() {
 
   const handleReject = async (application: OrganizerApplication) => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -594,7 +593,7 @@ export default function AdminDashboard() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                     onClick={async () => {
-                      const apiUrl = getApiUrl()
+                      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
                       const token = localStorage.getItem('token')
                       if (token) {
                         try {
