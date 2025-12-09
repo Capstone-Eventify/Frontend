@@ -6,6 +6,7 @@ import OnboardingFlow from '@/components/auth/OnboardingFlow'
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
 
+import { getApiUrl } from '@/lib/api'
 export default function OnboardingPage() {
   const router = useRouter()
   const { isAuthenticated, user, updateUser, isLoaded } = useUser()
@@ -34,7 +35,7 @@ export default function OnboardingPage() {
 
   const handleComplete = async (onboardingData?: { avatar?: string; phone?: string; street?: string; city?: string; state?: string; zipCode?: string; country?: string }) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {

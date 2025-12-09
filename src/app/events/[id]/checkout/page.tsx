@@ -9,6 +9,7 @@ import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
 import CheckoutFlow from '@/components/events/CheckoutFlow'
 
+import { getApiUrl } from '@/lib/api'
 function CheckoutContent() {
   const params = useParams()
   const router = useRouter()
@@ -23,7 +24,7 @@ function CheckoutContent() {
     const fetchEvent = async () => {
       try {
         setIsLoading(true)
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         
         // Fetch event from API
         const response = await fetch(`${apiUrl}/api/events/${params.id}`)

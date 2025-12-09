@@ -39,6 +39,7 @@ import EventAnalytics from './EventAnalytics'
 import WaitlistManagement from './WaitlistManagement'
 import EmailInbox from './EmailInbox'
 import { EventDetail } from '@/types/event'
+import { getApiUrl } from '@/lib/api'
 // REMOVED: All mock data - Now fetching from API
 // REMOVED: organizerStats - Use /api/analytics/organizer
 // REMOVED: recentEvents array - Use /api/events/organizer/my-events
@@ -98,7 +99,7 @@ const OrganizerDashboard: React.FC = () => {
 
     const fetchOrganizerData = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) {
@@ -165,7 +166,7 @@ const OrganizerDashboard: React.FC = () => {
 
   const handleEventSave = async (eventData: any) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) return
@@ -265,7 +266,7 @@ const OrganizerDashboard: React.FC = () => {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -313,7 +314,7 @@ const OrganizerDashboard: React.FC = () => {
 
   const handlePublishEvent = async (eventId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) return
@@ -348,7 +349,7 @@ const OrganizerDashboard: React.FC = () => {
 
   const handleUnpublishEvent = async (eventId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) return
@@ -420,7 +421,7 @@ const OrganizerDashboard: React.FC = () => {
     const updated = notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
     setNotifications(updated)
     // TODO: Call API to mark notification as read when endpoint is available
-    // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+    // const apiUrl = getApiUrl()
     // const token = localStorage.getItem('token')
     // await fetch(`${apiUrl}/api/notifications/${id}/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } })
   }

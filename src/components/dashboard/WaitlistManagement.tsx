@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge'
 import { WaitlistEntry } from '@/types/event'
 import { useUser } from '@/contexts/UserContext'
 
+import { getApiUrl } from '@/lib/api'
 interface WaitlistManagementProps {
   eventId: string
   eventTitle: string
@@ -42,7 +43,7 @@ export default function WaitlistManagement({
     // Load waitlist entries for this event from API
     const fetchWaitlist = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) return
@@ -97,7 +98,7 @@ export default function WaitlistManagement({
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -158,7 +159,7 @@ export default function WaitlistManagement({
     if (!confirm('Are you sure you want to reject this waitlist request?')) return
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {

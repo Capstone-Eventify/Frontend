@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
+import { getApiUrl } from '@/lib/api'
 export default function SetupTestTokenPage() {
   const router = useRouter()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -20,7 +21,7 @@ export default function SetupTestTokenPage() {
         
         // First, try to register
         const registerResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/auth/register`,
+          `${getApiUrl()}/api/auth/register`,
           {
             method: 'POST',
             headers: {
@@ -48,7 +49,7 @@ export default function SetupTestTokenPage() {
         } else {
           // If registration fails (user might exist), try login
           const loginResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/auth/login`,
+            `${getApiUrl()}/api/auth/login`,
             {
               method: 'POST',
               headers: {

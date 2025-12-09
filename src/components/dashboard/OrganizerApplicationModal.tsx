@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
 
+import { getApiUrl } from '@/lib/api'
 interface OrganizerApplicationModalProps {
   isOpen: boolean
   onClose: () => void
@@ -37,7 +38,7 @@ export default function OrganizerApplicationModal({
     const fetchMyApplication = async () => {
       if (!existingApplication && isOpen) {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const apiUrl = getApiUrl()
           const token = localStorage.getItem('token')
           
           if (!token) return
@@ -131,7 +132,7 @@ export default function OrganizerApplicationModal({
 
     setIsSubmitting(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {

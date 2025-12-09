@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import EventFormModal from './EventFormModal'
 import NotificationModal from '@/components/events/NotificationModal'
 import ShareEventModal from '@/components/events/ShareEventModal'
+import { getApiUrl } from '@/lib/api'
 // REMOVED: Mock data - Now fetching from API
 
 const categories = ['All', 'Technology', 'Marketing', 'Design', 'Business', 'Education']
@@ -77,7 +78,7 @@ export default function EventsSection() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         
         // Fetch all events from API
         let allEventsData: any[] = []
@@ -160,7 +161,7 @@ export default function EventsSection() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {
@@ -210,7 +211,7 @@ export default function EventsSection() {
       
       // If not found in allEvents, fetch from API
       if (!eventToShare) {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const response = await fetch(`${apiUrl}/api/events/${eventId}`)
         if (response.ok) {
           const data = await response.json()
@@ -278,7 +279,7 @@ export default function EventsSection() {
     // Refresh events from API after save
     if (user?.id && isOrganizer) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         if (token) {
           const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {

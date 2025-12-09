@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
 
+import { getApiUrl } from '@/lib/api'
 interface Notification {
   id: string
   title: string
@@ -133,7 +134,7 @@ export default function NotificationCenter() {
       }
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) {
@@ -198,7 +199,7 @@ export default function NotificationCenter() {
     // Update via API (skip for mock notifications)
     if (id !== 'push_notification_summary' && user?.id) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         if (token) {
           await fetch(`${apiUrl}/api/notifications/${id}/read`, {
@@ -221,7 +222,7 @@ export default function NotificationCenter() {
     // Update via API
     if (user?.id) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         if (token) {
           await fetch(`${apiUrl}/api/notifications/read-all`, {
@@ -244,7 +245,7 @@ export default function NotificationCenter() {
     // Delete via API (skip for mock notifications)
     if (id !== 'push_notification_summary' && user?.id) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         if (token) {
           await fetch(`${apiUrl}/api/notifications/${id}`, {

@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
 import OrganizerApplicationModal from './OrganizerApplicationModal'
 
+import { getApiUrl } from '@/lib/api'
 export default function ProfileSection() {
   const { user, isOrganizer, isAdmin, canCreateEvents, canAccessAdmin, updateUser } = useUser()
   const [isEditing, setIsEditing] = useState(false)
@@ -43,7 +44,7 @@ export default function ProfileSection() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token || !user?.id) {
@@ -197,7 +198,7 @@ export default function ProfileSection() {
       if (!user?.id) return
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) return
@@ -227,7 +228,7 @@ export default function ProfileSection() {
 
   const handleSave = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) return
@@ -302,7 +303,7 @@ export default function ProfileSection() {
 
       // Upload to S3
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) {
@@ -360,7 +361,7 @@ export default function ProfileSection() {
     // Reload application status after submission - fetch from API
     if (user?.id) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         if (token) {
           const response = await fetch(`${apiUrl}/api/organizer-applications/my-application`, {

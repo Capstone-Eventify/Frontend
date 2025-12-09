@@ -11,6 +11,7 @@ import ImageManager from '@/components/events/ImageManager'
 import SeatingArrangementBuilder, { SeatingArrangement } from './SeatingArrangementBuilder'
 import { useUser } from '@/contexts/UserContext'
 
+import { getApiUrl } from '@/lib/api'
 interface EventFormModalProps {
   isOpen: boolean
   onClose: () => void
@@ -178,7 +179,7 @@ export default function EventFormModal({
     setIsSubmitting(true)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {

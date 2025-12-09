@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/Badge'
 import QRCodeDisplay from '@/components/events/QRCodeDisplay'
 import RefundRequestModal from '@/components/events/RefundRequestModal'
 import TicketDetailModal from './TicketDetailModal'
+import { getApiUrl } from '@/lib/api'
 // REMOVED: Mock data - Now fetching from API
 
 const statusConfig = {
@@ -43,7 +44,7 @@ export default function TicketsSection() {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const apiUrl = getApiUrl()
         const token = localStorage.getItem('token')
         
         if (!token) {
@@ -93,7 +94,7 @@ export default function TicketsSection() {
 
   const handleRefundRequest = async (ticketId: string, reason: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const apiUrl = getApiUrl()
       const token = localStorage.getItem('token')
       
       if (!token) {
