@@ -1,21 +1,20 @@
-getApiUrl()'getApiUrl()ugetApiUrl()sgetApiUrl()egetApiUrl() getApiUrl()cgetApiUrl()lgetApiUrl()igetApiUrl()egetApiUrl()ngetApiUrl()tgetApiUrl()'getApiUrl()
-getApiUrl()getApiUrl()
-getApiUrl()getApiUrl()igetApiUrl()mgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()RgetApiUrl()egetApiUrl()agetApiUrl()cgetApiUrl()tgetApiUrl() getApiUrl()fgetApiUrl()rgetApiUrl()ogetApiUrl()mgetApiUrl() getApiUrl()'getApiUrl()rgetApiUrl()egetApiUrl()agetApiUrl()cgetApiUrl()tgetApiUrl()'getApiUrl()
-getApiUrl()getApiUrl()igetApiUrl()mgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl(){getApiUrl() getApiUrl()ugetApiUrl()sgetApiUrl()egetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl() getApiUrl()}getApiUrl() getApiUrl()fgetApiUrl()rgetApiUrl()ogetApiUrl()mgetApiUrl() getApiUrl()'getApiUrl()@getApiUrl()/getApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()tgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl()sgetApiUrl()/getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()CgetApiUrl()ogetApiUrl()ngetApiUrl()tgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl()'getApiUrl()
-getApiUrl()getApiUrl()igetApiUrl()mgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl() getApiUrl()fgetApiUrl()rgetApiUrl()ogetApiUrl()mgetApiUrl() getApiUrl()'getApiUrl().getApiUrl()/getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()'getApiUrl()
-getApiUrl()getApiUrl()
-getApiUrl()getApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()tgetApiUrl() getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()WgetApiUrl()rgetApiUrl()agetApiUrl()pgetApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl():getApiUrl() getApiUrl()RgetApiUrl()egetApiUrl()agetApiUrl()cgetApiUrl()tgetApiUrl().getApiUrl()FgetApiUrl()CgetApiUrl() getApiUrl()=getApiUrl() getApiUrl()(getApiUrl())getApiUrl() getApiUrl()=getApiUrl()>getApiUrl() getApiUrl(){getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()tgetApiUrl() getApiUrl(){getApiUrl() getApiUrl()igetApiUrl()sgetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()OgetApiUrl()pgetApiUrl()egetApiUrl()ngetApiUrl(),getApiUrl() getApiUrl()agetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()egetApiUrl(),getApiUrl() getApiUrl()rgetApiUrl()egetApiUrl()dgetApiUrl()igetApiUrl()rgetApiUrl()egetApiUrl()cgetApiUrl()tgetApiUrl()UgetApiUrl()rgetApiUrl()lgetApiUrl(),getApiUrl() getApiUrl()cgetApiUrl()lgetApiUrl()ogetApiUrl()sgetApiUrl()egetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl() getApiUrl()}getApiUrl() getApiUrl()=getApiUrl() getApiUrl()ugetApiUrl()sgetApiUrl()egetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()(getApiUrl())getApiUrl()
-getApiUrl()getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()rgetApiUrl()egetApiUrl()tgetApiUrl()ugetApiUrl()rgetApiUrl()ngetApiUrl() getApiUrl()(getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()<getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()igetApiUrl()sgetApiUrl()OgetApiUrl()pgetApiUrl()egetApiUrl()ngetApiUrl()=getApiUrl(){getApiUrl()igetApiUrl()sgetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()OgetApiUrl()pgetApiUrl()egetApiUrl()ngetApiUrl()}getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()ogetApiUrl()ngetApiUrl()CgetApiUrl()lgetApiUrl()ogetApiUrl()sgetApiUrl()egetApiUrl()=getApiUrl(){getApiUrl()cgetApiUrl()lgetApiUrl()ogetApiUrl()sgetApiUrl()egetApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()}getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()igetApiUrl()ngetApiUrl()igetApiUrl()tgetApiUrl()igetApiUrl()agetApiUrl()lgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()egetApiUrl()=getApiUrl(){getApiUrl()agetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()egetApiUrl()}getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()rgetApiUrl()egetApiUrl()dgetApiUrl()igetApiUrl()rgetApiUrl()egetApiUrl()cgetApiUrl()tgetApiUrl()UgetApiUrl()rgetApiUrl()lgetApiUrl()=getApiUrl(){getApiUrl()rgetApiUrl()egetApiUrl()dgetApiUrl()igetApiUrl()rgetApiUrl()egetApiUrl()cgetApiUrl()tgetApiUrl()UgetApiUrl()rgetApiUrl()lgetApiUrl()}getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()/getApiUrl()>getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl())getApiUrl()
-getApiUrl()getApiUrl()}getApiUrl()
-getApiUrl()getApiUrl()
-getApiUrl()getApiUrl()egetApiUrl()xgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()dgetApiUrl()egetApiUrl()fgetApiUrl()agetApiUrl()ugetApiUrl()lgetApiUrl()tgetApiUrl() getApiUrl()AgetApiUrl()ugetApiUrl()tgetApiUrl()hgetApiUrl()MgetApiUrl()ogetApiUrl()dgetApiUrl()agetApiUrl()lgetApiUrl()WgetApiUrl()rgetApiUrl()agetApiUrl()pgetApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl()
-getApiUrl()
+'use client'
+
+import React from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import AuthModal from './AuthModal'
+
+const AuthModalWrapper: React.FC = () => {
+  const { isAuthModalOpen, authMode, redirectUrl, closeAuthModal } = useAuth()
+
+  return (
+    <AuthModal
+      isOpen={isAuthModalOpen}
+      onClose={closeAuthModal}
+      initialMode={authMode}
+      redirectUrl={redirectUrl}
+    />
+  )
+}
+
+export default AuthModalWrapper
