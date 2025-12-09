@@ -1,64 +1,63 @@
-getApiUrl()egetApiUrl()xgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()igetApiUrl()ngetApiUrl()tgetApiUrl()egetApiUrl()rgetApiUrl()fgetApiUrl()agetApiUrl()cgetApiUrl()egetApiUrl() getApiUrl()PgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()PgetApiUrl()lgetApiUrl()agetApiUrl()ngetApiUrl() getApiUrl(){getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()igetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()ngetApiUrl()agetApiUrl()mgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()dgetApiUrl()egetApiUrl()sgetApiUrl()cgetApiUrl()rgetApiUrl()igetApiUrl()pgetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl()igetApiUrl()ogetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()fgetApiUrl()egetApiUrl()agetApiUrl()tgetApiUrl()ugetApiUrl()rgetApiUrl()egetApiUrl()sgetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()[getApiUrl()]getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()TgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()rgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()VgetApiUrl()agetApiUrl()rgetApiUrl()igetApiUrl()agetApiUrl()ngetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()mgetApiUrl()agetApiUrl()rgetApiUrl()ygetApiUrl()"getApiUrl() getApiUrl()|getApiUrl() getApiUrl()"getApiUrl()sgetApiUrl()egetApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()dgetApiUrl()agetApiUrl()rgetApiUrl()ygetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()ogetApiUrl()pgetApiUrl()ugetApiUrl()lgetApiUrl()agetApiUrl()rgetApiUrl()?getApiUrl():getApiUrl() getApiUrl()bgetApiUrl()ogetApiUrl()ogetApiUrl()lgetApiUrl()egetApiUrl()agetApiUrl()ngetApiUrl()
-getApiUrl()getApiUrl()}getApiUrl()
-getApiUrl()getApiUrl()
-getApiUrl()getApiUrl()egetApiUrl()xgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()tgetApiUrl() getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()PgetApiUrl()lgetApiUrl()agetApiUrl()ngetApiUrl()sgetApiUrl():getApiUrl() getApiUrl()PgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()PgetApiUrl()lgetApiUrl()agetApiUrl()ngetApiUrl()[getApiUrl()]getApiUrl() getApiUrl()=getApiUrl() getApiUrl()[getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl(){getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()igetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()1getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()ngetApiUrl()agetApiUrl()mgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()FgetApiUrl()RgetApiUrl()EgetApiUrl()EgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()dgetApiUrl()egetApiUrl()sgetApiUrl()cgetApiUrl()rgetApiUrl()igetApiUrl()pgetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl():getApiUrl() getApiUrl()"getApiUrl()PgetApiUrl()egetApiUrl()rgetApiUrl()fgetApiUrl()egetApiUrl()cgetApiUrl()tgetApiUrl() getApiUrl()fgetApiUrl()ogetApiUrl()rgetApiUrl() getApiUrl()ggetApiUrl()egetApiUrl()tgetApiUrl()tgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl() getApiUrl()sgetApiUrl()tgetApiUrl()agetApiUrl()rgetApiUrl()tgetApiUrl()egetApiUrl()dgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()$getApiUrl()0getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl()igetApiUrl()ogetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()fgetApiUrl()egetApiUrl()agetApiUrl()tgetApiUrl()ugetApiUrl()rgetApiUrl()egetApiUrl()sgetApiUrl():getApiUrl() getApiUrl()[getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()UgetApiUrl()ngetApiUrl()lgetApiUrl()igetApiUrl()mgetApiUrl()igetApiUrl()tgetApiUrl()egetApiUrl()dgetApiUrl() getApiUrl()fgetApiUrl()rgetApiUrl()egetApiUrl()egetApiUrl() getApiUrl()egetApiUrl()vgetApiUrl()egetApiUrl()ngetApiUrl()tgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()BgetApiUrl()agetApiUrl()sgetApiUrl()igetApiUrl()cgetApiUrl() getApiUrl()agetApiUrl()ngetApiUrl()agetApiUrl()lgetApiUrl()ygetApiUrl()tgetApiUrl()igetApiUrl()cgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()SgetApiUrl()tgetApiUrl()agetApiUrl()ngetApiUrl()dgetApiUrl()agetApiUrl()rgetApiUrl()dgetApiUrl() getApiUrl()sgetApiUrl()ugetApiUrl()pgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()QgetApiUrl()RgetApiUrl() getApiUrl()cgetApiUrl()ogetApiUrl()dgetApiUrl()egetApiUrl() getApiUrl()tgetApiUrl()igetApiUrl()cgetApiUrl()kgetApiUrl()egetApiUrl()tgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()EgetApiUrl()mgetApiUrl()agetApiUrl()igetApiUrl()lgetApiUrl() getApiUrl()ngetApiUrl()ogetApiUrl()tgetApiUrl()igetApiUrl()fgetApiUrl()igetApiUrl()cgetApiUrl()agetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()]getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()TgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()GgetApiUrl()egetApiUrl()tgetApiUrl() getApiUrl()SgetApiUrl()tgetApiUrl()agetApiUrl()rgetApiUrl()tgetApiUrl()egetApiUrl()dgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()VgetApiUrl()agetApiUrl()rgetApiUrl()igetApiUrl()agetApiUrl()ngetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()mgetApiUrl()agetApiUrl()rgetApiUrl()ygetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()}getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl(){getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()igetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()2getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()ngetApiUrl()agetApiUrl()mgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()PgetApiUrl()RgetApiUrl()OgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()dgetApiUrl()egetApiUrl()sgetApiUrl()cgetApiUrl()rgetApiUrl()igetApiUrl()pgetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl():getApiUrl() getApiUrl()"getApiUrl()FgetApiUrl()ogetApiUrl()rgetApiUrl() getApiUrl()ggetApiUrl()rgetApiUrl()ogetApiUrl()wgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl() getApiUrl()egetApiUrl()vgetApiUrl()egetApiUrl()ngetApiUrl()tgetApiUrl() getApiUrl()ogetApiUrl()rgetApiUrl()ggetApiUrl()agetApiUrl()ngetApiUrl()igetApiUrl()zgetApiUrl()egetApiUrl()rgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()$getApiUrl()2getApiUrl()9getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl()igetApiUrl()ogetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()/getApiUrl()mgetApiUrl()ogetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()fgetApiUrl()egetApiUrl()agetApiUrl()tgetApiUrl()ugetApiUrl()rgetApiUrl()egetApiUrl()sgetApiUrl():getApiUrl() getApiUrl()[getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()CgetApiUrl()ugetApiUrl()sgetApiUrl()tgetApiUrl()ogetApiUrl()mgetApiUrl() getApiUrl()bgetApiUrl()rgetApiUrl()agetApiUrl()ngetApiUrl()dgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()AgetApiUrl()dgetApiUrl()vgetApiUrl()agetApiUrl()ngetApiUrl()cgetApiUrl()egetApiUrl()dgetApiUrl() getApiUrl()mgetApiUrl()agetApiUrl()rgetApiUrl()kgetApiUrl()egetApiUrl()tgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl() getApiUrl()tgetApiUrl()ogetApiUrl()ogetApiUrl()lgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()PgetApiUrl()rgetApiUrl()igetApiUrl()ogetApiUrl()rgetApiUrl()igetApiUrl()tgetApiUrl()ygetApiUrl() getApiUrl()sgetApiUrl()ugetApiUrl()pgetApiUrl()pgetApiUrl()ogetApiUrl()rgetApiUrl()tgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()RgetApiUrl()egetApiUrl()agetApiUrl()lgetApiUrl()-getApiUrl()tgetApiUrl()igetApiUrl()mgetApiUrl()egetApiUrl() getApiUrl()agetApiUrl()ngetApiUrl()agetApiUrl()lgetApiUrl()ygetApiUrl()tgetApiUrl()igetApiUrl()cgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()EgetApiUrl()mgetApiUrl()agetApiUrl()igetApiUrl()lgetApiUrl() getApiUrl()mgetApiUrl()agetApiUrl()rgetApiUrl()kgetApiUrl()egetApiUrl()tgetApiUrl()igetApiUrl()ngetApiUrl()ggetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()]getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()TgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()SgetApiUrl()tgetApiUrl()agetApiUrl()rgetApiUrl()tgetApiUrl() getApiUrl()PgetApiUrl()rgetApiUrl()ogetApiUrl() getApiUrl()TgetApiUrl()rgetApiUrl()igetApiUrl()agetApiUrl()lgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()VgetApiUrl()agetApiUrl()rgetApiUrl()igetApiUrl()agetApiUrl()ngetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()sgetApiUrl()egetApiUrl()cgetApiUrl()ogetApiUrl()ngetApiUrl()dgetApiUrl()agetApiUrl()rgetApiUrl()ygetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()ogetApiUrl()pgetApiUrl()ugetApiUrl()lgetApiUrl()agetApiUrl()rgetApiUrl():getApiUrl() getApiUrl()tgetApiUrl()rgetApiUrl()ugetApiUrl()egetApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()}getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl(){getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()igetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()3getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()ngetApiUrl()agetApiUrl()mgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()EgetApiUrl()NgetApiUrl()TgetApiUrl()EgetApiUrl()RgetApiUrl()PgetApiUrl()RgetApiUrl()IgetApiUrl()SgetApiUrl()EgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()dgetApiUrl()egetApiUrl()sgetApiUrl()cgetApiUrl()rgetApiUrl()igetApiUrl()pgetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl():getApiUrl() getApiUrl()"getApiUrl()FgetApiUrl()ogetApiUrl()rgetApiUrl() getApiUrl()lgetApiUrl()agetApiUrl()rgetApiUrl()ggetApiUrl()egetApiUrl() getApiUrl()ogetApiUrl()rgetApiUrl()ggetApiUrl()agetApiUrl()ngetApiUrl()igetApiUrl()zgetApiUrl()agetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()cgetApiUrl()egetApiUrl():getApiUrl() getApiUrl()"getApiUrl()$getApiUrl()5getApiUrl()0getApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()pgetApiUrl()egetApiUrl()rgetApiUrl()igetApiUrl()ogetApiUrl()dgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()/getApiUrl()ygetApiUrl()rgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()fgetApiUrl()egetApiUrl()agetApiUrl()tgetApiUrl()ugetApiUrl()rgetApiUrl()egetApiUrl()sgetApiUrl():getApiUrl() getApiUrl()[getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()DgetApiUrl()egetApiUrl()dgetApiUrl()igetApiUrl()cgetApiUrl()agetApiUrl()tgetApiUrl()egetApiUrl()dgetApiUrl() getApiUrl()sgetApiUrl()ugetApiUrl()cgetApiUrl()cgetApiUrl()egetApiUrl()sgetApiUrl()sgetApiUrl() getApiUrl()mgetApiUrl()agetApiUrl()ngetApiUrl()agetApiUrl()ggetApiUrl()egetApiUrl()rgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()AgetApiUrl()PgetApiUrl()IgetApiUrl() getApiUrl()agetApiUrl()cgetApiUrl()cgetApiUrl()egetApiUrl()sgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()VgetApiUrl()ogetApiUrl()lgetApiUrl()ugetApiUrl()mgetApiUrl()egetApiUrl() getApiUrl()dgetApiUrl()igetApiUrl()sgetApiUrl()cgetApiUrl()ogetApiUrl()ugetApiUrl()ngetApiUrl()tgetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()AgetApiUrl()dgetApiUrl()vgetApiUrl()agetApiUrl()ngetApiUrl()cgetApiUrl()egetApiUrl()dgetApiUrl() getApiUrl()sgetApiUrl()egetApiUrl()cgetApiUrl()ugetApiUrl()rgetApiUrl()igetApiUrl()tgetApiUrl()ygetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()"getApiUrl()CgetApiUrl()ugetApiUrl()sgetApiUrl()tgetApiUrl()ogetApiUrl()mgetApiUrl() getApiUrl()igetApiUrl()ngetApiUrl()tgetApiUrl()egetApiUrl()ggetApiUrl()rgetApiUrl()agetApiUrl()tgetApiUrl()igetApiUrl()ogetApiUrl()ngetApiUrl()sgetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()]getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()TgetApiUrl()egetApiUrl()xgetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()CgetApiUrl()ogetApiUrl()ngetApiUrl()tgetApiUrl()agetApiUrl()cgetApiUrl()tgetApiUrl() getApiUrl()SgetApiUrl()agetApiUrl()lgetApiUrl()egetApiUrl()sgetApiUrl()"getApiUrl(),getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl() getApiUrl() getApiUrl()bgetApiUrl()ugetApiUrl()tgetApiUrl()tgetApiUrl()ogetApiUrl()ngetApiUrl()VgetApiUrl()agetApiUrl()rgetApiUrl()igetApiUrl()agetApiUrl()ngetApiUrl()tgetApiUrl():getApiUrl() getApiUrl()"getApiUrl()pgetApiUrl()rgetApiUrl()igetApiUrl()mgetApiUrl()agetApiUrl()rgetApiUrl()ygetApiUrl()"getApiUrl()
-getApiUrl()getApiUrl() getApiUrl() getApiUrl()}getApiUrl()
-getApiUrl()getApiUrl()]getApiUrl()
-getApiUrl()
+export interface PricingPlan {
+  id: string
+  name: string
+  description: string
+  price: string
+  period: string
+  features: string[]
+  buttonText: string
+  buttonVariant: "primary" | "secondary"
+  popular?: boolean
+}
+
+export const pricingPlans: PricingPlan[] = [
+  {
+    id: "1",
+    name: "FREE",
+    description: "Perfect for getting started",
+    price: "$0",
+    period: "",
+    features: [
+      "Unlimited free events",
+      "Basic analytics",
+      "Standard support",
+      "QR code tickets",
+      "Email notifications"
+    ],
+    buttonText: "Get Started",
+    buttonVariant: "primary"
+  },
+  {
+    id: "2",
+    name: "PRO",
+    description: "For growing event organizers",
+    price: "$29",
+    period: "/mo",
+    features: [
+      "Custom branding",
+      "Advanced marketing tools",
+      "Priority support",
+      "Real-time analytics",
+      "Email marketing"
+    ],
+    buttonText: "Start Pro Trial",
+    buttonVariant: "secondary",
+    popular: true
+  },
+  {
+    id: "3",
+    name: "ENTERPRISE",
+    description: "For large organizations",
+    price: "$50",
+    period: "/yr",
+    features: [
+      "Dedicated success manager",
+      "API access",
+      "Volume discounts",
+      "Advanced security",
+      "Custom integrations"
+    ],
+    buttonText: "Contact Sales",
+    buttonVariant: "primary"
+  }
+]
