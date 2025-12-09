@@ -14,11 +14,13 @@ interface User {
   isAdmin: boolean
   avatar?: string
   joinDate: string
+  hasCompletedOnboarding?: boolean
 }
 
 interface UserContextType {
   user: User | null
   isAuthenticated: boolean
+  isLoaded: boolean
   isOrganizer: boolean
   isAdmin: boolean
   canCreateEvents: boolean
@@ -28,6 +30,7 @@ interface UserContextType {
   logout: () => void
   updateUserRole: (role: UserRole, organizerStatus?: OrganizerStatus) => void
   updateUser: (updates: Partial<User>) => void
+  refreshUser: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -44,54 +47,85 @@ interface UserProviderProps {
   children: ReactNode
 }
 
-const STORAGE_KEY = 'eventify_user'
-
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load user from localStorage on mount
+  // Load user from API on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem(STORAGE_KEY)
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser)
-          // Check if user has been approved as organizer
-          const approvedUsers = JSON.parse(localStorage.getItem('eventify_approved_organizers') || '{}')
-          if (approvedUsers[parsedUser.id]) {
-            parsedUser.role = 'organizer'
-            parsedUser.organizerStatus = 'approved'
+    const loadUser = async () => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token')
+        
+        if (token) {
+          try {
+            // Always fetch user from backend API
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+            const response = await fetch(`${apiUrl}/api/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            
+            if (response.ok) {
+              const userData = await response.json()
+              if (userData.success) {
+                const backendRole = userData.data.role?.toLowerCase() || 'attendee'
+                const updatedUser: User = {
+                  id: userData.data.id,
+                  name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
+                  email: userData.data.email,
+                  role: backendRole as UserRole,
+                  avatar: userData.data.avatar,
+                  hasCompletedOnboarding: userData.data.hasCompletedOnboarding !== undefined 
+                    ? userData.data.hasCompletedOnboarding 
+                    : false,
+                  joinDate: userData.data.createdAt || new Date().toISOString(),
+                  isAdmin: backendRole === 'admin',
+                  organizerStatus: backendRole === 'organizer' ? 'approved' : undefined
+                }
+                
+                setUser(updatedUser)
+              } else {
+                // Token invalid, clear token
+                localStorage.removeItem('token')
+                setUser(null)
+              }
+            } else {
+              // Token invalid or expired, clear token
+              localStorage.removeItem('token')
+              setUser(null)
+            }
+          } catch (error) {
+            // Network error - user not authenticated
+            console.warn('Could not fetch user from backend:', error)
+            setUser(null)
           }
-          setUser(parsedUser)
-        } catch (error) {
-          console.error('Error parsing stored user data:', error)
-          localStorage.removeItem(STORAGE_KEY)
         }
+        setIsLoaded(true)
       }
-      setIsLoaded(true)
     }
+    
+    loadUser()
   }, [])
 
   const isAuthenticated = !!user
-  const isOrganizer = user?.role === 'organizer' && user?.organizerStatus === 'approved'
-  const isAdmin = user?.isAdmin === true
+  // User is organizer ONLY if backend role is 'organizer'
+  // Backend is the source of truth - don't rely on localStorage organizerStatus
+  const isOrganizer = user?.role === 'organizer'
+  const isAdmin = user?.isAdmin === true || user?.role === 'admin'
   const canCreateEvents = isOrganizer || isAdmin
   const canManageEvents = isOrganizer || isAdmin
   const canAccessAdmin = isAdmin
 
   const login = (userData: User) => {
     setUser(userData)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
-    }
+    // User data is now always fetched from API, no localStorage needed
   }
 
   const logout = () => {
     setUser(null)
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY)
-    }
+    // Token is removed by AuthContext
   }
 
   const updateUserRole = (role: UserRole, organizerStatus?: OrganizerStatus) => {
@@ -102,9 +136,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         organizerStatus
       }
       setUser(updatedUser)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
-      }
+      // User data is now always fetched from API, no localStorage needed
     }
   }
 
@@ -115,25 +147,69 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         ...updates
       }
       setUser(updatedUser)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
-      }
+      // User data is now always fetched from API, no localStorage needed
     }
   }
 
-  const value = {
-    user,
-    isAuthenticated,
-    isOrganizer,
-    isAdmin,
-    canCreateEvents,
-    canManageEvents,
-    canAccessAdmin,
-    login,
-    logout,
-    updateUserRole,
-    updateUser
+  const refreshUser = async () => {
+    if (typeof window === 'undefined') return
+    
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        if (userData.success) {
+          const backendRole = userData.data.role?.toLowerCase() || 'attendee'
+          const updatedUser: User = {
+            id: userData.data.id,
+            name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
+            email: userData.data.email,
+            role: backendRole as UserRole,
+            avatar: userData.data.avatar,
+            hasCompletedOnboarding: userData.data.hasCompletedOnboarding !== undefined 
+              ? userData.data.hasCompletedOnboarding 
+              : false,
+            joinDate: userData.data.createdAt || new Date().toISOString(),
+            isAdmin: backendRole === 'admin',
+            organizerStatus: backendRole === 'organizer' ? 'approved' : undefined
+          }
+          
+          setUser(updatedUser)
+        }
+      } else {
+        // Token invalid, clear token
+        localStorage.removeItem('token')
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error)
+    }
   }
+
+      const value = {
+        user,
+        isAuthenticated,
+        isLoaded,
+        isOrganizer,
+        isAdmin,
+        canCreateEvents,
+        canManageEvents,
+        canAccessAdmin,
+        login,
+        logout,
+        updateUserRole,
+        updateUser,
+        refreshUser
+      }
 
   return (
     <UserContext.Provider value={value}>

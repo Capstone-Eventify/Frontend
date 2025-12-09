@@ -76,7 +76,7 @@ function DashboardContent() {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [selectedEventForQRScan, setSelectedEventForQRScan] = useState<string>('')
-  const { user, isOrganizer, canCreateEvents, isAuthenticated, isAdmin, logout } = useUser()
+  const { user, isOrganizer, canCreateEvents, isAuthenticated, isAdmin, logout, isLoaded } = useUser()
   const { openAuthModal } = useAuth()
 
   // Check for query params to set active section - updates when URL changes
@@ -97,20 +97,43 @@ function DashboardContent() {
 
   // Redirect to home and open auth modal if not authenticated (but not if we're logging out)
   useEffect(() => {
+    // Wait for user context to load before checking authentication
+    if (!isLoaded) {
+      return // Still loading, don't redirect yet
+    }
+
     if (!isAuthenticated && !isLoggingOut) {
       router.replace('/')
       // Small delay to ensure navigation completes before opening modal
       setTimeout(() => {
         openAuthModal('signin', '/dashboard')
       }, 100)
+      return
     }
-  }, [isAuthenticated, isLoggingOut, router, openAuthModal])
+
+    // Check if user needs to complete onboarding
+    if (isAuthenticated && user && !user.hasCompletedOnboarding) {
+      router.replace('/onboarding')
+    }
+  }, [isAuthenticated, isLoggingOut, user, router, openAuthModal, isLoaded])
 
   const handleLogout = () => {
     setIsLoggingOut(true)
     logout()
     // Use replace to ensure we go to home and prevent back navigation
     router.replace('/')
+  }
+
+  // Show loading state while user context is loading
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -417,18 +440,38 @@ function DashboardContent() {
                       label: 'Scan QR Code', 
                       icon: QrCode, 
                       onClick: () => {
-                        // Get first event from organizer's events or use a generic eventId
-                        if (typeof window !== 'undefined') {
-                          const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-                          const organizerEvents = storedEvents.filter((e: any) => e.organizerId === user?.id || !e.organizerId)
-                          if (organizerEvents.length > 0) {
-                            setSelectedEventForQRScan(organizerEvents[0].id)
-                          } else {
-                            // Use a generic eventId - scanner will check all tickets
+                        // Fetch organizer's events from API to get event ID for QR scanner
+                        const fetchEventForQR = async () => {
+                          try {
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+                            const token = localStorage.getItem('token')
+                            if (token && user?.id) {
+                              const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                }
+                              })
+                              if (response.ok) {
+                                const data = await response.json()
+                                if (data.success && data.data && data.data.length > 0) {
+                                  setSelectedEventForQRScan(data.data[0].id)
+                                } else {
+                                  setSelectedEventForQRScan('all')
+                                }
+                              } else {
+                                setSelectedEventForQRScan('all')
+                              }
+                            } else {
+                              setSelectedEventForQRScan('all')
+                            }
+                            setShowQRScanner(true)
+                          } catch (error) {
+                            console.error('Error fetching events for QR scanner:', error)
                             setSelectedEventForQRScan('all')
+                            setShowQRScanner(true)
                           }
-                          setShowQRScanner(true)
                         }
+                        fetchEventForQR()
                       } 
                     },
                     { 
@@ -568,15 +611,27 @@ function DashboardContent() {
           }}
           eventId={selectedEventForQRScan || 'all'}
           onCheckIn={async (ticketId: string, qrCode: string) => {
-            // Handle check-in logic
-            if (typeof window !== 'undefined') {
-              const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-              const updatedTickets = tickets.map((t: any) => 
-                t.id === ticketId
-                  ? { ...t, checkInStatus: 'checked_in', checkedInAt: new Date().toISOString() }
-                  : t
-              )
-              localStorage.setItem('eventify_tickets', JSON.stringify(updatedTickets))
+            // Handle check-in via API
+            try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+              const token = localStorage.getItem('token')
+              if (token) {
+                const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/check-in`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ qrCode })
+                })
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({ message: 'Failed to check in ticket' }))
+                  alert(errorData.message || 'Failed to check in ticket')
+                }
+              }
+            } catch (error) {
+              console.error('Error checking in ticket:', error)
+              alert('Error checking in ticket. Please try again.')
             }
           }}
         />

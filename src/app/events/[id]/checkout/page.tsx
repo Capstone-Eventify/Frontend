@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { getEventById } from '@/data/eventDetails'
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
 import CheckoutFlow from '@/components/events/CheckoutFlow'
@@ -17,19 +16,40 @@ function CheckoutContent() {
   const { isAuthenticated } = useUser()
   const { openAuthModal } = useAuth()
   const [event, setEvent] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const upgradeTierId = searchParams?.get('upgrade')
 
   useEffect(() => {
-    // Try to get event from eventDetails first
-    let foundEvent = getEventById(params.id as string)
-    
-    // If not found, check organizer events in localStorage
-    if (!foundEvent && typeof window !== 'undefined') {
-      const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      foundEvent = organizerEvents.find((e: any) => e.id === params.id)
+    const fetchEvent = async () => {
+      try {
+        setIsLoading(true)
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        
+        // Fetch event from API
+        const response = await fetch(`${apiUrl}/api/events/${params.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setEvent(data.data)
+          } else {
+            console.error('Event not found:', data.message)
+            setEvent(null)
+          }
+        } else {
+          console.error('Failed to fetch event:', response.status)
+          setEvent(null)
+        }
+      } catch (error) {
+        console.error('Error fetching event:', error)
+        setEvent(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    
-    setEvent(foundEvent)
+
+    if (params.id) {
+      fetchEvent()
+    }
   }, [params.id])
 
   useEffect(() => {
@@ -44,12 +64,27 @@ function CheckoutContent() {
     return null
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading event...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 break-words">Event Not Found</h1>
-          <Button onClick={() => router.push('/')} className="w-full sm:w-auto">Go Home</Button>
+          <p className="text-gray-600 mb-4">The event you're looking for doesn't exist or has been removed.</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => router.push('/')} className="w-full sm:w-auto">Go Home</Button>
+            <Button variant="outline" onClick={() => router.push('/events')} className="w-full sm:w-auto">Browse Events</Button>
+          </div>
         </div>
       </div>
     )

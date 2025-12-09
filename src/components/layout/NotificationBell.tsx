@@ -76,82 +76,76 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
     }
   }, [isProfileOpen, isOpen])
 
-  // Load notifications from localStorage
+  // Load notifications from API
   useEffect(() => {
     if (typeof window === 'undefined' || !isAuthenticated) {
       setNotifications([])
       return
     }
 
-    const loadNotifications = () => {
+    const loadNotifications = async () => {
       try {
-        const stored = localStorage.getItem('eventify_notifications')
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
         
-        // Push notification summary - always include this
-        const pushNotificationSummary: Notification = {
-          id: 'push_notification_summary',
-          title: 'Push Notifications Enabled',
-          message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
-          type: 'success',
-          timestamp: new Date().toISOString(),
-          isRead: false,
-          action: {
-            label: 'View Settings',
-            onClick: () => {
-              router.push('/dashboard?tab=profile')
-            }
-          }
+        if (!token) {
+          setNotifications([])
+          return
         }
-        
-        if (stored) {
-          const storedNotifications = JSON.parse(stored)
-          // Filter notifications based on user and type
-          const filteredNotifications: Notification[] = storedNotifications
-            .filter((n: any) => {
-              // Exclude push notification summary from stored notifications (we'll add it fresh)
-              if (n.id === 'push_notification_summary') return false
-              // Show event_deleted notifications only to the organizer who owns the event
-              if (n.type === 'event_deleted') {
-                return !n.organizerId || n.organizerId === user?.id
-              }
-              // Show all other notifications to the user
-              return true
-            })
-            .map((n: any) => ({
+
+        const response = await fetch(`${apiUrl}/api/notifications`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Format notifications from API
+            const apiNotifications: Notification[] = (data.data || []).map((n: any) => ({
               id: n.id,
               title: n.title,
               message: n.message,
-              type: n.type || 'info',
-              timestamp: n.timestamp || n.createdAt,
-              reason: n.reason,
-              eventId: n.eventId,
-              eventTitle: n.eventTitle,
-              isRead: n.isRead || n.read || false,
-              action: n.action
+              type: (n.type === 'event' ? 'info' : n.type) as Notification['type'],
+              timestamp: n.createdAt,
+              isRead: n.isRead || false,
+              link: n.link
             }))
-          
-          // Add push notification summary at the beginning
-          const allNotifications = [pushNotificationSummary, ...filteredNotifications]
-          
-          // Sort: push notification first, then by unread status, then by timestamp
-          allNotifications.sort((a: Notification, b: Notification) => {
-            // Push notification always first
-            if (a.id === 'push_notification_summary') return -1
-            if (b.id === 'push_notification_summary') return 1
-            
-            // Sort by unread first, then by timestamp
-            if (a.isRead !== b.isRead) {
-              return a.isRead ? 1 : -1
+
+            // Push notification summary - always include this
+            const pushNotificationSummary: Notification = {
+              id: 'push_notification_summary',
+              title: 'Push Notifications Enabled',
+              message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
+              type: 'success',
+              timestamp: new Date().toISOString(),
+              isRead: false,
+              action: {
+                label: 'View Settings',
+                onClick: () => {
+                  router.push('/dashboard?tab=profile')
+                }
+              }
             }
-            const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0
-            const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0
-            return bTime - aTime
-          })
-          
-          setNotifications(allNotifications)
-        } else {
-          // No stored notifications, just show push notification summary
-          setNotifications([pushNotificationSummary])
+
+            // Add push notification summary at the beginning
+            const allNotifications = [pushNotificationSummary, ...apiNotifications]
+            
+            // Sort: push notification first, then by unread status, then by timestamp
+            allNotifications.sort((a: Notification, b: Notification) => {
+              if (a.id === 'push_notification_summary') return -1
+              if (b.id === 'push_notification_summary') return 1
+              if (a.isRead !== b.isRead) {
+                return a.isRead ? 1 : -1
+              }
+              const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0
+              const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0
+              return bTime - aTime
+            })
+            
+            setNotifications(allNotifications)
+          }
         }
       } catch (error) {
         console.error('Error loading notifications:', error)
@@ -175,23 +169,13 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
 
     loadNotifications()
 
-    // Listen for storage changes (for cross-tab updates)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'eventify_notifications') {
-        loadNotifications()
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-
-    // Poll for changes (for same-tab updates)
-    const interval = setInterval(loadNotifications, 2000)
+    // Poll for changes every 30 seconds
+    const interval = setInterval(loadNotifications, 30000)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       clearInterval(interval)
     }
-  }, [user?.id, isAuthenticated])
+  }, [user?.id, isAuthenticated, router])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -212,43 +196,79 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
 
   const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 
-  const markAsRead = (id: string) => {
-    const updated = notifications.map(n => 
-      n.id === id ? { ...n, isRead: true, read: true } : n
-    )
-    setNotifications(updated)
-    
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => 
-        n.id === id ? { ...n, read: true, isRead: true } : n
+  const markAsRead = async (id: string) => {
+    // Skip push notification summary
+    if (id === 'push_notification_summary') return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      // Update local state
+      const updated = notifications.map(n => 
+        n.id === id ? { ...n, isRead: true } : n
       )
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+      setNotifications(updated)
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
     }
   }
 
-  const markAllAsRead = () => {
-    const updated = notifications.map(n => ({ ...n, isRead: true, read: true }))
-    setNotifications(updated)
-    
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => ({ ...n, read: true, isRead: true }))
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+  const markAllAsRead = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      await fetch(`${apiUrl}/api/notifications/read-all`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      // Update local state (keep push notification summary)
+      const updated = notifications.map(n => 
+        n.id === 'push_notification_summary' ? n : { ...n, isRead: true }
+      )
+      setNotifications(updated)
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
     }
   }
 
-  const removeNotification = (id: string) => {
-    const updated = notifications.filter(n => n.id !== id)
-    setNotifications(updated)
-    
-    // Remove from localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.filter((n: any) => n.id !== id)
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+  const removeNotification = async (id: string) => {
+    // Skip push notification summary
+    if (id === 'push_notification_summary') return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      await fetch(`${apiUrl}/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      // Update local state
+      const updated = notifications.filter(n => n.id !== id)
+      setNotifications(updated)
+    } catch (error) {
+      console.error('Error deleting notification:', error)
     }
   }
 
@@ -472,4 +492,5 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
     </div>
   )
 }
+
 

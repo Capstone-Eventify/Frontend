@@ -101,14 +101,14 @@ pipeline {
 
 // Main notification function
 def sendNotifications(String status) {
-    def environment = getEnvironmentName(env.BRANCH_NAME)
+                def environment = getEnvironmentName(env.BRANCH_NAME)
     def duration = currentBuild.durationString.replace(' and counting', '')
-    
-    def commitMsg = env.COMMIT_MSG ?: 'No commit message'
-    def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
     def commitEmail = env.COMMIT_EMAIL ?: ''
-    def commitHash = env.COMMIT_HASH ?: 'N/A'
-    
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
+                
     // Get recipients based on branch and status
     def recipients = getRecipients(env.BRANCH_NAME, status, commitEmail)
     
@@ -253,7 +253,7 @@ def sendSlackNotification(String environment, String status, String duration, St
             message: message
         )
         echo "✅ Slack notification sent to #team1"
-    } catch (Exception e) {
+                } catch (Exception e) {
         echo "⚠️ Slack notification failed: ${e.getMessage()}"
     }
 }

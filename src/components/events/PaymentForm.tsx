@@ -66,7 +66,7 @@ function PaymentFormInner({
 
       if (stripeError) {
         setError(stripeError.message || 'Payment failed')
-        setIsProcessing(false)
+      setIsProcessing(false)
         return
       }
 
@@ -96,7 +96,7 @@ function PaymentFormInner({
         const data = await response.json()
 
         if (data.success) {
-          onComplete()
+      onComplete()
         } else {
           setError(data.message || 'Failed to confirm payment')
         }

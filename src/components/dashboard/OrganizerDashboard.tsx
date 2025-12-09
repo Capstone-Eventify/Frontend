@@ -32,290 +32,214 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useUser } from '@/contexts/UserContext'
 import EventFormModal from './EventFormModal'
 import AttendeeManagement from './AttendeeManagement'
 import EventAnalytics from './EventAnalytics'
 import WaitlistManagement from './WaitlistManagement'
 import EmailInbox from './EmailInbox'
 import { EventDetail } from '@/types/event'
-import { getOrganizerEmails } from '@/lib/emailNotifications'
+// REMOVED: All mock data - Now fetching from API
+// REMOVED: organizerStats - Use /api/analytics/organizer
+// REMOVED: recentEvents array - Use /api/events/organizer/my-events
+// REMOVED: recentActivity array - Use /api/analytics/organizer
 
-// Mock data for organizer dashboard
-const organizerStats = {
-  totalEvents: 8,
-  totalRevenue: 12500,
-  totalAttendees: 2450,
-  activeEvents: 3,
-  revenueGrowth: 12.5,
-  attendeeGrowth: 8.2
-}
-
-const recentEvents = [
-  {
-    id: '1',
-    title: 'Tech Innovation Summit 2024',
-    date: 'Dec 15, 2024',
-    attendees: 2847,
-    revenue: 253383,
-    status: 'live',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: '2',
-    title: 'Digital Marketing Masterclass',
-    date: 'Dec 20, 2024',
-    attendees: 1234,
-    revenue: 0,
-    status: 'upcoming',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'
-  },
-  {
-    id: '3',
-    title: 'Global Design Conference',
-    date: 'Jan 5, 2025',
-    attendees: 5621,
-    revenue: 837429,
-    status: 'upcoming',
-    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'
-  }
-]
-
-const recentActivity = [
-  { action: 'New registration for Tech Innovation Summit', time: '2 hours ago', type: 'registration' },
-  { action: 'Payment received for Global Design Conference', time: '4 hours ago', type: 'payment' },
-  { action: 'Event "Startup Pitch Competition" published', time: '1 day ago', type: 'publish' },
-  { action: 'Analytics report generated', time: '2 days ago', type: 'analytics' }
-]
-
-// Mock organizer notifications
-const getMockOrganizerNotifications = () => {
-  const now = new Date()
-  const notifications = [
-    {
-      id: 'push_notification_summary',
-      title: 'Push Notifications Active',
-      message: 'Push notifications are now enabled! You will receive instant alerts for new registrations, payments, waitlist entries, and event updates.',
-      type: 'success',
-      timestamp: new Date().toISOString(),
-      isRead: false,
-      icon: 'notification'
-    },
-    {
-      id: `notif_${Date.now()}_1`,
-      title: 'New Event Posted',
-      message: 'Your event "Tech Innovation Summit 2024" has been successfully published and is now live!',
-      type: 'success',
-      timestamp: new Date(now.getTime() - 30 * 60000).toISOString(), // 30 minutes ago
-      isRead: false,
-      icon: 'event'
-    },
-    {
-      id: `notif_${Date.now()}_2`,
-      title: 'New Registration',
-      message: '5 new attendees registered for "Digital Marketing Masterclass" in the last hour.',
-      type: 'info',
-      timestamp: new Date(now.getTime() - 2 * 3600 * 1000).toISOString(), // 2 hours ago
-      isRead: false,
-      icon: 'registration'
-    },
-    {
-      id: `notif_${Date.now()}_3`,
-      title: 'Payment Received',
-      message: 'You received $250 from ticket sales for "Global Design Conference".',
-      type: 'success',
-      timestamp: new Date(now.getTime() - 4 * 3600 * 1000).toISOString(), // 4 hours ago
-      isRead: false,
-      icon: 'payment'
-    },
-    {
-      id: `notif_${Date.now()}_4`,
-      title: 'Event Almost Full',
-      message: '"Tech Innovation Summit 2024" has reached 85% capacity. Consider adding more tickets!',
-      type: 'warning',
-      timestamp: new Date(now.getTime() - 6 * 3600 * 1000).toISOString(), // 6 hours ago
-      isRead: false,
-      icon: 'capacity'
-    },
-    {
-      id: `notif_${Date.now()}_5`,
-      title: 'New Waitlist Entry',
-      message: '3 people joined the waitlist for "Startup Pitch Competition".',
-      type: 'info',
-      timestamp: new Date(now.getTime() - 8 * 3600 * 1000).toISOString(), // 8 hours ago
-      isRead: true,
-      icon: 'waitlist'
-    },
-    {
-      id: `notif_${Date.now()}_6`,
-      title: 'Event Starting Soon',
-      message: 'Your event "Digital Marketing Masterclass" starts in 2 days. Time to send reminders!',
-      type: 'warning',
-      timestamp: new Date(now.getTime() - 12 * 3600 * 1000).toISOString(), // 12 hours ago
-      isRead: false,
-      icon: 'reminder'
-    },
-    {
-      id: `notif_${Date.now()}_7`,
-      title: 'High Engagement',
-      message: 'Your event "Tech Innovation Summit 2024" has been viewed 1,234 times this week!',
-      type: 'success',
-      timestamp: new Date(now.getTime() - 24 * 3600 * 1000).toISOString(), // 1 day ago
-      isRead: true,
-      icon: 'engagement'
-    },
-    {
-      id: `notif_${Date.now()}_8`,
-      title: 'Refund Request',
-      message: '1 attendee requested a refund for "Global Design Conference". Review in payments.',
-      type: 'error',
-      timestamp: new Date(now.getTime() - 2 * 24 * 3600 * 1000).toISOString(), // 2 days ago
-      isRead: false,
-      icon: 'refund'
-    }
-  ]
-  
-  // Initialize notifications in localStorage if not exists
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('eventify_organizer_notifications')
-    if (!stored) {
-      localStorage.setItem('eventify_organizer_notifications', JSON.stringify(notifications))
-    }
-  }
-  
-  return notifications
-}
-
-export default function OrganizerDashboard() {
+const OrganizerDashboard: React.FC = () => {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [selectedPeriod, setSelectedPeriod] = useState('30d')
-  const [showEventForm, setShowEventForm] = useState(false)
-  const [editingEvent, setEditingEvent] = useState<EventDetail | null>(null)
-  const [organizerEvents, setOrganizerEvents] = useState<any[]>([])
-  const [selectedEventForAttendees, setSelectedEventForAttendees] = useState<string | null>(null)
-  const [selectedEventForAnalytics, setSelectedEventForAnalytics] = useState<string | null>(null)
-  const [selectedEventForWaitlist, setSelectedEventForWaitlist] = useState<string | null>(null)
+  const { user, isOrganizer, isLoaded } = useUser()
   const [activeView, setActiveView] = useState<'events' | 'analytics' | 'emails'>('events')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [organizerEvents, setOrganizerEvents] = useState<EventDetail[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [selectedEventForAttendees, setSelectedEventForAttendees] = useState<string | null>(null)
+  const [selectedEventForWaitlist, setSelectedEventForWaitlist] = useState<string | null>(null)
+  const [selectedEventForAnalytics, setSelectedEventForAnalytics] = useState<string | null>(null)
+  const [editingEvent, setEditingEvent] = useState<any>(null)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [selectedEventForNotification, setSelectedEventForNotification] = useState<any>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [selectedEventForShare, setSelectedEventForShare] = useState<any>(null)
 
+  // Calculate stats from organizerEvents
+  const calculateTotalRevenue = () => {
+    // Sum up revenue from all events' currentBookings and price
+    return organizerEvents.reduce((total, event: any) => {
+      // Use currentBookings * price as revenue estimate
+      // Or fetch actual payment data if available
+      const eventPrice = typeof event.price === 'number' ? event.price : parseFloat(String(event.price || '0').replace('$', '').replace('FREE', '0'))
+      const attendees = event.currentBookings || event.attendees || 0
+      return total + (eventPrice * attendees)
+    }, 0)
+  }
+
+  const calculateTotalAttendees = () => {
+    return organizerEvents.reduce((total, event: any) => {
+      return total + (event.currentBookings || event.attendees || 0)
+    }, 0)
+  }
+
+  const calculateActiveEvents = () => {
+    const now = new Date()
+    return organizerEvents.filter((event: any) => {
+      try {
+        const startDate = new Date(event.startDate)
+        return startDate >= now
+      } catch {
+        return false
+      }
+    }).length
+  }
+
+  // Fetch events from API
   useEffect(() => {
-    // Load events from localStorage
-    if (typeof window !== 'undefined') {
-      const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      // Merge with mock data
-      const mergedEvents = [...storedEvents, ...recentEvents.filter(e => 
-        !storedEvents.some((se: any) => se.id === e.id)
-      )]
-      setOrganizerEvents(mergedEvents)
-      
-      // Load organizer notifications
-      const storedNotifications = localStorage.getItem('eventify_organizer_notifications')
-      let loadedNotifications: any[] = []
-      
-      if (storedNotifications) {
-        try {
-          loadedNotifications = JSON.parse(storedNotifications)
-        } catch {
-          loadedNotifications = getMockOrganizerNotifications()
-        }
-      } else {
-        loadedNotifications = getMockOrganizerNotifications()
-      }
+    // Wait for user context to load
+    if (!isLoaded) return
 
-      // Ensure push notification summary is always present
-      const hasPushNotif = loadedNotifications.some((n: any) => n.id === 'push_notification_summary')
-      if (!hasPushNotif) {
-        const pushNotif = {
-          id: 'push_notification_summary',
-          title: 'Push Notifications Active',
-          message: 'Push notifications are now enabled! You will receive instant alerts for new registrations, payments, waitlist entries, and event updates.',
-          type: 'success',
-          timestamp: new Date().toISOString(),
-          isRead: false,
-          icon: 'notification'
-        }
-        loadedNotifications = [pushNotif, ...loadedNotifications]
-        localStorage.setItem('eventify_organizer_notifications', JSON.stringify(loadedNotifications))
-      }
-      
-      setNotifications(loadedNotifications)
-
-      // Also add email notifications to the notifications list
-      const userData = JSON.parse(localStorage.getItem('eventify_user') || '{}')
-      if (userData.email) {
-        const emails = getOrganizerEmails(userData.email)
-        const emailNotifications = emails
-          .filter(email => !email.isRead)
-          .slice(0, 3) // Show only 3 most recent unread emails
-          .map(email => ({
-            id: `email_notif_${email.id}`,
-            title: email.subject,
-            message: email.body.substring(0, 100) + '...',
-            type: email.type === 'registration' ? 'success' : email.type === 'waitlist' ? 'info' : 'info',
-            timestamp: email.timestamp,
-            isRead: email.isRead,
-            icon: email.type === 'registration' ? 'registration' : email.type === 'waitlist' ? 'waitlist' : 'info'
-          }))
+    const fetchOrganizerData = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
         
-        // Merge email notifications with existing notifications
-        setNotifications(prev => {
-          const existingIds = new Set(prev.map(n => n.id))
-          const newEmailNotifs = emailNotifications.filter(n => !existingIds.has(n.id))
-          return [...newEmailNotifs, ...prev]
+        if (!token) {
+          console.warn('No token found, cannot fetch organizer events')
+          return
+        }
+
+        console.log('Fetching organizer events for user:', user?.id, 'email:', user?.email, 'isOrganizer:', isOrganizer)
+
+        // Fetch organizer's events
+        const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         })
+        
+        console.log('Events response status:', eventsResponse.status)
+        
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json()
+          console.log('Events response data:', eventsData)
+          if (eventsData.success) {
+            console.log('Organizer events fetched:', eventsData.data?.length || 0, 'events')
+            if (eventsData.data && eventsData.data.length > 0) {
+              console.log('Events:', eventsData.data.map((e: any) => ({ id: e.id, title: e.title, organizerId: e.organizer?.id })))
+            } else {
+              console.warn('No events returned. Make sure you are logged in as the organizer who created the event.')
+            }
+            setOrganizerEvents(eventsData.data || [])
+          } else {
+            console.error('Failed to fetch organizer events:', eventsData.message)
+          }
+        } else {
+          const errorData = await eventsResponse.json().catch(() => ({ message: 'Unknown error' }))
+          console.error('Error fetching organizer events:', eventsResponse.status, errorData)
+          if (eventsResponse.status === 403) {
+            console.error('403 Forbidden - User may not have organizer role. Current user:', user?.email, 'Role:', user?.role)
+          }
+        }
+
+        // Set notifications to empty for now (will implement API later)
+        setNotifications([])
+      } catch (error) {
+        console.error('Error fetching organizer data:', error)
       }
     }
-  }, [])
+
+    if (isOrganizer && user?.id) {
+      fetchOrganizerData()
+    } else {
+      console.log('Not fetching organizer events - isOrganizer:', isOrganizer, 'user:', user?.id)
+    }
+  }, [isOrganizer, isLoaded, user?.id])
 
   const handleCreateEvent = () => {
     setEditingEvent(null)
     setShowEventForm(true)
   }
 
-  // Check for create parameter in URL
-  useEffect(() => {
-    const createParam = searchParams?.get('create')
-    if (createParam === 'true') {
-      setEditingEvent(null)
-      setShowEventForm(true)
-      // Remove the parameter from URL
-      router.replace('/dashboard?tab=organizer')
-    }
-  }, [searchParams, router])
-
-  const handleEditEvent = (event: any) => {
-    setEditingEvent(event as EventDetail)
+  const handleEditEvent = (event: EventDetail) => {
+    setEditingEvent(event)
     setShowEventForm(true)
   }
 
-  const handleDeleteEvent = (eventId: string) => {
-    if (confirm('Are you sure you want to delete this event?')) {
-      const updatedEvents = organizerEvents.filter(e => e.id !== eventId)
-      setOrganizerEvents(updatedEvents)
+  const handleEventSave = async (eventData: any) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
       
-      const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      const updatedStored = storedEvents.filter((e: any) => e.id !== eventId)
-      localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedStored))
-    }
-  }
+      if (!token) return
 
-  const handleEventSave = (eventData: any) => {
-    const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    if (editingEvent) {
-      const updatedEvents = organizerEvents.map(e => e.id === eventData.id ? eventData : e)
-      setOrganizerEvents(updatedEvents)
+      // Convert frontend event data to API format
+      const apiEventData = {
+        title: eventData.title,
+        description: eventData.description,
+        fullDescription: eventData.fullDescription,
+        category: eventData.category,
+        eventType: eventData.eventType || 'CONFERENCE',
+        startDate: eventData.date,
+        endDate: eventData.endDate,
+        startTime: eventData.time,
+        endTime: eventData.endTime,
+        isOnline: eventData.isOnline,
+        venueName: eventData.venueName,
+        address: eventData.address,
+        city: eventData.city,
+        state: eventData.state,
+        zipCode: eventData.zipCode,
+        country: eventData.country,
+        meetingLink: eventData.meetingLink,
+        price: parseFloat(eventData.price) || 0,
+        maxAttendees: parseInt(eventData.maxAttendees) || 100,
+        image: eventData.image,
+        images: eventData.images || [],
+        tags: eventData.tags || [],
+        requirements: eventData.requirements,
+        refundPolicy: eventData.refundPolicy,
+        status: eventData.status || 'DRAFT'
+      }
+
+      const url = editingEvent 
+        ? `${apiUrl}/api/events/${editingEvent.id}`
+        : `${apiUrl}/api/events`
       
-      const updatedStored = storedEvents.map((e: any) => 
-        e.id === eventData.id ? eventData : e
-      )
-      localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedStored))
-    } else {
-      setOrganizerEvents([...organizerEvents, eventData])
-      localStorage.setItem('eventify_organizer_events', JSON.stringify([...storedEvents, eventData]))
+      const method = editingEvent ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(apiEventData)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Refresh events list
+          const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (eventsResponse.ok) {
+            const eventsData = await eventsResponse.json()
+            if (eventsData.success) {
+              setOrganizerEvents(eventsData.data || [])
+            }
+          }
+          setShowEventForm(false)
+          setEditingEvent(null)
+        }
+      } else {
+        const data = await response.json()
+        alert(data.message || 'Failed to save event')
+      }
+    } catch (error) {
+      console.error('Error saving event:', error)
+      alert('Error saving event. Please try again.')
     }
-    setShowEventForm(false)
-    setEditingEvent(null)
   }
 
   const handleViewAttendees = (eventId: string) => {
@@ -335,6 +259,41 @@ export default function OrganizerDashboard() {
     router.push(`/events/${eventId}`)
   }
 
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to delete events')
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        // Remove event from local state
+        setOrganizerEvents(organizerEvents.filter(event => event.id !== eventId))
+        alert('Event deleted successfully!')
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete event' }))
+        alert(errorData.message || 'Failed to delete event.')
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      alert('Error deleting event. Please try again.')
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const config = {
       draft: { color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle },
@@ -352,30 +311,74 @@ export default function OrganizerDashboard() {
     )
   }
 
-  const handlePublishEvent = (eventId: string) => {
-    const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    const updatedEvents = storedEvents.map((e: any) => 
-      e.id === eventId ? { ...e, status: 'live' } : e
-    )
-    localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-    
-    const updatedOrganizerEvents = organizerEvents.map(e => 
-      e.id === eventId ? { ...e, status: 'live' } : e
-    )
-    setOrganizerEvents(updatedOrganizerEvents)
+  const handlePublishEvent = async (eventId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      const response = await fetch(`${apiUrl}/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'PUBLISHED' })
+      })
+
+      if (response.ok) {
+        // Refresh events list
+        const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json()
+          if (eventsData.success) {
+            setOrganizerEvents(eventsData.data || [])
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error publishing event:', error)
+    }
   }
 
-  const handleUnpublishEvent = (eventId: string) => {
-    const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    const updatedEvents = storedEvents.map((e: any) => 
-      e.id === eventId ? { ...e, status: 'draft' } : e
-    )
-    localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-    
-    const updatedOrganizerEvents = organizerEvents.map(e => 
-      e.id === eventId ? { ...e, status: 'draft' } : e
-    )
-    setOrganizerEvents(updatedOrganizerEvents)
+  const handleUnpublishEvent = async (eventId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      const response = await fetch(`${apiUrl}/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'DRAFT' })
+      })
+
+      if (response.ok) {
+        // Refresh events list
+        const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json()
+          if (eventsData.success) {
+            setOrganizerEvents(eventsData.data || [])
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error unpublishing event:', error)
+    }
   }
 
   const formatNotificationTime = (timestamp: string) => {
@@ -412,12 +415,14 @@ export default function OrganizerDashboard() {
     }
   }
 
-  const markNotificationAsRead = (id: string) => {
+  const markNotificationAsRead = async (id: string) => {
+    // REMOVED: localStorage notification updates - Use /api/notifications when implemented
     const updated = notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
     setNotifications(updated)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('eventify_organizer_notifications', JSON.stringify(updated))
-    }
+    // TODO: Call API to mark notification as read when endpoint is available
+    // const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+    // const token = localStorage.getItem('token')
+    // await fetch(`${apiUrl}/api/notifications/${id}/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } })
   }
 
   const unreadCount = notifications.filter(n => !n.isRead).length
@@ -701,23 +706,7 @@ export default function OrganizerDashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Revenue</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
-                    ${(() => {
-                      // Calculate from tickets
-                      if (typeof window !== 'undefined') {
-                        const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-                        const eventIds = organizerEvents.map(e => e.id)
-                        const eventTickets = tickets.filter((t: any) => 
-                          eventIds.includes(t.eventId) && t.status === 'confirmed'
-                        )
-                        const revenue = eventTickets.reduce((sum: number, ticket: any) => {
-                          const priceStr = typeof ticket.price === 'string' ? ticket.price : String(ticket.price || '0')
-                          const price = parseFloat(priceStr.replace('$', '').replace('FREE', '0') || '0')
-                          return sum + price
-                        }, 0)
-                        return revenue.toLocaleString()
-                      }
-                      return '0'
-                    })()}
+                    ${calculateTotalRevenue().toLocaleString()}
                   </p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -736,18 +725,7 @@ export default function OrganizerDashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Total Attendees</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
-                    {(() => {
-                      // Calculate from tickets
-                      if (typeof window !== 'undefined') {
-                        const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-                        const eventIds = organizerEvents.map(e => e.id)
-                        const eventTickets = tickets.filter((t: any) => 
-                          eventIds.includes(t.eventId) && t.status === 'confirmed'
-                        )
-                        return eventTickets.length.toLocaleString()
-                      }
-                      return '0'
-                    })()}
+                    {calculateTotalAttendees().toLocaleString()}
                   </p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -766,22 +744,7 @@ export default function OrganizerDashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Active Events</p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
-                    {organizerEvents.filter((e: any) => {
-                      // Check if event hasn't ended
-                      try {
-                        const dateParts = e.date?.split(', ')
-                        if (!dateParts || dateParts.length < 2) return false
-                        const year = parseInt(dateParts[1])
-                        const monthDay = dateParts[0].split(' ')
-                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        const month = monthNames.indexOf(monthDay[0])
-                        const day = parseInt(monthDay[1])
-                        const eventDate = new Date(year, month, day)
-                        return eventDate >= new Date()
-                      } catch {
-                        return true
-                      }
-                    }).length}
+                    {calculateActiveEvents()}
                   </p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -1089,15 +1052,8 @@ export default function OrganizerDashboard() {
         const event = organizerEvents.find(e => e.id === selectedEventForWaitlist)
         if (!event) return null
         
-        // Calculate current attendees
-        let currentAttendees = event.attendees || 0
-        if (typeof window !== 'undefined') {
-          const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-          const eventTickets = tickets.filter((t: any) => 
-            t.eventId === selectedEventForWaitlist && t.status === 'confirmed'
-          )
-          currentAttendees = eventTickets.length
-        }
+        // Get current attendees from event data (already fetched from API)
+        const currentAttendees = event.currentBookings || event.attendees || 0
 
         return (
           <WaitlistManagement
@@ -1112,3 +1068,5 @@ export default function OrganizerDashboard() {
     </div>
   )
 }
+
+export default OrganizerDashboard

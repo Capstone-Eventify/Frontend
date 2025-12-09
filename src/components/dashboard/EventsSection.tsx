@@ -26,75 +26,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import EventFormModal from './EventFormModal'
 import NotificationModal from '@/components/events/NotificationModal'
 import ShareEventModal from '@/components/events/ShareEventModal'
-import { eventDetails } from '@/data/eventDetails'
-
-// Mock data
-const mockEvents = [
-  {
-    id: '1',
-    title: 'Tech Innovation Summit 2024',
-    description: 'Explore the latest in AI, blockchain, and emerging technologies with industry leaders.',
-    date: 'Dec 15, 2024',
-    time: '9:00 AM - 5:00 PM',
-    location: 'San Francisco, CA',
-    price: '$89',
-    attendees: 2847,
-    maxAttendees: 3000,
-    category: 'Technology',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    status: 'upcoming',
-    isFavorite: true,
-    rating: 4.8
-  },
-  {
-    id: '2',
-    title: 'Digital Marketing Masterclass',
-    description: 'Learn advanced strategies for social media, SEO, and content marketing from experts.',
-    date: 'Dec 20, 2024',
-    time: '2:00 PM - 6:00 PM',
-    location: 'Online Event',
-    price: 'FREE',
-    attendees: 1234,
-    maxAttendees: 2000,
-    category: 'Marketing',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    status: 'upcoming',
-    isFavorite: false,
-    rating: 4.6
-  },
-  {
-    id: '3',
-    title: 'Global Design Conference',
-    description: 'Three days of inspiring talks, workshops, and networking with top designers worldwide.',
-    date: 'Jan 5, 2025',
-    time: '10:00 AM - 6:00 PM',
-    location: 'New York, NY',
-    price: '$149',
-    attendees: 5621,
-    maxAttendees: 6000,
-    category: 'Design',
-    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    status: 'upcoming',
-    isFavorite: true,
-    rating: 4.9
-  },
-  {
-    id: '4',
-    title: 'Startup Pitch Competition',
-    description: 'Watch innovative startups pitch their ideas to a panel of investors and industry experts.',
-    date: 'Jan 12, 2025',
-    time: '1:00 PM - 4:00 PM',
-    location: 'Austin, TX',
-    price: '$25',
-    attendees: 456,
-    maxAttendees: 500,
-    category: 'Business',
-    image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    status: 'upcoming',
-    isFavorite: false,
-    rating: 4.7
-  }
-]
+// REMOVED: Mock data - Now fetching from API
 
 const categories = ['All', 'Technology', 'Marketing', 'Design', 'Business', 'Education']
 
@@ -141,76 +73,84 @@ export default function EventsSection() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedEventForShare, setSelectedEventForShare] = useState<any>(null)
 
-  // Load data on mount
+  // Fetch events from API
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Load favorites
-      const storedFavorites = localStorage.getItem('eventify_favorites')
-      if (storedFavorites) {
-        setFavorites(JSON.parse(storedFavorites))
-      }
-
-      // Load all events (merge mock events, eventDetails, and organizer events)
-      const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      
-      // Convert eventDetails to the format we need
-      const formattedEventDetails = eventDetails.map(ed => ({
-        id: ed.id,
-        title: ed.title,
-        description: ed.description,
-        date: ed.date,
-        time: ed.time,
-        location: ed.location,
-        price: ed.price,
-        attendees: ed.attendees || 0,
-        maxAttendees: ed.maxAttendees || 0,
-        category: ed.category || 'Other',
-        image: ed.image,
-        status: ed.status || 'upcoming',
-        isFavorite: false,
-        rating: ed.rating || 4.5
-      }))
-
-      // Merge all events, avoiding duplicates
-      // Filter out draft events for non-organizers (only show drafts to their organizers)
-      const mergedEvents = [
-        ...mockEvents,
-        ...formattedEventDetails.filter(e => !mockEvents.some(me => me.id === e.id)),
-        ...organizerEvents.filter((e: any) => {
-          // Show draft events only to their organizers
-          if (e.status === 'draft') {
-            return isOrganizer && (e.organizerId === user?.id || !e.organizerId)
+    const fetchEvents = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        
+        // Fetch all events from API
+        let allEventsData: any[] = []
+        const eventsResponse = await fetch(`${apiUrl}/api/events`)
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json()
+          if (eventsData.success) {
+            allEventsData = eventsData.data || []
+            setAllEvents(allEventsData)
           }
-          // Show non-draft events to everyone
-          return !mockEvents.some(me => me.id === e.id) && !formattedEventDetails.some(fe => fe.id === e.id)
-        })
-      ]
-      setAllEvents(mergedEvents)
-
-      // Load user's registered events from tickets
-      if (user?.id) {
-        const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-        const userTickets = tickets.filter((t: any) => t.status === 'confirmed')
-        
-        // Get unique event IDs from tickets
-        const registeredEventIds = Array.from(new Set(userTickets.map((t: any) => t.eventId || t.eventTitle))) as string[]
-        
-        // Find events that match registered event IDs
-        const registeredEvents = mergedEvents.filter(e => 
-          registeredEventIds.some((id: string) => id === e.id || id === e.title)
-        )
-        setMyRegisteredEvents(registeredEvents)
-
-        // Load organizer's created events
-        if (isOrganizer) {
-          const myEvents = organizerEvents.filter((e: any) => e.organizerId === user.id || !e.organizerId)
-          setMyCreatedEvents(myEvents)
         }
+
+        // Fetch user's favorites from API if authenticated
+        if (user?.id) {
+          const token = localStorage.getItem('token')
+          if (token) {
+            const favoritesResponse = await fetch(`${apiUrl}/api/favorites`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            if (favoritesResponse.ok) {
+              const favoritesData = await favoritesResponse.json()
+              if (favoritesData.success) {
+                const favoriteIds = favoritesData.data.map((e: any) => e.id)
+                setFavorites(favoriteIds)
+              }
+            }
+
+            // Fetch user's registered events (from tickets API) - reuse token from above
+            const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            if (ticketsResponse.ok) {
+              const ticketsData = await ticketsResponse.json()
+              if (ticketsData.success) {
+                // Get unique event IDs from tickets
+                const registeredEventIds = Array.from(new Set(ticketsData.data.map((t: any) => t.eventId))) as string[]
+                // Find events that match registered event IDs
+                const registeredEvents = allEventsData.filter((e: any) => 
+                  registeredEventIds.includes(e.id)
+                )
+                setMyRegisteredEvents(registeredEvents)
+              }
+            }
+
+            // Fetch organizer's created events if organizer
+            if (isOrganizer) {
+              const myEventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              })
+              if (myEventsResponse.ok) {
+                const myEventsData = await myEventsResponse.json()
+                if (myEventsData.success) {
+                  setMyCreatedEvents(myEventsData.data || [])
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error)
       }
     }
+
+    fetchEvents()
   }, [user?.id, isOrganizer])
 
-  const toggleFavorite = (eventId: string, e: React.MouseEvent) => {
+  const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -219,50 +159,98 @@ export default function EventsSection() {
       return
     }
 
-    const newFavorites = favorites.includes(eventId)
-      ? favorites.filter(id => id !== eventId)
-      : [...favorites, eventId]
-    
-    setFavorites(newFavorites)
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        openAuthModal('signin', `/events/${eventId}`)
+        return
+      }
+
+      const isCurrentlyFavorite = favorites.includes(eventId)
+      
+      if (isCurrentlyFavorite) {
+        // Remove from favorites
+        const response = await fetch(`${apiUrl}/api/favorites/${eventId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          setFavorites(favorites.filter(id => id !== eventId))
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`${apiUrl}/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId })
+        })
+        if (response.ok) {
+          setFavorites([...favorites, eventId])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
   }
 
-  const handleShare = (eventId: string, e: React.MouseEvent) => {
+  const handleShare = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    // Find the event from eventDetails or allEvents
-    const eventFromDetails = eventDetails.find(ev => ev.id === eventId)
-    const eventFromAll = allEvents.find(ev => ev.id === eventId)
-    
-    // Convert to EventDetail format
-    const eventToShare = eventFromDetails || (eventFromAll ? {
-      id: eventFromAll.id,
-      title: eventFromAll.title,
-      description: eventFromAll.description || '',
-      fullDescription: eventFromAll.description || '',
-      date: eventFromAll.date || '',
-      time: eventFromAll.time || '',
-      location: eventFromAll.location || '',
-      isOnline: eventFromAll.location?.toLowerCase().includes('online') || false,
-      category: eventFromAll.category || '',
-      image: eventFromAll.image || '',
-      price: eventFromAll.price || 'FREE',
-      ticketTiers: [],
-      maxAttendees: eventFromAll.maxAttendees || 0,
-      attendees: eventFromAll.attendees || 0,
-      status: eventFromAll.status || 'upcoming',
-      organizer: {
-        id: eventFromAll.organizerId || 'unknown',
-        name: 'Event Organizer',
-        email: 'organizer@example.com'
-      },
-      createdAt: new Date().toISOString()
-    } : null)
-    
-    if (eventToShare) {
-      setSelectedEventForShare(eventToShare)
-      setShowShareModal(true)
+    try {
+      // Find the event from allEvents first
+      let eventToShare = allEvents.find(ev => ev.id === eventId)
+      
+      // If not found in allEvents, fetch from API
+      if (!eventToShare) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const response = await fetch(`${apiUrl}/api/events/${eventId}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            eventToShare = data.data
+          }
+        }
+      }
+      
+      if (eventToShare) {
+        // Convert to EventDetail format if needed
+        const formattedEvent = {
+          id: eventToShare.id,
+          title: eventToShare.title,
+          description: eventToShare.description || '',
+          fullDescription: eventToShare.fullDescription || eventToShare.description || '',
+          date: eventToShare.date || (eventToShare.startDate ? new Date(eventToShare.startDate).toISOString().split('T')[0] : ''),
+          time: eventToShare.time || eventToShare.startTime || '',
+          location: eventToShare.location || (eventToShare.isOnline ? 'Online Event' : `${eventToShare.city || ''}, ${eventToShare.state || ''}`.trim() || 'TBA'),
+          isOnline: eventToShare.isOnline || false,
+          category: eventToShare.category || '',
+          image: eventToShare.image || '',
+          price: eventToShare.price || 'FREE',
+          ticketTiers: eventToShare.ticketTiers || [],
+          maxAttendees: eventToShare.maxAttendees || 0,
+          attendees: eventToShare.attendees || eventToShare.currentBookings || 0,
+          status: eventToShare.status || 'upcoming',
+          organizer: eventToShare.organizer || {
+            id: eventToShare.organizerId || 'unknown',
+            name: 'Event Organizer',
+            email: 'organizer@example.com'
+          },
+          createdAt: eventToShare.createdAt || new Date().toISOString()
+        }
+        
+        setSelectedEventForShare(formattedEvent)
+        setShowShareModal(true)
+      }
+    } catch (error) {
+      console.error('Error fetching event for share:', error)
     }
   }
 
@@ -284,26 +272,34 @@ export default function EventsSection() {
     setShowNotificationModal(true)
   }
 
-  const handleEventSave = (eventData: any) => {
-    if (typeof window !== 'undefined') {
-      const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      
-      if (editingEvent) {
-        // Update existing event
-        const updatedEvents = storedEvents.map((e: any) => 
-          e.id === editingEvent.id ? { ...eventData, id: editingEvent.id } : e
-        )
-        localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-        setMyCreatedEvents(updatedEvents.filter((e: any) => e.organizerId === user?.id || !e.organizerId))
-      } else {
-        // Create new event
-        const newEvent = { ...eventData, id: `event_${Date.now()}`, organizerId: user?.id }
-        localStorage.setItem('eventify_organizer_events', JSON.stringify([...storedEvents, newEvent]))
-        setMyCreatedEvents([...myCreatedEvents, newEvent])
+  const handleEventSave = async (eventData: any) => {
+    // Events are now managed via API, no localStorage needed
+    // This function should be handled by EventFormModal which calls the API
+    // Refresh events from API after save
+    if (user?.id && isOrganizer) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success) {
+              setMyCreatedEvents(data.data || [])
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing events:', error)
       }
-      
-      // Update all events list
-      const updatedAllEvents = allEvents.map(e => 
+    }
+    
+    // Update all events list
+    const updatedAllEvents = allEvents.map(e => 
         e.id === editingEvent?.id ? { ...eventData, id: editingEvent.id } : e
       )
       if (!editingEvent) {

@@ -21,79 +21,7 @@ import { Badge } from '@/components/ui/Badge'
 import QRCodeDisplay from '@/components/events/QRCodeDisplay'
 import RefundRequestModal from '@/components/events/RefundRequestModal'
 import TicketDetailModal from './TicketDetailModal'
-import { eventDetails } from '@/data/eventDetails'
-
-// Mock data
-const tickets = [
-  {
-    id: '1',
-    eventId: '1', // Tech Innovation Summit 2024
-    eventTitle: 'Tech Innovation Summit 2024',
-    eventDate: 'Dec 15, 2024',
-    eventTime: '9:00 AM - 5:00 PM',
-    eventLocation: 'San Francisco, CA',
-    ticketType: 'General Admission',
-    price: '$89',
-    purchaseDate: 'Nov 20, 2024',
-    status: 'confirmed',
-    qrCode: 'TECH2024-001',
-    seatNumber: 'A-15',
-    orderNumber: 'ORD-12345',
-    orderId: 'ORD-12345',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: '2',
-    eventId: '2', // Digital Marketing Masterclass
-    eventTitle: 'Digital Marketing Masterclass',
-    eventDate: 'Dec 20, 2024',
-    eventTime: '2:00 PM - 6:00 PM',
-    eventLocation: 'Online Event',
-    ticketType: 'Virtual Pass',
-    price: 'FREE',
-    purchaseDate: 'Dec 1, 2024',
-    status: 'confirmed',
-    qrCode: 'DIGITAL2024-002',
-    seatNumber: null,
-    orderNumber: 'ORD-12346',
-    orderId: 'ORD-12346',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: '3',
-    eventId: '3', // Global Design Conference
-    eventTitle: 'Global Design Conference',
-    eventDate: 'Jan 5, 2025',
-    eventTime: '10:00 AM - 6:00 PM',
-    eventLocation: 'New York, NY',
-    ticketType: 'VIP Pass',
-    price: '$149',
-    purchaseDate: 'Dec 10, 2024',
-    status: 'pending',
-    qrCode: 'DESIGN2025-003',
-    seatNumber: 'VIP-8',
-    orderNumber: 'ORD-12347',
-    orderId: 'ORD-12347',
-    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: '4',
-    eventId: '4', // Startup Pitch Competition (if exists) or use a default
-    eventTitle: 'Startup Pitch Competition',
-    eventDate: 'Jan 12, 2025',
-    eventTime: '1:00 PM - 4:00 PM',
-    eventLocation: 'Austin, TX',
-    ticketType: 'General Admission',
-    price: '$25',
-    purchaseDate: 'Dec 15, 2024',
-    status: 'cancelled',
-    qrCode: 'STARTUP2025-004',
-    seatNumber: 'B-22',
-    orderNumber: 'ORD-12348',
-    orderId: 'ORD-12348',
-    image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-  }
-]
+// REMOVED: Mock data - Now fetching from API
 
 const statusConfig = {
   confirmed: { color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
@@ -105,86 +33,127 @@ const statusConfig = {
 export default function TicketsSection() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [allTickets, setAllTickets] = useState(tickets)
+  const [allTickets, setAllTickets] = useState<any[]>([])
   const [selectedTicketForQR, setSelectedTicketForQR] = useState<any>(null)
   const [selectedTicketForRefund, setSelectedTicketForRefund] = useState<any>(null)
   const [selectedTicketDetail, setSelectedTicketDetail] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
+  // Fetch tickets from API
   useEffect(() => {
-    // Load tickets from localStorage
-    if (typeof window !== 'undefined') {
-      const storedTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-      
-      // Migration: Add eventId to tickets that don't have it
-      // Try to match by eventTitle to eventDetails
-      const migratedTickets = storedTickets.map((ticket: any) => {
-        if (!ticket.eventId && ticket.eventTitle) {
-          // Try to find matching event by title
-          const matchingEvent = eventDetails.find((e: any) => 
-            e.title === ticket.eventTitle || 
-            e.title.toLowerCase().includes(ticket.eventTitle.toLowerCase()) ||
-            ticket.eventTitle.toLowerCase().includes(e.title.toLowerCase())
-          )
-          if (matchingEvent) {
-            return { ...ticket, eventId: matchingEvent.id }
+    const fetchTickets = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          setIsLoading(false)
+          return
+        }
+
+        const response = await fetch(`${apiUrl}/api/tickets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Format tickets to match frontend structure
+            const formattedTickets = data.data.map((ticket: any) => ({
+              id: ticket.id,
+              eventId: ticket.eventId,
+              eventTitle: ticket.event?.title || '',
+              eventDate: ticket.event?.startDate ? new Date(ticket.event.startDate).toLocaleDateString() : '',
+              eventTime: ticket.event?.startTime || '',
+              eventLocation: ticket.event?.venueName || ticket.event?.city || '',
+              ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+              price: `$${ticket.price.toFixed(2)}`,
+              purchaseDate: new Date(ticket.createdAt).toLocaleDateString(),
+              status: ticket.status.toLowerCase(),
+              qrCode: ticket.qrCode || '',
+              seatNumber: ticket.metadata?.seatNumber || null,
+              orderNumber: ticket.orderNumber,
+              orderId: ticket.orderNumber,
+              image: ticket.event?.image || ''
+            }))
+            setAllTickets(formattedTickets)
           }
         }
-        return ticket
-      })
-      
-      // Update localStorage with migrated tickets
-      if (migratedTickets.some((t: any, i: number) => t.eventId !== storedTickets[i]?.eventId)) {
-        localStorage.setItem('eventify_tickets', JSON.stringify(migratedTickets))
+      } catch (error) {
+        console.error('Error fetching tickets:', error)
+      } finally {
+        setIsLoading(false)
       }
-      
-      // Merge with mock data, prioritizing stored tickets
-      const mergedTickets = [...migratedTickets, ...tickets.filter(t => 
-        !migratedTickets.some((st: any) => st.id === t.id)
-      )]
-      setAllTickets(mergedTickets)
     }
+
+    fetchTickets()
   }, [])
 
-  const handleRefundRequest = (ticketId: string, reason: string) => {
-    // Update ticket status
-    const updatedTickets = allTickets.map(ticket => {
-      if (ticket.id === ticketId) {
-        return {
-          ...ticket,
-          status: 'refund_requested',
-          refundRequestReason: reason,
-          refundRequestDate: new Date().toISOString()
-        }
+  const handleRefundRequest = async (ticketId: string, reason: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please log in to request a refund')
+        return
       }
-      return ticket
-    })
 
-    setAllTickets(updatedTickets)
-    
-    // Save to localStorage
-    const storedTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-    const updatedStored = storedTickets.map((t: any) => {
-      if (t.id === ticketId) {
-        return {
-          ...t,
-          status: 'refund_requested',
-          refundRequestReason: reason,
-          refundRequestDate: new Date().toISOString()
+      // Call refund API
+      const response = await fetch(`${apiUrl}/api/payments/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          paymentId: ticketId, // You may need to get paymentId from ticket
+          reason
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Refresh tickets
+          const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (ticketsResponse.ok) {
+            const ticketsData = await ticketsResponse.json()
+            if (ticketsData.success) {
+              const formattedTickets = ticketsData.data.map((ticket: any) => ({
+                id: ticket.id,
+                eventId: ticket.eventId,
+                eventTitle: ticket.event?.title || '',
+                eventDate: ticket.event?.startDate ? new Date(ticket.event.startDate).toLocaleDateString() : '',
+                eventTime: ticket.event?.startTime || '',
+                eventLocation: ticket.event?.venueName || ticket.event?.city || '',
+                ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+                price: `$${ticket.price.toFixed(2)}`,
+                purchaseDate: new Date(ticket.createdAt).toLocaleDateString(),
+                status: ticket.status.toLowerCase(),
+                qrCode: ticket.qrCode || '',
+                seatNumber: ticket.metadata?.seatNumber || null,
+                orderNumber: ticket.orderNumber,
+                orderId: ticket.orderNumber,
+                image: ticket.event?.image || ''
+              }))
+              setAllTickets(formattedTickets)
+            }
+          }
         }
+      } else {
+        alert('Failed to request refund. Please try again.')
       }
-      return t
-    })
-    localStorage.setItem('eventify_tickets', JSON.stringify(updatedStored))
-
-    // Store refund request
-    const refundRequests = JSON.parse(localStorage.getItem('eventify_refund_requests') || '[]')
-    refundRequests.push({
-      ticketId,
-      reason,
-      date: new Date().toISOString(),
-      status: 'pending'
-    })
-    localStorage.setItem('eventify_refund_requests', JSON.stringify(refundRequests))
+    } catch (error) {
+      console.error('Error requesting refund:', error)
+      alert('Error requesting refund. Please try again.')
+    }
   }
 
   // Group tickets by orderId (tickets purchased together)

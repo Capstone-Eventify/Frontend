@@ -118,115 +118,145 @@ export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  // Load notifications from localStorage
+  // Load notifications from API
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('eventify_notifications')
-      if (stored) {
-        try {
-          const storedNotifications = JSON.parse(stored)
-          // Convert stored notifications to the format we need
-          const formattedNotifications: Notification[] = storedNotifications
-            .filter((n: any) => {
-              // Filter: show event_deleted notifications only to the organizer who owns the event
-              // For other types, show to all users (demo purposes)
-              if (n.type === 'event_deleted') {
-                // If organizerId matches current user's ID, show it
-                // Or if organizerId is not set, show to all (demo)
-                return !n.organizerId || n.organizerId === user?.id || !user
-              }
-              return true // Show all other notifications
-            })
-            .map((n: any) => ({
-              id: n.id,
-              title: n.title,
-              message: n.message,
-              type: n.type || 'info',
-              timestamp: n.timestamp || n.createdAt,
-              reason: n.reason,
-              eventId: n.eventId,
-              eventTitle: n.eventTitle,
-              isRead: n.isRead || n.read || false,
-              action: n.action
-            }))
-          
-          // Ensure push notification summary is present
-          const hasPushNotif = formattedNotifications.some((n: any) => n.id === 'push_notification_summary')
-          const allMockNotifs = hasPushNotif 
-            ? mockNotifications.filter(mn => mn.id !== 'push_notification_summary')
-            : mockNotifications
-
-          // Merge with mock notifications for demo (excluding duplicates)
-          const merged = [
-            ...formattedNotifications, 
-            ...allMockNotifs.filter(mn => !formattedNotifications.some(fn => fn.id === mn.id))
-          ]
-          
-          // Sort to put push notification summary first
-          merged.sort((a, b) => {
-            if (a.id === 'push_notification_summary') return -1
-            if (b.id === 'push_notification_summary') return 1
-            return 0
-          })
-          
-          setNotifications(merged)
-        } catch (error) {
-          console.error('Error loading notifications:', error)
-          // Ensure push notification summary is first
-          const sorted = [...mockNotifications].sort((a, b) => {
-            if (a.id === 'push_notification_summary') return -1
-            if (b.id === 'push_notification_summary') return 1
-            return 0
-          })
-          setNotifications(sorted)
-        }
-      } else {
-        // Ensure push notification summary is first
+    const fetchNotifications = async () => {
+      if (!user?.id) {
+        // Show mock notifications if not logged in
         const sorted = [...mockNotifications].sort((a, b) => {
           if (a.id === 'push_notification_summary') return -1
           if (b.id === 'push_notification_summary') return 1
           return 0
         })
         setNotifications(sorted)
+        return
+      }
+
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          setNotifications(mockNotifications)
+          return
+        }
+
+        const response = await fetch(`${apiUrl}/api/notifications`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const apiNotifications: Notification[] = (data.data || []).map((n: any) => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: n.type || 'info',
+              timestamp: n.createdAt,
+              isRead: n.isRead || false,
+              link: n.link
+            }))
+            
+            // Merge with mock notifications (excluding duplicates)
+            const merged = [
+              ...apiNotifications,
+              ...mockNotifications.filter(mn => !apiNotifications.some(an => an.id === mn.id))
+            ]
+            
+            // Sort to put push notification summary first
+            merged.sort((a, b) => {
+              if (a.id === 'push_notification_summary') return -1
+              if (b.id === 'push_notification_summary') return 1
+              return 0
+            })
+            
+            setNotifications(merged)
+          } else {
+            setNotifications(mockNotifications)
+          }
+        } else {
+          setNotifications(mockNotifications)
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error)
+        setNotifications(mockNotifications)
       }
     }
+
+    fetchNotifications()
   }, [user?.id])
 
   const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     const updated = notifications.map(n => n.id === id ? { ...n, isRead: true, read: true } : n)
     setNotifications(updated)
     
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => n.id === id ? { ...n, read: true, isRead: true } : n)
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Update via API (skip for mock notifications)
+    if (id !== 'push_notification_summary' && user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+      }
     }
   }
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const updated = notifications.map(n => ({ ...n, isRead: true, read: true }))
     setNotifications(updated)
     
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => ({ ...n, read: true, isRead: true }))
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Update via API
+    if (user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/read-all`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error)
+      }
     }
   }
 
-  const removeNotification = (id: string) => {
+  const removeNotification = async (id: string) => {
     const updated = notifications.filter(n => n.id !== id)
     setNotifications(updated)
     
-    // Remove from localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.filter((n: any) => n.id !== id)
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Delete via API (skip for mock notifications)
+    if (id !== 'push_notification_summary' && user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error deleting notification:', error)
+      }
     }
   }
 

@@ -43,31 +43,28 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     if (!validateEmail()) return
 
     setIsLoading(true)
+    setError('')
     try {
-      // API call commented out for now
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/forgotpassword`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ email }),
-      // })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/forgotpassword`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
 
-      // const data = await response.json()
+      const data = await response.json()
 
-      // if (response.ok && data.success) {
-      //   onResetPassword?.(email)
-      //   setIsSubmitted(true)
-      // } else {
-      //   setError(data.message || 'Something went wrong. Please try again.')
-      // }
-
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      onResetPassword?.(email)
-      setIsSubmitted(true)
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.')
+      if (response.ok && data.success) {
+        onResetPassword?.(email)
+        setIsSubmitted(true)
+      } else {
+        setError(data.message || 'Something went wrong. Please try again.')
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }

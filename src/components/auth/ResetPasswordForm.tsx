@@ -60,35 +60,30 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ className }) => {
     }
 
     setIsLoading(true)
+    setError('')
     try {
-      // API call commented out for now
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/resetpassword/${token}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ password }),
-      // })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/resetpassword/${token}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      })
 
-      // const data = await response.json()
+      const data = await response.json()
 
-      // if (response.ok && data.success) {
-      //   setIsSuccess(true)
-      //   setTimeout(() => {
-      //     router.push('/login')
-      //   }, 2000)
-      // } else {
-      //   setError(data.message || 'Failed to reset password. The link may have expired.')
-      // }
-
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsSuccess(true)
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.')
+      if (response.ok && data.success) {
+        setIsSuccess(true)
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+      } else {
+        setError(data.message || 'Failed to reset password. The link may have expired.')
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }

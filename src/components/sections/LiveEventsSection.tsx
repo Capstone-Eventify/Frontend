@@ -24,30 +24,83 @@ const LiveEventsSection = () => {
   const [selectedEventForShare, setSelectedEventForShare] = useState<EventDetail | null>(null)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('eventify_favorites')
-      if (stored) {
-        setFavorites(JSON.parse(stored))
+    const loadFavorites = async () => {
+      if (!isAuthenticated) return
+      
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) return
+
+        const response = await fetch(`${apiUrl}/api/favorites/ids`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setFavorites(data.data || [])
+          }
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error)
       }
     }
-  }, [])
 
-  const toggleFavorite = (eventId: string, e: React.MouseEvent) => {
+    loadFavorites()
+  }, [isAuthenticated])
+
+  const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
     if (!isAuthenticated) {
-      // Open auth modal with redirect URL to the event detail page
       openAuthModal('signin', `/events/${eventId}`)
       return
     }
 
-    const newFavorites = favorites.includes(eventId)
-      ? favorites.filter(id => id !== eventId)
-      : [...favorites, eventId]
-    
-    setFavorites(newFavorites)
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        openAuthModal('signin', `/events/${eventId}`)
+        return
+      }
+
+      const isCurrentlyFavorite = favorites.includes(eventId)
+      
+      if (isCurrentlyFavorite) {
+        // Remove from favorites
+        const response = await fetch(`${apiUrl}/api/favorites/${eventId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          setFavorites(favorites.filter(id => id !== eventId))
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`${apiUrl}/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId })
+        })
+        if (response.ok) {
+          setFavorites([...favorites, eventId])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
   }
 
   const handleShare = (event: any, e: React.MouseEvent) => {
@@ -136,6 +189,7 @@ const LiveEventsSection = () => {
                       src={event.image}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover"
                     />
                     <div className="absolute top-4 left-4">

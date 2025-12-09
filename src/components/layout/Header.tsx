@@ -110,6 +110,11 @@ const Header = () => {
                         src={user.avatar}
                         alt={user.name || 'User'}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          // If image fails to load (e.g., 403), hide it and show icon instead
+                          console.error('Failed to load avatar image:', e.currentTarget.src)
+                          e.currentTarget.style.display = 'none'
+                        }}
                       />
                     ) : (
                       <User size={20} className="text-primary-600" />
@@ -156,7 +161,8 @@ const Header = () => {
                             <LayoutDashboard size={16} className="text-gray-500 flex-shrink-0" />
                             <span className="whitespace-normal break-words">Dashboard</span>
                           </button>
-                          <button
+                          {/* COMMENTED OUT: Switch User (Demo) button - Use real API authentication instead */}
+                          {/* <button
                             onClick={() => {
                               setShowDemoSwitcher(true)
                               setIsProfileDropdownOpen(false)
@@ -165,7 +171,7 @@ const Header = () => {
                           >
                             <User size={16} className="text-gray-500 flex-shrink-0" />
                             <span className="whitespace-normal break-words">Switch User (Demo)</span>
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => {
                               handleLogout()
@@ -299,11 +305,11 @@ const Header = () => {
         )}
       </div>
 
-      {/* Demo User Switcher */}
-      <DemoUserSwitcher
+      {/* COMMENTED OUT: Demo User Switcher - Use real API authentication instead */}
+      {/* <DemoUserSwitcher
         isOpen={showDemoSwitcher}
         onClose={() => setShowDemoSwitcher(false)}
-      />
+      /> */}
     </motion.header>
   )
 }

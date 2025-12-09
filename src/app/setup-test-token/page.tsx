@@ -85,36 +85,40 @@ export default function SetupTestTokenPage() {
           setStatus('success')
           setMessage(`Test account created! Email: ${testEmail}`)
         } else {
-          // Fallback: Create a mock token for frontend-only testing
-          const mockToken = `test_token_${Date.now()}`
-          localStorage.setItem('token', mockToken)
-          localStorage.setItem('eventify_user', JSON.stringify({
-            id: `user_${Date.now()}`,
-            name: 'Test User',
-            email: testEmail,
-            role: 'attendee',
-            isAdmin: false,
-            joinDate: new Date().toISOString()
-          }))
-
-          setStatus('success')
-          setMessage('Test token created (mock mode - backend may require real authentication)')
+          // COMMENTED OUT: Mock token fallback - Use real API authentication instead
+          // const mockToken = `test_token_${Date.now()}`
+          // localStorage.setItem('token', mockToken)
+          // localStorage.setItem('eventify_user', JSON.stringify({
+          //   id: `user_${Date.now()}`,
+          //   name: 'Test User',
+          //   email: testEmail,
+          //   role: 'attendee',
+          //   isAdmin: false,
+          //   joinDate: new Date().toISOString()
+          // }))
+          // setStatus('success')
+          // setMessage('Test token created (mock mode - backend may require real authentication)')
+          
+          setStatus('error')
+          setMessage('Failed to authenticate. Please check backend connection.')
         }
       } catch (error: any) {
-        // Create mock token as fallback
-        const mockToken = `test_token_${Date.now()}`
-        localStorage.setItem('token', mockToken)
-        localStorage.setItem('eventify_user', JSON.stringify({
-          id: `user_${Date.now()}`,
-          name: 'Test User',
-          email: 'test@eventify.com',
-          role: 'attendee',
-          isAdmin: false,
-          joinDate: new Date().toISOString()
-        }))
-
-        setStatus('success')
-        setMessage('Mock test token created. Note: Backend may require real authentication.')
+        // COMMENTED OUT: Mock token fallback - Use real API authentication instead
+        // const mockToken = `test_token_${Date.now()}`
+        // localStorage.setItem('token', mockToken)
+        // localStorage.setItem('eventify_user', JSON.stringify({
+        //   id: `user_${Date.now()}`,
+        //   name: 'Test User',
+        //   email: 'test@eventify.com',
+        //   role: 'attendee',
+        //   isAdmin: false,
+        //   joinDate: new Date().toISOString()
+        // }))
+        // setStatus('success')
+        // setMessage('Mock test token created. Note: Backend may require real authentication.')
+        
+        setStatus('error')
+        setMessage(`Error: ${error.message || 'Failed to setup test token. Please check backend connection.'}`)
       }
     }
 

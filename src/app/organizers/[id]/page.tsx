@@ -125,6 +125,7 @@ export default function OrganizerProfilePage() {
                       src={organizer.avatar}
                       alt={organizer.name}
                       fill
+                      sizes="128px"
                       className="rounded-full object-cover"
                     />
                   ) : (
