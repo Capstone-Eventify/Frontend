@@ -300,13 +300,12 @@ export default function EventsSection() {
     
     // Update all events list
     const updatedAllEvents = allEvents.map(e => 
-        e.id === editingEvent?.id ? { ...eventData, id: editingEvent.id } : e
-      )
-      if (!editingEvent) {
-        updatedAllEvents.push({ ...eventData, id: `event_${Date.now()}` })
-      }
-      setAllEvents(updatedAllEvents)
+      e.id === editingEvent?.id ? { ...eventData, id: editingEvent.id } : e
+    )
+    if (!editingEvent) {
+      updatedAllEvents.push({ ...eventData, id: `event_${Date.now()}` })
     }
+    setAllEvents(updatedAllEvents)
     
     setShowEventForm(false)
     setEditingEvent(null)

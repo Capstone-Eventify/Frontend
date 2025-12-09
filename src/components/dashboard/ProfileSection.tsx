@@ -356,7 +356,7 @@ export default function ProfileSection() {
   }
 
 
-  const handleApplicationSubmitted = () => {
+  const handleApplicationSubmitted = async () => {
     // Reload application status after submission - fetch from API
     if (user?.id) {
       try {
@@ -375,9 +375,9 @@ export default function ProfileSection() {
               setOrganizerApplication(userApplication)
             }
           }
-        } catch (error) {
-          console.error('Error fetching organizer application:', error)
         }
+      } catch (error) {
+        console.error('Error fetching organizer application:', error)
       }
     }
   }
