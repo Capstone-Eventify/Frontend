@@ -96,8 +96,7 @@ const HeroSection = () => {
             >
               Create Event
             </Button>
-            {/* COMMENTED OUT: Demo Users button - Use real API authentication instead */}
-            {/* {!isAuthenticated && (
+            {!isAuthenticated && (
               <Button
                 variant="outline"
                 size="lg"
@@ -107,16 +106,16 @@ const HeroSection = () => {
                 <Users size={20} className="mr-2" />
                 Try Demo Users
               </Button>
-            )} */}
+            )}
           </motion.div>
         </motion.div>
       </div>
 
-      {/* COMMENTED OUT: Demo User Switcher - Use real API authentication instead */}
-      {/* <DemoUserSwitcher
+      {/* Demo User Switcher */}
+      <DemoUserSwitcher
         isOpen={showDemoSwitcher}
         onClose={() => setShowDemoSwitcher(false)}
-      /> */}
+      />
 
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

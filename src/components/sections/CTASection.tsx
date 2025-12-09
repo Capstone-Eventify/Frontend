@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
@@ -12,21 +12,6 @@ const CTASection = () => {
   const router = useRouter()
   const { openAuthModal } = useAuth()
   const { isAuthenticated, canCreateEvents, isOrganizer } = useUser()
-  const [confettiPositions, setConfettiPositions] = useState<Array<{left: number, top: number, x: number, duration: number, delay: number}>>([])
-
-  // Generate random positions only on client to avoid hydration mismatch
-  useEffect(() => {
-    setConfettiPositions(
-      Array.from({ length: 20 }, () => ({
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        x: Math.random() * 20 - 10,
-        duration: 3 + Math.random() * 2,
-        delay: Math.random() * 2,
-      }))
-    )
-  }, [])
-
   return (
     <section className="relative py-20 overflow-hidden">
       {/* Background with Gradient */}
@@ -34,23 +19,23 @@ const CTASection = () => {
       
       {/* Confetti Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {confettiPositions.map((pos, i) => (
+        {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-white rounded-full opacity-60"
             style={{
-              left: `${pos.left}%`,
-              top: `${pos.top}%`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
             }}
             animate={{
               y: [0, -20, 0],
-              x: [0, pos.x, 0],
+              x: [0, Math.random() * 20 - 10, 0],
               opacity: [0.6, 1, 0.6],
             }}
             transition={{
-              duration: pos.duration,
+              duration: 3 + Math.random() * 2,
               repeat: Infinity,
-              delay: pos.delay,
+              delay: Math.random() * 2,
             }}
           />
         ))}
