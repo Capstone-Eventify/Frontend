@@ -46,71 +46,54 @@ export default function EventAnalytics({ eventId, eventTitle }: EventAnalyticsPr
   const [analytics, setAnalytics] = useState<any>(null)
 
   useEffect(() => {
-    if (!eventId || typeof window === 'undefined') return
+    const fetchAnalytics = async () => {
+      if (!eventId) return
 
-    // Load tickets for this event
-    const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-    const eventTickets = tickets.filter((t: any) => 
-      t.eventId === eventId || t.eventTitle === eventTitle
-    )
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          setAnalytics(null)
+          return
+        }
 
-    // Calculate analytics
-    const confirmedTickets = eventTickets.filter((t: any) => t.status === 'confirmed')
-    const checkedInTickets = eventTickets.filter((t: any) => 
-      t.status === 'confirmed' && t.checkInStatus === 'checked_in'
-    )
-    const pendingTickets = eventTickets.filter((t: any) => t.status === 'pending')
-    const refundedTickets = eventTickets.filter((t: any) => t.status === 'refunded')
+        const response = await fetch(`${apiUrl}/api/analytics/event/${eventId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
 
-    // Calculate revenue
-    const totalRevenue = confirmedTickets.reduce((sum: number, ticket: any) => {
-      const price = parseFloat(ticket.price?.replace('$', '').replace('FREE', '0') || '0')
-      return sum + price
-    }, 0)
-
-    // Group by ticket tier
-    const tierStats = confirmedTickets.reduce((acc: any, ticket: any) => {
-      const tier = ticket.ticketType || 'General'
-      if (!acc[tier]) {
-        acc[tier] = { count: 0, revenue: 0 }
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Format analytics data to match component expectations
+            const analyticsData = {
+              totalTickets: data.data.totalTickets,
+              confirmedTickets: data.data.confirmedTickets,
+              checkedInTickets: data.data.checkedInTickets,
+              pendingTickets: data.data.totalTickets - data.data.confirmedTickets - data.data.refundedTickets,
+              refundedTickets: data.data.refundedTickets,
+              totalRevenue: data.data.totalRevenue,
+              checkInRate: data.data.checkInRate,
+              tierStats: data.data.ticketTypeStats || {},
+              registrationTimeline: data.data.registrationTimeline || [],
+              averageTicketPrice: data.data.averageTicketPrice || 0
+            }
+            setAnalytics(analyticsData)
+          } else {
+            setAnalytics(null)
+          }
+        } else {
+          setAnalytics(null)
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error)
+        setAnalytics(null)
       }
-      acc[tier].count++
-      const price = parseFloat(ticket.price?.replace('$', '').replace('FREE', '0') || '0')
-      acc[tier].revenue += price
-      return acc
-    }, {})
+    }
 
-    // Registration timeline (last 30 days)
-    const registrationTimeline = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (29 - i))
-      const dateStr = date.toISOString().split('T')[0]
-      const count = confirmedTickets.filter((t: any) => {
-        const ticketDate = new Date(t.purchaseDate || t.createdAt || Date.now())
-        return ticketDate.toISOString().split('T')[0] === dateStr
-      }).length
-      return { date: dateStr, count }
-    })
-
-    // Check-in rate
-    const checkInRate = confirmedTickets.length > 0
-      ? (checkedInTickets.length / confirmedTickets.length) * 100
-      : 0
-
-    setAnalytics({
-      totalTickets: eventTickets.length,
-      confirmedTickets: confirmedTickets.length,
-      checkedInTickets: checkedInTickets.length,
-      pendingTickets: pendingTickets.length,
-      refundedTickets: refundedTickets.length,
-      totalRevenue,
-      checkInRate,
-      tierStats,
-      registrationTimeline,
-      averageTicketPrice: confirmedTickets.length > 0
-        ? totalRevenue / confirmedTickets.length
-        : 0
-    })
+    fetchAnalytics()
   }, [eventId, eventTitle])
 
   if (!eventId) {

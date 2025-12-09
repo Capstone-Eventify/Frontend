@@ -384,7 +384,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm sm:text-base font-bold text-gray-900 mb-2 break-words">Ticket Upgrade - Payment Required</h4>
                     <p className="text-xs sm:text-sm text-gray-700 mb-3 break-words">
-                      You're upgrading your ticket to a higher tier. Pay the price difference to complete the upgrade.
+                      You&apos;re upgrading your ticket to a higher tier. Pay the price difference to complete the upgrade.
                     </p>
                     <div className="bg-white rounded-lg p-2 sm:p-3 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                       <div className="flex items-center justify-between gap-2">

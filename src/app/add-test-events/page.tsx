@@ -120,12 +120,12 @@ export default function AddTestEventsPage() {
           }
         ]
 
-        function formatDate(date: Date): string {
+        const formatDate = (date: Date): string => {
           const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
           return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
         }
 
-        function getRandomTime(): string {
+        const getRandomTime = (): string => {
           const hours = Math.floor(Math.random() * 8) + 9 // 9 AM to 5 PM
           const minutes = Math.random() < 0.5 ? 0 : 30
           const period = hours >= 12 ? 'PM' : 'AM'
@@ -133,7 +133,7 @@ export default function AddTestEventsPage() {
           return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`
         }
 
-        function getEndTime(startTime: string): string {
+        const getEndTime = (startTime: string): string => {
           const [hour, min, period] = startTime.split(/[: ]/)
           let endHour = parseInt(hour)
           if (period === 'PM' && endHour !== 12) endHour += 12
@@ -231,25 +231,82 @@ export default function AddTestEventsPage() {
           events.push(event)
         }
 
-        // Get existing events
-        const existingEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
+        // Create events via API
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
         
-        // Add new events (avoid duplicates)
-        const existingIds = new Set(existingEvents.map((e: any) => e.id))
-        const eventsToAdd = events.filter(e => !existingIds.has(e.id))
-        
-        // Update IDs to be unique with timestamp
-        const timestamp = Date.now()
-        eventsToAdd.forEach((event, index) => {
-          event.id = `event_${timestamp}_${index}`
-        })
-        
-        const allEvents = [...existingEvents, ...eventsToAdd]
-        localStorage.setItem('eventify_organizer_events', JSON.stringify(allEvents))
-        
-        setEventsAdded(eventsToAdd.length)
-        setMessage(`Successfully added ${eventsToAdd.length} new events! Total events: ${allEvents.length}`)
-        setStatus('success')
+        if (!token) {
+          setStatus('error')
+          setMessage('Please sign in to create events. This page requires authentication.')
+          return
+        }
+
+        let successCount = 0
+        let errorCount = 0
+
+        // Create each event via API
+        for (const event of events) {
+          try {
+            // Format event for API
+            const eventPayload: any = {
+              title: event.title,
+              description: event.description,
+              fullDescription: event.fullDescription || event.description,
+              category: event.category,
+              eventType: event.category,
+              date: event.date,
+              time: event.time,
+              endDate: event.endDate || null,
+              endTime: event.endTime || null,
+              isOnline: event.isOnline,
+              venueName: event.location,
+              address: event.address,
+              city: event.city,
+              state: event.state,
+              zipCode: event.zipCode,
+              country: event.country,
+              meetingLink: event.meetingLink || null,
+              image: event.image,
+              price: typeof event.price === 'string' ? parseFloat(event.price.replace('$', '').replace('FREE', '0')) : (event.price || 0),
+              maxAttendees: event.maxAttendees,
+              ticketTiers: event.ticketTiers || [],
+              tags: event.tags || [],
+              requirements: event.requirements,
+              refundPolicy: event.refundPolicy,
+              hasSeating: event.hasSeating || false,
+              status: 'LIVE' // Set as LIVE so they're visible
+            }
+
+            const response = await fetch(`${apiUrl}/api/events`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(eventPayload)
+            })
+
+            if (response.ok) {
+              successCount++
+            } else {
+              errorCount++
+              const errorData = await response.json().catch(() => ({}))
+              console.error(`Failed to create event "${event.title}":`, errorData.message || 'Unknown error')
+            }
+          } catch (error) {
+            errorCount++
+            console.error(`Error creating event "${event.title}":`, error)
+          }
+        }
+
+        if (successCount > 0) {
+          setEventsAdded(successCount)
+          setMessage(`Successfully created ${successCount} ${successCount === 1 ? 'event' : 'events'}${errorCount > 0 ? ` (${errorCount} failed)` : ''}!`)
+          setStatus('success')
+        } else {
+          setStatus('error')
+          setMessage(`Failed to create events. ${errorCount > 0 ? 'Please check the console for details.' : 'Please ensure you are signed in as an organizer.'}`)
+        }
       } catch (error: any) {
         setStatus('error')
         setMessage(`Error: ${error.message}`)

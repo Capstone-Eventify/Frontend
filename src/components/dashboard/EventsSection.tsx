@@ -75,6 +75,8 @@ export default function EventsSection() {
 
   // Fetch events from API
   useEffect(() => {
+    let isCancelled = false
+    
     const fetchEvents = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
@@ -82,43 +84,50 @@ export default function EventsSection() {
         // Fetch all events from API
         let allEventsData: any[] = []
         const eventsResponse = await fetch(`${apiUrl}/api/events`)
+        
+        if (isCancelled) return
+        
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json()
-          if (eventsData.success) {
+          if (eventsData.success && !isCancelled) {
             allEventsData = eventsData.data || []
             setAllEvents(allEventsData)
           }
         }
 
-        // Fetch user's favorites from API if authenticated
+        // Fetch user-specific data in parallel if authenticated
         if (user?.id) {
           const token = localStorage.getItem('token')
-          if (token) {
-            const favoritesResponse = await fetch(`${apiUrl}/api/favorites`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            })
+          if (token && !isCancelled) {
+            // Parallelize API calls for better performance
+            const [favoritesResponse, ticketsResponse, myEventsResponse] = await Promise.all([
+              fetch(`${apiUrl}/api/favorites`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }),
+              fetch(`${apiUrl}/api/tickets`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }),
+              isOrganizer ? fetch(`${apiUrl}/api/events/organizer/my-events`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }) : Promise.resolve(null)
+            ])
+
+            if (isCancelled) return
+
+            // Process favorites
             if (favoritesResponse.ok) {
               const favoritesData = await favoritesResponse.json()
-              if (favoritesData.success) {
+              if (favoritesData.success && !isCancelled) {
                 const favoriteIds = favoritesData.data.map((e: any) => e.id)
                 setFavorites(favoriteIds)
               }
             }
 
-            // Fetch user's registered events (from tickets API) - reuse token from above
-            const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            })
+            // Process tickets
             if (ticketsResponse.ok) {
               const ticketsData = await ticketsResponse.json()
-              if (ticketsData.success) {
-                // Get unique event IDs from tickets
+              if (ticketsData.success && !isCancelled) {
                 const registeredEventIds = Array.from(new Set(ticketsData.data.map((t: any) => t.eventId))) as string[]
-                // Find events that match registered event IDs
                 const registeredEvents = allEventsData.filter((e: any) => 
                   registeredEventIds.includes(e.id)
                 )
@@ -126,28 +135,27 @@ export default function EventsSection() {
               }
             }
 
-            // Fetch organizer's created events if organizer
-            if (isOrganizer) {
-              const myEventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              })
-              if (myEventsResponse.ok) {
-                const myEventsData = await myEventsResponse.json()
-                if (myEventsData.success) {
-                  setMyCreatedEvents(myEventsData.data || [])
-                }
+            // Process organizer events
+            if (isOrganizer && myEventsResponse && myEventsResponse.ok) {
+              const myEventsData = await myEventsResponse.json()
+              if (myEventsData.success && !isCancelled) {
+                setMyCreatedEvents(myEventsData.data || [])
               }
             }
           }
         }
       } catch (error) {
-        console.error('Error fetching events:', error)
+        if (!isCancelled) {
+          console.error('Error fetching events:', error)
+        }
       }
     }
 
     fetchEvents()
+    
+    return () => {
+      isCancelled = true
+    }
   }, [user?.id, isOrganizer])
 
   const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
@@ -236,7 +244,7 @@ export default function EventsSection() {
           price: eventToShare.price || 'FREE',
           ticketTiers: eventToShare.ticketTiers || [],
           maxAttendees: eventToShare.maxAttendees || 0,
-          attendees: eventToShare.attendees || eventToShare.currentBookings || 0,
+          attendees: eventToShare.attendees || (eventToShare as any).currentBookings || 0,
           status: eventToShare.status || 'upcoming',
           organizer: eventToShare.organizer || {
             id: eventToShare.organizerId || 'unknown',

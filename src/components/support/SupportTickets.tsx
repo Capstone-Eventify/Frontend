@@ -25,16 +25,44 @@ export default function SupportTickets() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'closed'>('all')
 
   useEffect(() => {
-    // Load tickets from localStorage
-    if (typeof window !== 'undefined') {
-      const storedTickets = JSON.parse(localStorage.getItem('eventify_support_tickets') || '[]')
-      setTickets(storedTickets)
-      
-      // Auto-open form if no tickets exist
-      if (storedTickets.length === 0) {
-        setShowSupportModal(true)
+    const fetchTickets = async () => {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setTickets([])
+        return
+      }
+
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const response = await fetch(`${apiUrl}/api/support-tickets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const formattedTickets = (data.data || []).map((ticket: any) => ({
+              id: ticket.id,
+              subject: ticket.subject,
+              message: ticket.description || ticket.message,
+              category: ticket.category,
+              priority: ticket.priority,
+              status: ticket.status,
+              createdAt: ticket.createdAt,
+              updatedAt: ticket.updatedAt || ticket.createdAt
+            }))
+            setTickets(formattedTickets)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching support tickets:', error)
+        setTickets([])
       }
     }
+
+    fetchTickets()
   }, [])
 
   const getStatusBadge = (status: string) => {
@@ -246,12 +274,37 @@ export default function SupportTickets() {
       {/* Support Modal */}
       <SupportModal
         isOpen={showSupportModal}
-        onClose={() => {
+        onClose={async () => {
           setShowSupportModal(false)
           // Reload tickets after closing modal
-          if (typeof window !== 'undefined') {
-            const storedTickets = JSON.parse(localStorage.getItem('eventify_support_tickets') || '[]')
-            setTickets(storedTickets)
+          const token = localStorage.getItem('token')
+          if (token) {
+            try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+              const response = await fetch(`${apiUrl}/api/support-tickets`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              })
+              if (response.ok) {
+                const data = await response.json()
+                if (data.success) {
+                  const formattedTickets = (data.data || []).map((ticket: any) => ({
+                    id: ticket.id,
+                    subject: ticket.subject,
+                    message: ticket.description || ticket.message,
+                    category: ticket.category,
+                    priority: ticket.priority,
+                    status: ticket.status,
+                    createdAt: ticket.createdAt,
+                    updatedAt: ticket.updatedAt || ticket.createdAt
+                  }))
+                  setTickets(formattedTickets)
+                }
+              }
+            } catch (error) {
+              console.error('Error reloading tickets:', error)
+            }
           }
         }}
       />

@@ -33,69 +33,7 @@ interface Notification {
   }
 }
 
-// Mock notifications
-const mockNotifications: Notification[] = [
-  {
-    id: 'push_notification_summary',
-    title: 'Push Notifications Enabled',
-    message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
-    type: 'success',
-    timestamp: new Date().toISOString(),
-    isRead: false,
-    action: {
-      label: 'View Settings',
-      onClick: () => console.log('View notification settings')
-    }
-  },
-  {
-    id: '1',
-    title: 'Event Registration Confirmed',
-    message: 'Your registration for Tech Innovation Summit 2024 has been confirmed.',
-    type: 'success',
-    timestamp: '2 hours ago',
-    isRead: false,
-    action: {
-      label: 'View Ticket',
-      onClick: () => console.log('View ticket')
-    }
-  },
-  {
-    id: '2',
-    title: 'Event Starting Soon',
-    message: 'Digital Marketing Masterclass starts in 30 minutes.',
-    type: 'warning',
-    timestamp: '30 minutes ago',
-    isRead: false,
-    action: {
-      label: 'Join Now',
-      onClick: () => console.log('Join event')
-    }
-  },
-  {
-    id: '3',
-    title: 'New Event Available',
-    message: 'Check out the latest events in your area.',
-    type: 'info',
-    timestamp: '1 day ago',
-    isRead: true,
-    action: {
-      label: 'Browse Events',
-      onClick: () => console.log('Browse events')
-    }
-  },
-  {
-    id: '4',
-    title: 'Payment Failed',
-    message: 'Your payment for Global Design Conference could not be processed.',
-    type: 'error',
-    timestamp: '2 days ago',
-    isRead: true,
-    action: {
-      label: 'Retry Payment',
-      onClick: () => console.log('Retry payment')
-    }
-  }
-]
+// Removed mock notifications - now fetching from API only
 
 const notificationIcons = {
   success: CheckCircle,
@@ -122,13 +60,8 @@ export default function NotificationCenter() {
   React.useEffect(() => {
     const fetchNotifications = async () => {
       if (!user?.id) {
-        // Show mock notifications if not logged in
-        const sorted = [...mockNotifications].sort((a, b) => {
-          if (a.id === 'push_notification_summary') return -1
-          if (b.id === 'push_notification_summary') return 1
-          return 0
-        })
-        setNotifications(sorted)
+        // No notifications if not logged in
+        setNotifications([])
         return
       }
 
@@ -137,7 +70,7 @@ export default function NotificationCenter() {
         const token = localStorage.getItem('token')
         
         if (!token) {
-          setNotifications(mockNotifications)
+          setNotifications([])
           return
         }
 
@@ -160,29 +93,16 @@ export default function NotificationCenter() {
               link: n.link
             }))
             
-            // Merge with mock notifications (excluding duplicates)
-            const merged = [
-              ...apiNotifications,
-              ...mockNotifications.filter(mn => !apiNotifications.some(an => an.id === mn.id))
-            ]
-            
-            // Sort to put push notification summary first
-            merged.sort((a, b) => {
-              if (a.id === 'push_notification_summary') return -1
-              if (b.id === 'push_notification_summary') return 1
-              return 0
-            })
-            
-            setNotifications(merged)
+            setNotifications(apiNotifications)
           } else {
-            setNotifications(mockNotifications)
+            setNotifications([])
           }
         } else {
-          setNotifications(mockNotifications)
+          setNotifications([])
         }
       } catch (error) {
         console.error('Error loading notifications:', error)
-        setNotifications(mockNotifications)
+        setNotifications([])
       }
     }
 
@@ -195,8 +115,8 @@ export default function NotificationCenter() {
     const updated = notifications.map(n => n.id === id ? { ...n, isRead: true, read: true } : n)
     setNotifications(updated)
     
-    // Update via API (skip for mock notifications)
-    if (id !== 'push_notification_summary' && user?.id) {
+    // Update via API
+    if (user?.id) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
@@ -241,8 +161,8 @@ export default function NotificationCenter() {
     const updated = notifications.filter(n => n.id !== id)
     setNotifications(updated)
     
-    // Delete via API (skip for mock notifications)
-    if (id !== 'push_notification_summary' && user?.id) {
+    // Delete via API
+    if (user?.id) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')

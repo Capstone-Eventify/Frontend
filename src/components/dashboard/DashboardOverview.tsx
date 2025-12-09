@@ -55,6 +55,8 @@ export default function DashboardOverview() {
   const [attendedEvents, setAttendedEvents] = useState<any[]>([])
 
   useEffect(() => {
+    let isCancelled = false
+    
     const fetchDashboardData = async () => {
       if (!user?.id) return
 
@@ -66,21 +68,23 @@ export default function DashboardOverview() {
 
         // Check if user has seen the welcome banner before
         const hasSeenWelcome = localStorage.getItem(`eventify_welcome_seen_${user.id}`)
-        if (!hasSeenWelcome) {
+        if (!hasSeenWelcome && !isCancelled) {
           setShowWelcomeBanner(true)
           localStorage.setItem(`eventify_welcome_seen_${user.id}`, 'true')
         }
 
-        // Fetch user tickets from API
-        const ticketsResponse = await fetch(`${apiUrl}/api/users/tickets`, {
+        // Use /api/tickets (more standard endpoint)
+        const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
 
+        if (isCancelled) return // Don't update state if cancelled
+
         if (ticketsResponse.ok) {
           const ticketsData = await ticketsResponse.json()
-          if (ticketsData.success) {
+          if (ticketsData.success && !isCancelled) {
             const tickets = ticketsData.data || []
             setUserTickets(tickets)
 
@@ -105,11 +109,17 @@ export default function DashboardOverview() {
           }
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error)
+        if (!isCancelled) {
+          console.error('Error fetching dashboard data:', error)
+        }
       }
     }
 
     fetchDashboardData()
+    
+    return () => {
+      isCancelled = true // Cleanup on unmount or dependency change
+    }
   }, [user?.id])
 
   const handleBrowseEvents = () => {
@@ -131,7 +141,7 @@ export default function DashboardOverview() {
           className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-4 sm:p-6 text-white"
         >
           <h1 className="text-xl sm:text-2xl font-bold mb-2 break-words">Welcome back, {firstName}! 👋</h1>
-          <p className="text-sm sm:text-base text-primary-100 mb-4">Here's what's happening with your events today.</p>
+          <p className="text-sm sm:text-base text-primary-100 mb-4">Here&apos;s what&apos;s happening with your events today.</p>
           <div className="flex flex-wrap gap-3">
             <Button 
               variant="outline" 
@@ -233,7 +243,7 @@ export default function DashboardOverview() {
         <div id="attended-events-section" className="bg-white rounded-lg border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Events You Attended</h2>
-            <p className="text-sm text-gray-600 mt-1">Events you've checked in to</p>
+            <p className="text-sm text-gray-600 mt-1">Events you&apos;ve checked in to</p>
           </div>
           <div className="p-6 space-y-4">
             {attendedEvents.map((ticket, index) => {
@@ -282,7 +292,7 @@ export default function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Upcoming Events</h2>
-              <p className="text-sm text-gray-600 mt-1">Events you're registered for</p>
+              <p className="text-sm text-gray-600 mt-1">Events you&apos;re registered for</p>
             </div>
             <Button 
               variant="outline" 

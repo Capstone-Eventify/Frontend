@@ -147,47 +147,55 @@ export default function EventDetailPage() {
   }, [params.id])
 
   useEffect(() => {
+    let isCancelled = false
+    
     const fetchEvent = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         
         // Fetch event from API
         const response = await fetch(`${apiUrl}/api/events/${params.id}`)
+        
+        if (isCancelled) return
+        
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
+          if (data.success && !isCancelled) {
             setEvent(data.data)
             
-            // Check if event is in favorites (if authenticated)
+            // Check if user is the event owner (no API call needed)
+            if (data.data.organizer?.id === user?.id) {
+              setIsEventOwner(true)
+            }
+            
+            // Fetch user-specific data in parallel if authenticated
             if (isAuthenticated && user) {
               const token = localStorage.getItem('token')
-              if (token) {
-                const favResponse = await fetch(`${apiUrl}/api/favorites/check/${params.id}`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                })
+              if (token && !isCancelled) {
+                // Parallelize API calls for better performance
+                const [favResponse, ticketsResponse] = await Promise.all([
+                  fetch(`${apiUrl}/api/favorites/check/${params.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  }),
+                  fetch(`${apiUrl}/api/tickets`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  })
+                ])
+
+                if (isCancelled) return
+
+                // Process favorites
                 if (favResponse.ok) {
                   const favData = await favResponse.json()
-                  if (favData.success) {
+                  if (favData.success && !isCancelled) {
                     setIsFavorite(favData.data.isFavorite)
                   }
                 }
 
-                // Check if user is the event owner
-                if (data.data.organizer?.id === user.id) {
-                  setIsEventOwner(true)
-                }
-
-                // Check if user has registered for this event
-                const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                })
+                // Process tickets
                 if (ticketsResponse.ok) {
                   const ticketsData = await ticketsResponse.json()
-                  if (ticketsData.success) {
+                  if (ticketsData.success && !isCancelled) {
                     const eventTickets = ticketsData.data.filter((t: any) => 
                       t.eventId === params.id && 
                       t.status === 'CONFIRMED'
@@ -196,7 +204,7 @@ export default function EventDetailPage() {
                     if (eventTickets.length > 0) {
                       setUserTickets(eventTickets)
                       setIsRegistered(true)
-                      const tierIds = [...new Set(eventTickets.map((t: any) => t.ticketTierId).filter(Boolean))]
+                      const tierIds = Array.from(new Set(eventTickets.map((t: any) => t.ticketTierId).filter(Boolean))) as string[]
                       setRegisteredTierIds(tierIds)
                     }
                   }
@@ -206,15 +214,23 @@ export default function EventDetailPage() {
           }
         } else if (response.status === 404) {
           // Event not found
-          setEvent(null)
+          if (!isCancelled) {
+            setEvent(null)
+          }
         }
       } catch (error) {
-        console.error('Error fetching event:', error)
-        setEvent(null)
+        if (!isCancelled) {
+          console.error('Error fetching event:', error)
+          setEvent(null)
+        }
       }
     }
 
     fetchEvent()
+    
+    return () => {
+      isCancelled = true
+    }
   }, [params.id, isAuthenticated, user])
 
   if (!event) {
@@ -430,7 +446,7 @@ export default function EventDetailPage() {
     const maxUserTierPrice = userTierPrices.length > 0 ? Math.max(...userTierPrices) : 0
     
     // Return tiers with price higher than user's current max
-    return event.ticketTiers.filter(tier => tier.price > maxUserTierPrice)
+    return event.ticketTiers.filter((tier: any) => tier.price > maxUserTierPrice)
   }
 
   const upgradeableTiers = getUpgradeableTiers()
@@ -482,45 +498,6 @@ export default function EventDetailPage() {
       console.error('Error deleting event:', error)
       alert('Error deleting event. Please try again.')
     }
-  }
-
-  // REMOVED: Old localStorage-based delete logic - now using API
-    if (!event) return
-
-    // Get organizer's user ID from the event
-    const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    const eventFromStorage = organizerEvents.find((e: any) => e.id === event.id)
-    const organizerUserId = eventFromStorage?.organizerId || event.organizer?.id
-
-    // Delete event from localStorage
-    const updatedEvents = organizerEvents.filter((e: any) => e.id !== event.id)
-    localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-
-    // Only create notification if admin is deleting (not if organizer is deleting their own event)
-    if (isAdmin && !isEventOwner && reason) {
-      const notification = {
-        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: 'event_deleted',
-        title: 'Event Deleted by Admin',
-        message: `Your event "${event.title}" has been deleted by an administrator.`,
-        reason: reason,
-        eventId: event.id,
-        eventTitle: event.title,
-        organizerId: organizerUserId,
-        isRead: false,
-        read: false,
-        timestamp: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      }
-
-      // Store notification for organizer (only if admin deleted it, not if organizer deleted their own)
-      const notifications = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      notifications.push(notification)
-      localStorage.setItem('eventify_notifications', JSON.stringify(notifications))
-    }
-
-    // Navigate back to dashboard or events page
-    router.push('/dashboard')
   }
 
   return (
@@ -688,7 +665,7 @@ export default function EventDetailPage() {
               {event.tags && event.tags.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="flex flex-wrap gap-2">
-                    {event.tags.map((tag, index) => (
+                    {event.tags.map((tag: any, index: number) => (
                       <Badge key={index} variant="outline" size="sm">
                         {tag}
                       </Badge>
@@ -809,13 +786,13 @@ export default function EventDetailPage() {
                         return acc
                       }, {})
                     ).map(([tierName, tickets]: [string, any[]]) => {
-                      const currentTier = event.ticketTiers.find(t => t.name === tierName)
+                      const currentTier = event.ticketTiers.find((t: any) => t.name === tierName)
                       const tierPrice = typeof tickets[0].price === 'string' 
                         ? parseFloat(tickets[0].price.replace('$', '')) 
                         : (tickets[0].price || 0)
                       
                       // Get upgrade options for this specific tier (tiers with higher price)
-                      const availableUpgrades = event.ticketTiers.filter(tier => tier.price > tierPrice)
+                      const availableUpgrades = event.ticketTiers.filter((tier: any) => tier.price > tierPrice)
                       
                       return (
                         <div
@@ -1038,7 +1015,7 @@ export default function EventDetailPage() {
             price: selectedTicketForUpgrade.tierPrice,
             description: selectedTicketForUpgrade.tierDescription
           }}
-          availableUpgrades={event.ticketTiers.filter(tier => tier.price > selectedTicketForUpgrade.tierPrice)}
+          availableUpgrades={event.ticketTiers.filter((tier: any) => tier.price > selectedTicketForUpgrade.tierPrice)}
           ticketQuantity={selectedTicketForUpgrade.tickets.length}
           onUpgrade={handleUpgrade}
         />

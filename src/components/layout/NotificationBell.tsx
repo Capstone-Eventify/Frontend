@@ -83,13 +83,17 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
       return
     }
 
+    let isCancelled = false
+
     const loadNotifications = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
         
         if (!token) {
-          setNotifications([])
+          if (!isCancelled) {
+            setNotifications([])
+          }
           return
         }
 
@@ -99,9 +103,11 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
           }
         })
 
+        if (isCancelled) return
+
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
+          if (data.success && !isCancelled) {
             // Format notifications from API
             const apiNotifications: Notification[] = (data.data || []).map((n: any) => ({
               id: n.id,
@@ -144,35 +150,44 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
               return bTime - aTime
             })
             
-            setNotifications(allNotifications)
+            if (!isCancelled) {
+              setNotifications(allNotifications)
+            }
           }
         }
       } catch (error) {
-        console.error('Error loading notifications:', error)
-        // On error, still show push notification summary
-        setNotifications([{
-          id: 'push_notification_summary',
-          title: 'Push Notifications Enabled',
-          message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
-          type: 'success',
-          timestamp: new Date().toISOString(),
-          isRead: false,
-          action: {
-            label: 'View Settings',
-            onClick: () => {
-              router.push('/dashboard?tab=profile')
+        if (!isCancelled) {
+          console.error('Error loading notifications:', error)
+          // On error, still show push notification summary
+          setNotifications([{
+            id: 'push_notification_summary',
+            title: 'Push Notifications Enabled',
+            message: 'Push notifications are now active! You will receive real-time updates about events, registrations, and important updates.',
+            type: 'success',
+            timestamp: new Date().toISOString(),
+            isRead: false,
+            action: {
+              label: 'View Settings',
+              onClick: () => {
+                router.push('/dashboard?tab=profile')
+              }
             }
-          }
-        }])
+          }])
+        }
       }
     }
 
     loadNotifications()
 
     // Poll for changes every 30 seconds
-    const interval = setInterval(loadNotifications, 30000)
+    const interval = setInterval(() => {
+      if (!isCancelled) {
+        loadNotifications()
+      }
+    }, 30000)
 
     return () => {
+      isCancelled = true
       clearInterval(interval)
     }
   }, [user?.id, isAuthenticated, router])
@@ -396,8 +411,8 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
                       <Bell size={32} className="text-gray-400" />
                     </div>
                     <p className="text-gray-700 font-semibold text-base mb-1">No notifications</p>
-                    <p className="text-sm text-gray-500">You're all caught up!</p>
-                    <p className="text-xs text-gray-400 mt-2">We'll notify you when there's something new</p>
+                    <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
+                    <p className="text-xs text-gray-400 mt-2">We&apos;ll notify you when there&apos;s something new</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200">

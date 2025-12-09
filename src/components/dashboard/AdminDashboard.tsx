@@ -74,6 +74,8 @@ export default function AdminDashboard() {
 
   // Load applications from API
   useEffect(() => {
+    let isCancelled = false
+    
     const fetchApplications = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
@@ -87,19 +89,37 @@ export default function AdminDashboard() {
           }
         })
 
+        if (isCancelled) return
+
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
+          if (data.success && !isCancelled) {
             setApplications(data.data || [])
             setFilteredApplications(data.data || [])
           }
+        } else {
+          // Handle non-200 responses gracefully
+          if (!isCancelled) {
+            console.warn('Failed to fetch applications:', response.status)
+          }
         }
       } catch (error) {
-        console.error('Error fetching applications:', error)
+        // Only log if not cancelled and if it's a real error (not connection refused during dev)
+        if (!isCancelled) {
+          if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            console.warn('Backend server may not be running. Please start the backend server.')
+          } else {
+            console.error('Error fetching applications:', error)
+          }
+        }
       }
     }
 
     fetchApplications()
+    
+    return () => {
+      isCancelled = true
+    }
   }, [])
 
   // Filter applications
@@ -243,6 +263,125 @@ export default function AdminDashboard() {
     } catch (error: any) {
       console.error('Error rejecting organizer:', error)
       alert(`Failed to reject organizer: ${error.message}`)
+    }
+  }
+
+  const handleReply = async (ticketId: string) => {
+    if (!replyMessage.trim()) {
+      alert('Please enter a reply message')
+      return
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('You must be logged in to reply to tickets')
+        return
+      }
+
+      // Send reply via API (assuming endpoint exists)
+      const response = await fetch(`${apiUrl}/api/support-tickets/${ticketId}/reply`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: replyMessage })
+      })
+
+      if (response.ok) {
+        // Refresh ticket details
+        const refreshResponse = await fetch(`${apiUrl}/api/support-tickets/${ticketId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          if (refreshData.success) {
+            setSelectedTicket(refreshData.data)
+            setReplyMessage('')
+          }
+        }
+        // Also refresh tickets list
+        const ticketsResponse = await fetch(`${apiUrl}/api/support-tickets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (ticketsResponse.ok) {
+          const ticketsData = await ticketsResponse.json()
+          if (ticketsData.success) {
+            setSupportTickets(ticketsData.data || [])
+          }
+        }
+        alert('Reply sent successfully')
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to send reply' }))
+        alert(errorData.message || 'Failed to send reply')
+      }
+    } catch (error: any) {
+      console.error('Error sending reply:', error)
+      alert(`Failed to send reply: ${error.message}`)
+    }
+  }
+
+  const handleUpdateTicketStatus = async (ticketId: string, status: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('You must be logged in to update ticket status')
+        return
+      }
+
+      // Update ticket status via API
+      const response = await fetch(`${apiUrl}/api/support-tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      })
+
+      if (response.ok) {
+        // Refresh ticket details
+        const refreshResponse = await fetch(`${apiUrl}/api/support-tickets/${ticketId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          if (refreshData.success) {
+            setSelectedTicket(refreshData.data)
+          }
+        }
+        // Also refresh tickets list
+        const ticketsResponse = await fetch(`${apiUrl}/api/support-tickets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (ticketsResponse.ok) {
+          const ticketsData = await ticketsResponse.json()
+          if (ticketsData.success) {
+            setSupportTickets(ticketsData.data || [])
+            setFilteredTickets(ticketsData.data || [])
+          }
+        }
+        alert(`Ticket status updated to ${status}`)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update ticket status' }))
+        alert(errorData.message || 'Failed to update ticket status')
+      }
+    } catch (error: any) {
+      console.error('Error updating ticket status:', error)
+      alert(`Failed to update ticket status: ${error.message}`)
     }
   }
 
@@ -617,8 +756,8 @@ export default function AdminDashboard() {
                           <Badge
                             variant={
                               ticket.status === 'open' ? 'warning' :
-                              ticket.status === 'in_progress' ? 'info' :
-                              ticket.status === 'resolved' ? 'success' : 'secondary'
+                              ticket.status === 'in_progress' ? 'outline' :
+                              ticket.status === 'resolved' ? 'success' : 'outline'
                             }
                           >
                             {ticket.status.replace('_', ' ')}
@@ -627,7 +766,7 @@ export default function AdminDashboard() {
                             variant={
                               ticket.priority === 'urgent' ? 'error' :
                               ticket.priority === 'high' ? 'warning' :
-                              ticket.priority === 'medium' ? 'info' : 'secondary'
+                              ticket.priority === 'medium' ? 'outline' : 'outline'
                             }
                           >
                             {ticket.priority}
@@ -641,7 +780,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       {ticket.replies && ticket.replies.length > 0 && (
-                        <Badge variant="info">{ticket.replies.length} replies</Badge>
+                        <Badge variant="outline">{ticket.replies.length} replies</Badge>
                       )}
                     </div>
                   </motion.div>
@@ -702,7 +841,7 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium">
                                 {reply.user.firstName} {reply.user.lastName}
-                                {reply.isAdminReply && <Badge variant="info" className="ml-2">Admin</Badge>}
+                                {reply.isAdminReply && <Badge variant="success" className="ml-2">Admin</Badge>}
                               </span>
                               <span className="text-xs text-gray-500">
                                 {new Date(reply.createdAt).toLocaleString()}

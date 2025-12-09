@@ -233,25 +233,26 @@ export default function TicketDetailModal({
                       Your Tickets ({tickets.length} {tickets.length === 1 ? 'Ticket' : 'Tickets'})
                     </h4>
                     <div className="space-y-4">
-                      {Object.entries(ticketsByTier).map(([tierName, tierTickets]: [string, any[]]) => {
-                        const tierPrice = typeof tierTickets[0].price === 'string' 
-                          ? parseFloat(tierTickets[0].price.replace('$', '')) 
-                          : (tierTickets[0].price || 0)
+                      {Object.entries(ticketsByTier).map(([tierName, tierTickets]: [string, unknown]) => {
+                        const tickets = tierTickets as any[]
+                        const tierPrice = typeof tickets[0]?.price === 'string' 
+                          ? parseFloat(tickets[0].price.replace('$', '')) 
+                          : (tickets[0]?.price || 0)
                         return (
                           <div key={tierName} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div>
                                 <h5 className="font-semibold text-gray-900">{tierName}</h5>
                                 <p className="text-sm text-gray-600">
-                                  {tierTickets.length} {tierTickets.length === 1 ? 'ticket' : 'tickets'} × ${tierPrice.toFixed(2)}
+                                  {tickets.length} {tickets.length === 1 ? 'ticket' : 'tickets'} × ${tierPrice.toFixed(2)}
                                 </p>
                               </div>
                               <p className="text-lg font-bold text-gray-900">
-                                ${(tierPrice * tierTickets.length).toFixed(2)}
+                                ${(tierPrice * tickets.length).toFixed(2)}
                               </p>
                             </div>
                             <div className="space-y-2">
-                              {tierTickets.map((t, idx) => (
+                              {tickets.map((t, idx) => (
                                 <div key={t.id} className="bg-gray-50 rounded-lg p-3 text-sm">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-gray-900">

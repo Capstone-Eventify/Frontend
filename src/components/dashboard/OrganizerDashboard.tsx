@@ -37,7 +37,7 @@ import EventFormModal from './EventFormModal'
 import AttendeeManagement from './AttendeeManagement'
 import EventAnalytics from './EventAnalytics'
 import WaitlistManagement from './WaitlistManagement'
-import EmailInbox from './EmailInbox'
+// Removed EmailInbox - emails are handled by backend, use notifications API instead
 import { EventDetail } from '@/types/event'
 // REMOVED: All mock data - Now fetching from API
 // REMOVED: organizerStats - Use /api/analytics/organizer
@@ -68,14 +68,14 @@ const OrganizerDashboard: React.FC = () => {
       // Use currentBookings * price as revenue estimate
       // Or fetch actual payment data if available
       const eventPrice = typeof event.price === 'number' ? event.price : parseFloat(String(event.price || '0').replace('$', '').replace('FREE', '0'))
-      const attendees = event.currentBookings || event.attendees || 0
+      const attendees = (event as any).currentBookings || event.attendees || 0
       return total + (eventPrice * attendees)
     }, 0)
   }
 
   const calculateTotalAttendees = () => {
     return organizerEvents.reduce((total, event: any) => {
-      return total + (event.currentBookings || event.attendees || 0)
+      return total + ((event as any).currentBookings || event.attendees || 0)
     }, 0)
   }
 
@@ -95,6 +95,9 @@ const OrganizerDashboard: React.FC = () => {
   useEffect(() => {
     // Wait for user context to load
     if (!isLoaded) return
+    if (!isOrganizer || !user?.id) return
+
+    let isCancelled = false
 
     const fetchOrganizerData = async () => {
       try {
@@ -102,11 +105,8 @@ const OrganizerDashboard: React.FC = () => {
         const token = localStorage.getItem('token')
         
         if (!token) {
-          console.warn('No token found, cannot fetch organizer events')
           return
         }
-
-        console.log('Fetching organizer events for user:', user?.id, 'email:', user?.email, 'isOrganizer:', isOrganizer)
 
         // Fetch organizer's events
         const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
@@ -115,41 +115,30 @@ const OrganizerDashboard: React.FC = () => {
           }
         })
         
-        console.log('Events response status:', eventsResponse.status)
+        if (isCancelled) return
         
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json()
-          console.log('Events response data:', eventsData)
-          if (eventsData.success) {
-            console.log('Organizer events fetched:', eventsData.data?.length || 0, 'events')
-            if (eventsData.data && eventsData.data.length > 0) {
-              console.log('Events:', eventsData.data.map((e: any) => ({ id: e.id, title: e.title, organizerId: e.organizer?.id })))
-            } else {
-              console.warn('No events returned. Make sure you are logged in as the organizer who created the event.')
-            }
+          if (eventsData.success && !isCancelled) {
             setOrganizerEvents(eventsData.data || [])
-          } else {
-            console.error('Failed to fetch organizer events:', eventsData.message)
-          }
-        } else {
-          const errorData = await eventsResponse.json().catch(() => ({ message: 'Unknown error' }))
-          console.error('Error fetching organizer events:', eventsResponse.status, errorData)
-          if (eventsResponse.status === 403) {
-            console.error('403 Forbidden - User may not have organizer role. Current user:', user?.email, 'Role:', user?.role)
           }
         }
 
         // Set notifications to empty for now (will implement API later)
-        setNotifications([])
+        if (!isCancelled) {
+          setNotifications([])
+        }
       } catch (error) {
-        console.error('Error fetching organizer data:', error)
+        if (!isCancelled) {
+          console.error('Error fetching organizer data:', error)
+        }
       }
     }
 
-    if (isOrganizer && user?.id) {
-      fetchOrganizerData()
-    } else {
-      console.log('Not fetching organizer events - isOrganizer:', isOrganizer, 'user:', user?.id)
+    fetchOrganizerData()
+    
+    return () => {
+      isCancelled = true
     }
   }, [isOrganizer, isLoaded, user?.id])
 
@@ -514,7 +503,16 @@ const OrganizerDashboard: React.FC = () => {
 
       {/* Emails View */}
       {activeView === 'emails' && (
-        <EmailInbox />
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Notifications</h2>
+          <p className="text-gray-600 mb-4">
+            Email notifications are automatically sent by the backend when users register for your events, 
+            join waitlists, or make payments. You can view all notifications in the Notifications section.
+          </p>
+          <p className="text-sm text-gray-500">
+            Note: Email sending is handled by the backend. Check your email inbox for notifications.
+          </p>
+        </div>
       )}
 
       {/* Analytics View */}
@@ -795,7 +793,7 @@ const OrganizerDashboard: React.FC = () => {
               {organizerEvents.length === 0 ? (
                 <div className="text-center py-8 sm:py-12">
                   <Calendar size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-sm sm:text-base text-gray-600 mb-4 px-4">You haven't created any events yet.</p>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4 px-4">You haven&apos;t created any events yet.</p>
                   <Button onClick={handleCreateEvent}>
                     <Plus size={16} className="mr-2" />
                     Create Your First Event
@@ -848,7 +846,7 @@ const OrganizerDashboard: React.FC = () => {
                             <Edit size={14} className="mr-1" />
                             Edit
                           </Button>
-                          {(event.status === 'draft') ? (
+                          {((event as any).status === 'draft' || (event as any).status === 'upcoming') ? (
                             <Button 
                               variant="primary" 
                               size="sm"
@@ -862,7 +860,7 @@ const OrganizerDashboard: React.FC = () => {
                               <Globe size={14} className="mr-1" />
                               Publish
                             </Button>
-                          ) : (event.status === 'live' || event.status === 'upcoming') ? (
+                          ) : ((event as any).status === 'live' || (event as any).status === 'upcoming' || (event as any).status === 'draft') ? (
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -954,7 +952,7 @@ const OrganizerDashboard: React.FC = () => {
                           >
                             <Edit size={14} />
           </Button>
-                          {(event.status === 'draft') ? (
+                          {((event as any).status === 'draft' || (event as any).status === 'upcoming') ? (
                             <Button 
                               variant="primary" 
                               size="sm"
@@ -966,7 +964,7 @@ const OrganizerDashboard: React.FC = () => {
                             >
                               <Globe size={14} />
           </Button>
-                          ) : (event.status === 'live' || event.status === 'upcoming') ? (
+                          ) : ((event as any).status === 'live' || (event as any).status === 'upcoming' || (event as any).status === 'draft') ? (
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -1053,7 +1051,7 @@ const OrganizerDashboard: React.FC = () => {
         if (!event) return null
         
         // Get current attendees from event data (already fetched from API)
-        const currentAttendees = event.currentBookings || event.attendees || 0
+        const currentAttendees = (event as any).currentBookings || event.attendees || 0
 
         return (
           <WaitlistManagement

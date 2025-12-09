@@ -25,6 +25,9 @@ import OrganizerApplicationModal from './OrganizerApplicationModal'
 
 export default function ProfileSection() {
   const { user, isOrganizer, isAdmin, canCreateEvents, canAccessAdmin, updateUser } = useUser()
+  
+  // Early return if component shouldn't fetch data (though it shouldn't be rendered for admin)
+  // This is a safety check in case component is rendered unexpectedly
   const [isEditing, setIsEditing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [organizerApplication, setOrganizerApplication] = useState<any>(null)
@@ -41,13 +44,15 @@ export default function ProfileSection() {
   
   // Fetch user profile from API
   useEffect(() => {
+    let isCancelled = false
+    
     const fetchProfile = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
         
         if (!token || !user?.id) {
-          setLoading(false)
+          if (!isCancelled) setLoading(false)
           return
         }
 
@@ -58,16 +63,21 @@ export default function ProfileSection() {
           }
         })
 
+        if (isCancelled) return
+
         if (profileResponse.ok) {
           const profileData = await profileResponse.json()
-          if (profileData.success) {
+          if (profileData.success && !isCancelled) {
             setUserProfile(profileData.data)
             // Update user context with avatar and other profile data
-            updateUser({
-              name: `${profileData.data.firstName} ${profileData.data.lastName}`,
-              email: profileData.data.email,
-              avatar: profileData.data.avatar || undefined
-            })
+            // Only update if updateUser is available (avoid unnecessary re-renders)
+            if (updateUser && typeof updateUser === 'function') {
+              updateUser({
+                name: `${profileData.data.firstName} ${profileData.data.lastName}`,
+                email: profileData.data.email,
+                avatar: profileData.data.avatar || undefined
+              })
+            }
           }
         }
 
@@ -78,9 +88,11 @@ export default function ProfileSection() {
           }
         })
 
+        if (isCancelled) return
+
         if (ticketsResponse.ok) {
           const ticketsData = await ticketsResponse.json()
-          if (ticketsData.success) {
+          if (ticketsData.success && !isCancelled) {
             const tickets = ticketsData.data || []
             
             // Calculate events attended (confirmed tickets)
@@ -95,12 +107,12 @@ export default function ProfileSection() {
               }, 0)
             
             // Calculate favorite categories from attended events
-            const eventIds = [...new Set(tickets.filter((t: any) => t.status === 'CONFIRMED').map((t: any) => t.eventId))]
+            const eventIds = Array.from(new Set(tickets.filter((t: any) => t.status === 'CONFIRMED').map((t: any) => t.eventId))) as string[]
             const categoryCounts: { [key: string]: number } = {}
             
             // Fetch events to get categories
             const eventsResponse = await fetch(`${apiUrl}/api/events`)
-            if (eventsResponse.ok) {
+            if (eventsResponse.ok && !isCancelled) {
               const eventsData = await eventsResponse.json()
               if (eventsData.success) {
                 const userEvents = eventsData.data.filter((e: any) => eventIds.includes(e.id))
@@ -120,25 +132,39 @@ export default function ProfileSection() {
             // Calculate networking score (simplified: based on events attended)
             const networkingScore = Math.min(10, Math.round((eventsAttended / 10) * 10) / 10)
             
-            setStats({
-              eventsAttended,
-              totalSpent,
-              favoriteCategories,
-              networkingScore
-            })
+            if (!isCancelled) {
+              setStats({
+                eventsAttended,
+                totalSpent,
+                favoriteCategories,
+                networkingScore
+              })
+            }
           }
         }
       } catch (error) {
-        console.error('Error fetching profile:', error)
+        if (!isCancelled) {
+          console.error('Error fetching profile:', error)
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     if (user?.id) {
       fetchProfile()
+    } else {
+      if (!isCancelled) {
+        setLoading(false)
+      }
     }
-  }, [user?.id])
+    
+    return () => {
+      isCancelled = true // Cleanup on unmount or dependency change
+    }
+  }, [user?.id]) // Removed updateUser from dependencies to prevent unnecessary re-renders
 
   // Use user data from API with fallbacks
   const userData = {
@@ -154,7 +180,7 @@ export default function ProfileSection() {
     zipCode: userProfile?.zipCode || '',
     country: userProfile?.country || '',
     joinDate: userProfile?.createdAt || user?.joinDate 
-      ? new Date(userProfile?.createdAt || user.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      ? new Date(userProfile?.createdAt || user?.joinDate || '').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
       : 'Recently',
     avatar: userProfile?.avatar || user?.avatar || null,
     bio: userProfile?.bio || ''
@@ -191,8 +217,21 @@ export default function ProfileSection() {
     setAvatarPreview(null)
   }, [userProfile, user?.name, user?.email, user?.avatar])
 
-  // Load organizer application status from API
+  // Load organizer application status from API (only for non-admin users)
   useEffect(() => {
+    // Skip if user is admin - admins don't need to apply
+    if (isAdmin) {
+      setOrganizerApplication(null)
+      return
+    }
+
+    // Skip if user is already an organizer
+    if (isOrganizer || canCreateEvents) {
+      return
+    }
+
+    let isCancelled = false
+    
     const fetchApplication = async () => {
       if (!user?.id) return
 
@@ -208,22 +247,34 @@ export default function ProfileSection() {
           }
         })
 
+        if (isCancelled) return
+
         if (response.ok) {
           const data = await response.json()
-          if (data.success && data.data) {
+          if (data.success && data.data && !isCancelled) {
             setOrganizerApplication(data.data)
           }
         } else if (response.status === 404) {
-          // No application found, which is fine
-          setOrganizerApplication(null)
+          // Expected 404 - user hasn't applied yet, don't log as error
+          if (!isCancelled) {
+            setOrganizerApplication(null)
+          }
         }
+        // Don't log 404 as error - it's expected when user hasn't applied
       } catch (error) {
-        console.error('Error fetching application:', error)
+        // Only log unexpected errors
+        if (!isCancelled) {
+          console.error('Error fetching application:', error)
+        }
       }
     }
 
     fetchApplication()
-  }, [user?.id])
+    
+    return () => {
+      isCancelled = true // Cleanup on unmount or dependency change
+    }
+  }, [user?.id, isAdmin, isOrganizer, canCreateEvents])
 
   const handleSave = async () => {
     try {
@@ -758,7 +809,7 @@ export default function ProfileSection() {
               ) : (
                 <div>
                   <p className="text-sm text-gray-600 mb-4">
-                    Apply to become an organizer and start creating your own events. Once approved, you'll be able to create, manage, and sell tickets for your events.
+                    Apply to become an organizer and start creating your own events. Once approved, you&apos;ll be able to create, manage, and sell tickets for your events.
                   </p>
                   <Button onClick={() => setShowApplicationModal(true)}>
                     <Plus size={16} className="mr-2" />

@@ -80,7 +80,7 @@ function CheckoutContent() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 break-words">Event Not Found</h1>
-          <p className="text-gray-600 mb-4">The event you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-600 mb-4">The event you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => router.push('/')} className="w-full sm:w-auto">Go Home</Button>
             <Button variant="outline" onClick={() => router.push('/events')} className="w-full sm:w-auto">Browse Events</Button>

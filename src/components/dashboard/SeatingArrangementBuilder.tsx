@@ -125,7 +125,7 @@ export default function SeatingArrangementBuilder({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Seating Arrangement</h3>
-          <p className="text-sm text-gray-600">Configure your venue's seating layout</p>
+          <p className="text-sm text-gray-600">Configure your venue&apos;s seating layout</p>
         </div>
         <div className="flex gap-2">
           <Button

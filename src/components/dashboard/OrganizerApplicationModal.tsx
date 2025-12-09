@@ -283,7 +283,7 @@ export default function OrganizerApplicationModal({
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 mb-4">
-                  Apply to become an organizer and start creating your own events. Once approved, you'll be able to create, manage, and sell tickets for your events.
+                  Apply to become an organizer and start creating your own events. Once approved, you&apos;ll be able to create, manage, and sell tickets for your events.
                 </p>
 
                 <div>

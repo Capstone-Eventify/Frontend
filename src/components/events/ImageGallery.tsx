@@ -90,16 +90,16 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
               onClick={() => setLightboxOpen(false)}
             >
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute top-4 right-4 text-white hover:bg-white/20"
                 onClick={() => setLightboxOpen(false)}
               >
                 <X size={24} />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute left-4 text-white hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -109,8 +109,8 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
                 <ChevronLeft size={24} />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute right-4 text-white hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -164,7 +164,7 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
           <>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm hover:bg-white"
               onClick={prevImage}
             >
@@ -172,7 +172,7 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm hover:bg-white"
               onClick={nextImage}
             >
@@ -217,16 +217,16 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
             onClick={() => setLightboxOpen(false)}
           >
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute top-4 right-4 text-white hover:bg-white/20"
               onClick={() => setLightboxOpen(false)}
             >
               <X size={24} />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute left-4 text-white hover:bg-white/20"
               onClick={(e) => {
                 e.stopPropagation()
@@ -236,8 +236,8 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
               <ChevronLeft size={24} />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute right-4 text-white hover:bg-white/20"
               onClick={(e) => {
                 e.stopPropagation()

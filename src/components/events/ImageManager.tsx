@@ -338,10 +338,10 @@ export default function ImageManager({
                   scale: dragOverIndex === index ? 1.02 : 1
                 }}
                 draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
+                onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, index)}
+                onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, index)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
+                onDrop={(e) => handleDrop(e as unknown as React.DragEvent, index)}
                 onDragEnd={handleDragEnd}
                 className={`flex items-center gap-3 p-3 border rounded-lg transition-all bg-white ${
                   dragOverIndex === index

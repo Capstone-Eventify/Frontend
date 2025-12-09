@@ -96,11 +96,11 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           {/* Content */}
           <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-white to-green-50/30 text-center">
             <p className="text-sm sm:text-base text-gray-700 mb-4 sm:mb-6 break-words px-2">
-              We've sent a password reset link to <strong className="break-all">{email}</strong>
+              We&apos;ve sent a password reset link to <strong className="break-all">{email}</strong>
             </p>
             <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 px-2">
               Please check your email and click the link to reset your password. 
-              If you don't see the email, check your spam folder.
+              If you don&apos;t see the email, check your spam folder.
             </p>
             
             <div className="space-y-4">

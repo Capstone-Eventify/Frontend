@@ -18,41 +18,31 @@ export default function ShareEventModal({ event, onClose }: ShareEventModalProps
   const { user } = useUser()
   const eventUrl = typeof window !== 'undefined' ? `${window.location.origin}/events/${event.id}` : ''
   
-  // Load share count from localStorage
+  // Share tracking removed - would use API endpoint if available
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const shares = JSON.parse(localStorage.getItem(`eventify_shares_${event.id}`) || '[]')
-      setShareCount(shares.length)
-    }
+    // Share count would be fetched from API if endpoint exists
+    setShareCount(0)
   }, [event.id])
 
   const trackShare = async (platform: string) => {
-    // Track share in localStorage
-    if (typeof window !== 'undefined') {
-      const shares = JSON.parse(localStorage.getItem(`eventify_shares_${event.id}`) || '[]')
-      const newShare = {
-        platform,
-        userId: user?.id || 'anonymous',
-        timestamp: new Date().toISOString()
-      }
-      shares.push(newShare)
-      localStorage.setItem(`eventify_shares_${event.id}`, JSON.stringify(shares))
-      setShareCount(shares.length)
-      
-      // Track via API (commented out for now)
-      // try {
-      //   await fetch('/api/social/track', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({
-      //       eventId: event.id,
-      //       platform,
-      //       userId: user?.id
-      //     })
-      //   })
-      // } catch (err) {
-      //   console.error('Failed to track share:', err)
-      // }
+    // Track share via API (endpoint is public, no auth required)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      await fetch(`${apiUrl}/api/social/track`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId: event.id,
+          platform,
+          userId: user?.id || null
+        })
+      }).catch(() => {
+        // Silently fail - share tracking is optional
+      })
+    } catch (err) {
+      // Silently fail - share tracking is optional
     }
   }
 
@@ -144,12 +134,6 @@ export default function ShareEventModal({ event, onClose }: ShareEventModalProps
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex-1">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Share Event</h2>
-              {shareCount > 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp size={14} className="text-primary-600" />
-                  <span className="text-xs sm:text-sm text-gray-600">{shareCount} {shareCount === 1 ? 'share' : 'shares'}</span>
-                </div>
-              )}
             </div>
             <Button
               variant="outline"
@@ -202,7 +186,7 @@ export default function ShareEventModal({ event, onClose }: ShareEventModalProps
 
           {/* Share Options */}
           <div className="space-y-2 sm:space-y-3">
-            {typeof navigator !== 'undefined' && navigator.share && (
+            {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
               <Button
                 variant="outline"
                 className="w-full justify-start text-xs sm:text-sm"

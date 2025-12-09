@@ -116,7 +116,7 @@ export default function FavoritesSection() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Favorites</h1>
-          <p className="text-gray-600">Events you've saved for later</p>
+          <p className="text-gray-600">Events you&apos;ve saved for later</p>
         </div>
         <Badge className="bg-red-50 text-red-700 border-red-200">
           {favoriteEvents.length} {favoriteEvents.length === 1 ? 'event' : 'events'}

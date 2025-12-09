@@ -36,59 +36,87 @@ export default function AttendeeManagement({
   const [showQRScanner, setShowQRScanner] = useState(false)
 
   useEffect(() => {
-    // Load tickets from localStorage and filter by eventId
-    if (typeof window !== 'undefined') {
-      const allTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-      const eventTickets = allTickets.filter((ticket: any) => ticket.eventId === eventId)
-      
-      const attendeeList: Attendee[] = eventTickets.map((ticket: any) => ({
-        id: ticket.id,
-        name: ticket.attendeeName || 'Guest',
-        email: ticket.attendeeEmail || '',
-        ticketType: ticket.ticketType,
-        purchaseDate: ticket.purchaseDate,
-        price: typeof ticket.price === 'string' ? parseFloat(ticket.price.replace('$', '')) : ticket.price || 0,
-        checkInStatus: ticket.checkInStatus || 'pending',
-        qrCode: ticket.qrCode,
-        orderNumber: ticket.orderNumber
-      }))
-      
-      setAttendees(attendeeList)
+    const fetchAttendees = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          setAttendees([])
+          return
+        }
+
+        const response = await fetch(`${apiUrl}/api/tickets/event/${eventId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const attendeeList: Attendee[] = (data.data || []).map((ticket: any) => ({
+              id: ticket.id,
+              name: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest',
+              email: ticket.attendee?.email || '',
+              ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+              purchaseDate: ticket.createdAt,
+              price: ticket.price || 0,
+              checkInStatus: ticket.checkedIn ? 'checked_in' : 'pending',
+              qrCode: ticket.qrCode || ticket.id,
+              orderNumber: ticket.orderNumber
+            }))
+            setAttendees(attendeeList)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching attendees:', error)
+        setAttendees([])
+      }
     }
+
+    fetchAttendees()
   }, [eventId])
 
   const handleCheckIn = async (attendeeId: string, qrCode?: string) => {
-    const updatedAttendees = attendees.map(att => 
-      att.id === attendeeId 
-        ? { ...att, checkInStatus: 'checked_in' as const }
-        : att
-    )
-    setAttendees(updatedAttendees)
-    
-    // Update in localStorage
-    const allTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-    const updatedTickets = allTickets.map((ticket: any) => 
-      ticket.id === attendeeId
-        ? { ...ticket, checkInStatus: 'checked_in', checkedInAt: new Date().toISOString() }
-        : ticket
-    )
-    localStorage.setItem('eventify_tickets', JSON.stringify(updatedTickets))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to check in attendees')
+        return
+      }
 
-    // API call commented out for now
-    // try {
-    //   const token = localStorage.getItem('token')
-    //   if (token) {
-    //     await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/tickets/${attendeeId}/checkin`, {
-    //       method: 'POST',
-    //       headers: {
-    //         'Authorization': `Bearer ${token}`,
-    //         'Content-Type': 'application/json'
-    //       }
-    //     })
-    //   }
-    // } catch (error) {
-    //   console.error('Failed to sync check-in with backend:', error)
-    // }
+      const response = await fetch(`${apiUrl}/api/tickets/${attendeeId}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Update local state
+          const updatedAttendees = attendees.map(att => 
+            att.id === attendeeId 
+              ? { ...att, checkInStatus: 'checked_in' as const }
+              : att
+          )
+          setAttendees(updatedAttendees)
+        } else {
+          alert(data.message || 'Failed to check in attendee')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to check in attendee' }))
+        alert(errorData.message || 'Failed to check in attendee')
+      }
+    } catch (error) {
+      console.error('Error checking in attendee:', error)
+      alert('Failed to check in attendee. Please try again.')
+    }
   }
 
   const handleQRCheckIn = async (ticketId: string, qrCode: string) => {
@@ -340,23 +368,41 @@ export default function AttendeeManagement({
       {showQRScanner && (
         <QRCodeScanner
           isOpen={showQRScanner}
-          onClose={() => {
+          onClose={async () => {
             setShowQRScanner(false)
             // Reload attendees after scanning
-            const allTickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-            const eventTickets = allTickets.filter((ticket: any) => ticket.eventId === eventId)
-            const attendeeList: Attendee[] = eventTickets.map((ticket: any) => ({
-              id: ticket.id,
-              name: ticket.attendeeName || 'Guest',
-              email: ticket.attendeeEmail || '',
-              ticketType: ticket.ticketType,
-              purchaseDate: ticket.purchaseDate,
-              price: typeof ticket.price === 'string' ? parseFloat(ticket.price.replace('$', '')) : ticket.price || 0,
-              checkInStatus: ticket.checkInStatus || 'pending',
-              qrCode: ticket.qrCode,
-              orderNumber: ticket.orderNumber
-            }))
-            setAttendees(attendeeList)
+            try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+              const token = localStorage.getItem('token')
+              
+              if (token) {
+                const response = await fetch(`${apiUrl}/api/tickets/event/${eventId}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                })
+                
+                if (response.ok) {
+                  const data = await response.json()
+                  if (data.success) {
+                    const attendeeList: Attendee[] = (data.data || []).map((ticket: any) => ({
+                      id: ticket.id,
+                      name: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest',
+                      email: ticket.attendee?.email || '',
+                      ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+                      purchaseDate: ticket.createdAt,
+                      price: ticket.price || 0,
+                      checkInStatus: ticket.checkedIn ? 'checked_in' : 'pending',
+                      qrCode: ticket.qrCode || ticket.id,
+                      orderNumber: ticket.orderNumber
+                    }))
+                    setAttendees(attendeeList)
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error reloading attendees:', error)
+            }
           }}
           eventId={eventId}
           onCheckIn={handleQRCheckIn}

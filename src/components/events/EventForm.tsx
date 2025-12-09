@@ -124,7 +124,7 @@ const EventForm: React.FC<EventFormProps> = ({
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<EventData> = {}
+    const newErrors: Record<string, string> = {}
 
     if (!formData.title.trim()) {
       newErrors.title = 'Event title is required'

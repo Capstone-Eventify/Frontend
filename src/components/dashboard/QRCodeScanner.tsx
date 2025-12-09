@@ -73,36 +73,83 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
     stopCamera()
 
     try {
-      // Find ticket by QR code
-      const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-      const ticket = tickets.find((t: any) => 
-        t.qrCode === qrCode && 
-        (eventId === 'all' || t.eventId === eventId || t.eventTitle)
-      )
-
-      if (!ticket) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
         setResult({
           success: false,
-          message: eventId === 'all' 
-            ? 'Ticket not found' 
-            : 'Ticket not found for this event'
+          message: 'Please sign in to check in tickets'
         })
         return
       }
 
-      if (ticket.status !== 'confirmed') {
+      // Use dedicated QR code lookup endpoint (QR code is now the ticket ID)
+      const ticketResponse = await fetch(`${apiUrl}/api/tickets/qr/${qrCode}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!ticketResponse.ok) {
+        if (ticketResponse.status === 404) {
+          setResult({
+            success: false,
+            message: eventId === 'all' 
+              ? 'Ticket not found' 
+              : 'Ticket not found for this event'
+          })
+        } else if (ticketResponse.status === 403) {
+          setResult({
+            success: false,
+            message: 'Not authorized to check in this ticket'
+          })
+        } else {
+          setResult({
+            success: false,
+            message: 'Failed to lookup ticket'
+          })
+        }
+        return
+      }
+
+      const ticketData = await ticketResponse.json()
+      if (!ticketData.success || !ticketData.data) {
         setResult({
           success: false,
-          message: `Ticket is ${ticket.status}. Only confirmed tickets can be checked in.`
+          message: 'Ticket not found'
         })
         return
       }
 
-      if (ticket.checkInStatus === 'checked_in') {
+      const ticket = ticketData.data
+
+      // Verify event matches if eventId is specified
+      if (eventId !== 'all' && ticket.eventId !== eventId) {
+        setResult({
+          success: false,
+          message: 'Ticket does not belong to this event'
+        })
+        return
+      }
+
+      if (ticket.status !== 'CONFIRMED') {
+        setResult({
+          success: false,
+          message: `Ticket is ${ticket.status.toLowerCase()}. Only confirmed tickets can be checked in.`
+        })
+        return
+      }
+
+      if (ticket.checkedIn) {
         setResult({
           success: false,
           message: 'Ticket already checked in',
-          ticket
+          ticket: {
+            id: ticket.id,
+            ticketType: ticket.ticketTier?.name || ticket.ticketType,
+            attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
+          }
         })
         return
       }
@@ -112,8 +159,12 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
 
       setResult({
         success: true,
-        message: `Successfully checked in: ${ticket.attendeeName || 'Guest'}`,
-        ticket
+        message: `Successfully checked in: ${ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'}`,
+        ticket: {
+          id: ticket.id,
+          ticketType: ticket.ticketTier?.name || ticket.ticketType,
+          attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
+        }
       })
 
       // Reset after 3 seconds

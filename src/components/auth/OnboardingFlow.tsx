@@ -37,7 +37,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip, cla
           <div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Eventify!</h3>
             <p className="text-gray-600">
-              You're all set! Let's take a quick tour to help you get the most out of Eventify.
+              You&apos;re all set! Let&apos;s take a quick tour to help you get the most out of Eventify.
             </p>
           </div>
         </div>
@@ -263,7 +263,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip, cla
           </div>
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              For now, you can browse and attend events. When you're ready to create events, just let us know!
+              For now, you can browse and attend events. When you&apos;re ready to create events, just let us know!
             </p>
           </div>
         </div>
@@ -278,7 +278,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip, cla
             <Check className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">You're Ready to Go!</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re Ready to Go!</h3>
             <p className="text-gray-600">
               Start exploring events and discover amazing experiences. Welcome to the Eventify community!
             </p>

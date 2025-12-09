@@ -72,8 +72,8 @@ export default function NotificationModal({
               </div>
             </div>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
             >

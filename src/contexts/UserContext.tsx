@@ -14,6 +14,7 @@ interface User {
   isAdmin: boolean
   avatar?: string
   joinDate: string
+  hasCompletedOnboarding?: boolean
 }
 
 interface UserContextType {
@@ -24,10 +25,12 @@ interface UserContextType {
   canCreateEvents: boolean
   canManageEvents: boolean
   canAccessAdmin: boolean
+  isLoaded: boolean
   login: (userData: User) => void
   logout: () => void
   updateUserRole: (role: UserRole, organizerStatus?: OrganizerStatus) => void
   updateUser: (updates: Partial<User>) => void
+  refreshUser: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -121,6 +124,41 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }
 
+  const refreshUser = async () => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const response = await fetch(`${apiUrl}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData.success && userData.data) {
+              const updatedUser: User = {
+                id: userData.data.id,
+                name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
+                email: userData.data.email,
+                role: userData.data.role?.toLowerCase() || 'attendee',
+                organizerStatus: userData.data.organizerStatus?.toLowerCase(),
+                isAdmin: userData.data.role === 'ADMIN',
+                avatar: userData.data.avatar,
+                joinDate: userData.data.createdAt || userData.data.joinDate || new Date().toISOString(),
+                hasCompletedOnboarding: userData.data.hasCompletedOnboarding || false
+              }
+              setUser(updatedUser)
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing user:', error)
+        }
+      }
+    }
+  }
+
   const value = {
     user,
     isAuthenticated,
@@ -129,10 +167,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     canCreateEvents,
     canManageEvents,
     canAccessAdmin,
+    isLoaded,
     login,
     logout,
     updateUserRole,
-    updateUser
+    updateUser,
+    refreshUser
   }
 
   return (

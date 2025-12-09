@@ -74,14 +74,9 @@ export default function CommunicationBoard({ eventId, isOrganizer }: Communicati
     const updatedMessages = [...messages, message]
     setMessages(updatedMessages)
     
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(
-        `eventify_messages_${eventId}`,
-        JSON.stringify(updatedMessages)
-      )
-    }
-
+    // TODO: Save to API when endpoint is available
+    // For now, messages are ephemeral (session-only)
+    
     setNewMessage('')
   }
 

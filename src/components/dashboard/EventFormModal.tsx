@@ -65,7 +65,15 @@ export default function EventFormModal({
   useEffect(() => {
     if (eventData && mode === 'edit') {
       // Convert old image format to new images array if needed
-      let images = eventData.images || []
+      let images: Array<{ id: string; url: string; isPrimary: boolean }> = []
+      if (eventData.images && Array.isArray(eventData.images)) {
+        // Check if images is array of strings or objects
+        if (eventData.images.length > 0 && typeof eventData.images[0] === 'string') {
+          images = (eventData.images as string[]).map((url, idx) => ({ id: `img_${idx + 1}`, url, isPrimary: idx === 0 }))
+        } else {
+          images = (eventData.images as unknown as Array<{ id: string; url: string; isPrimary: boolean }>)
+        }
+      }
       if (!images.length && eventData.image) {
         images = [{ id: 'img_1', url: eventData.image, isPrimary: true }]
       }
@@ -89,13 +97,13 @@ export default function EventFormModal({
         meetingLink: eventData.meetingLink || '',
         image: eventData.image || '',
         images: images,
-        imageDisplayType: eventData.imageDisplayType || 'carousel',
+        imageDisplayType: (eventData as any).imageDisplayType || 'carousel',
         tags: eventData.tags || [],
         requirements: eventData.requirements || '',
         refundPolicy: eventData.refundPolicy || '',
         maxAttendees: eventData.maxAttendees,
-        hasSeating: eventData.hasSeating || false,
-        seatingArrangement: eventData.seatingArrangement || null
+        hasSeating: (eventData as any).hasSeating || false,
+        seatingArrangement: (eventData as any).seatingArrangement || null
       })
       setTicketTiers(eventData.ticketTiers || [])
     } else {
@@ -125,8 +133,7 @@ export default function EventFormModal({
         refundPolicy: '',
         maxAttendees: 0,
         hasSeating: false,
-        seatingArrangement: null,
-        status: 'draft' // New events are drafts by default
+        seatingArrangement: null
       })
       setTicketTiers([])
     }
@@ -224,8 +231,8 @@ export default function EventFormModal({
           name: tier.name,
           price: tier.price,
           description: tier.description,
-          quantity: tier.quantity,
-          available: tier.quantity
+          quantity: (tier as any).quantity || 0,
+          available: (tier as any).quantity || 0
         }))
       }
 
