@@ -53,19 +53,52 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load user from localStorage on mount
+  // Refresh user from API
+  const refreshUser = async () => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const response = await fetch(`${apiUrl}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData.success && userData.data) {
+              const role = userData.data.role?.toLowerCase() || 'attendee'
+              const updatedUser: User = {
+                id: userData.data.id,
+                name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
+                email: userData.data.email,
+                role: role as UserRole,
+                organizerStatus: userData.data.organizerStatus?.toLowerCase() as OrganizerStatus | undefined,
+                isAdmin: userData.data.role === 'ADMIN' || role === 'admin',
+                avatar: userData.data.avatar,
+                joinDate: userData.data.createdAt || userData.data.joinDate || new Date().toISOString(),
+                hasCompletedOnboarding: userData.data.hasCompletedOnboarding || false
+              }
+              setUser(updatedUser)
+              // Save updated user to localStorage
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing user:', error)
+        }
+      }
+    }
+  }
+
+  // Load user from localStorage on mount and refresh from API
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem(STORAGE_KEY)
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser)
-          // Check if user has been approved as organizer
-          const approvedUsers = JSON.parse(localStorage.getItem('eventify_approved_organizers') || '{}')
-          if (approvedUsers[parsedUser.id]) {
-            parsedUser.role = 'organizer'
-            parsedUser.organizerStatus = 'approved'
-          }
           setUser(parsedUser)
         } catch (error) {
           console.error('Error parsing stored user data:', error)
@@ -73,12 +106,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
       }
       setIsLoaded(true)
+      
+      // Refresh user data from API to get latest role
+      const token = localStorage.getItem('token')
+      if (token) {
+        refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
+      }
     }
   }, [])
 
   const isAuthenticated = !!user
-  const isOrganizer = user?.role === 'organizer' && user?.organizerStatus === 'approved'
-  const isAdmin = user?.isAdmin === true
+  // Backend sets role to 'organizer' (lowercase) when application is approved
+  const isOrganizer = user?.role === 'organizer'
+  const isAdmin = user?.isAdmin === true || user?.role === 'admin'
   const canCreateEvents = isOrganizer || isAdmin
   const canManageEvents = isOrganizer || isAdmin
   const canAccessAdmin = isAdmin
@@ -120,41 +160,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setUser(updatedUser)
       if (typeof window !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
-      }
-    }
-  }
-
-  const refreshUser = async () => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (token) {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
-          const response = await fetch(`${apiUrl}/api/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          if (response.ok) {
-            const userData = await response.json()
-            if (userData.success && userData.data) {
-              const updatedUser: User = {
-                id: userData.data.id,
-                name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
-                email: userData.data.email,
-                role: userData.data.role?.toLowerCase() || 'attendee',
-                organizerStatus: userData.data.organizerStatus?.toLowerCase(),
-                isAdmin: userData.data.role === 'ADMIN',
-                avatar: userData.data.avatar,
-                joinDate: userData.data.createdAt || userData.data.joinDate || new Date().toISOString(),
-                hasCompletedOnboarding: userData.data.hasCompletedOnboarding || false
-              }
-              setUser(updatedUser)
-            }
-          }
-        } catch (error) {
-          console.error('Error refreshing user:', error)
-        }
       }
     }
   }
