@@ -299,15 +299,35 @@ def deployToServer(String server, String credentials, String env) {
                 
                 # Build the Next.js application for production
                 echo "🔨 Building Next.js application..."
+                export NODE_ENV=production
                 npm run build || {
                     echo "⚠️ Build failed, checking logs..."
                     exit 1
                 }
                 
+                # Verify build output exists
+                if [ ! -d ".next" ]; then
+                    echo "❌ Build output (.next) not found!"
+                    exit 1
+                fi
+                
+                echo "✅ Build completed successfully"
+                
                 cd ..
                 
-                # Start/restart frontend
-                pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
+                # Ensure PM2 uses production mode - explicitly use npm start
+                pm2 stop eventify-${env}-frontend || true
+                pm2 delete eventify-${env}-frontend || true
+                
+                # Start with production command (npm start uses the built .next folder)
+                cd frontend
+                export NODE_ENV=production
+                pm2 start npm --name "eventify-${env}-frontend" -- start || {
+                    echo "⚠️ PM2 start failed, trying ecosystem config..."
+                    cd ..
+                    pm2 start ecosystem.config.js --only eventify-${env}-frontend
+                }
+                cd ..
                 pm2 save
                 
                 echo "✅ Frontend is running successfully"
