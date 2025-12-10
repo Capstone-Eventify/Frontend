@@ -98,6 +98,12 @@ export default function EventsSection() {
         // Fetch user-specific data in parallel if authenticated
         if (user?.id) {
           const token = localStorage.getItem('token')
+          console.log('🔍 Fetching events - User:', {
+            id: user.id,
+            role: user.role,
+            isOrganizer: isOrganizer,
+            hasToken: !!token
+          })
           if (token && !isCancelled) {
             // Parallelize API calls for better performance
             const [favoritesResponse, ticketsResponse, myEventsResponse] = await Promise.all([
@@ -109,6 +115,9 @@ export default function EventsSection() {
               }),
               isOrganizer ? fetch(`${apiUrl}/api/events/organizer/my-events`, {
                 headers: { 'Authorization': `Bearer ${token}` }
+              }).catch(err => {
+                console.error('❌ Error fetching organizer events:', err)
+                return null
               }) : Promise.resolve(null)
             ])
 
@@ -136,11 +145,32 @@ export default function EventsSection() {
             }
 
             // Process organizer events
-            if (isOrganizer && myEventsResponse && myEventsResponse.ok) {
-              const myEventsData = await myEventsResponse.json()
-              if (myEventsData.success && !isCancelled) {
-                setMyCreatedEvents(myEventsData.data || [])
+            if (isOrganizer) {
+              if (myEventsResponse) {
+                if (myEventsResponse.ok) {
+                  const myEventsData = await myEventsResponse.json()
+                  console.log('✅ Organizer events API response:', {
+                    success: myEventsData.success,
+                    count: myEventsData.count,
+                    dataLength: myEventsData.data?.length || 0
+                  })
+                  if (myEventsData.success && !isCancelled) {
+                    setMyCreatedEvents(myEventsData.data || [])
+                    console.log('✅ Set myCreatedEvents:', myEventsData.data?.length || 0, 'events')
+                  }
+                } else {
+                  const errorData = await myEventsResponse.json().catch(() => ({}))
+                  console.error('❌ Organizer events API failed:', {
+                    status: myEventsResponse.status,
+                    statusText: myEventsResponse.statusText,
+                    error: errorData
+                  })
+                }
+              } else {
+                console.warn('⚠️ myEventsResponse is null - isOrganizer check might have failed')
               }
+            } else {
+              console.log('ℹ️ User is not an organizer, skipping organizer events fetch. Role:', user?.role)
             }
           }
         }
