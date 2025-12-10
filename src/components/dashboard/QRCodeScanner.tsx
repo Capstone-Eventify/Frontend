@@ -54,7 +54,15 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
 
       if (!isSecureContext) {
         const currentUrl = window.location.href
-        throw new Error(`Camera access requires HTTPS or localhost. Current URL: ${currentUrl}. Please access via https:// or http://localhost:3000`)
+        // For EC2/remote servers, camera requires HTTPS
+        // Show helpful message and automatically enable manual entry
+        setResult({
+          success: false,
+          message: 'Camera access requires HTTPS. Please use manual QR code entry below, or set up SSL certificate on the server for HTTPS access.'
+        })
+        setShowManualInput(true)
+        setScanning(false)
+        return // Exit early, don't throw error
       }
 
       // Polyfill for older browsers (though html5-qrcode should handle this)
@@ -308,6 +316,16 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
           </div>
 
           <div className="p-4 sm:p-6">
+            {/* Show info banner if HTTPS is not available */}
+            {!window.isSecureContext && window.location.protocol !== 'https:' && 
+             window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Camera access requires HTTPS. Please use manual QR code entry below, or set up SSL certificate on the server for HTTPS access.
+                </p>
+              </div>
+            )}
+            
             {!showManualInput ? (
               <>
                 {/* Camera View */}
