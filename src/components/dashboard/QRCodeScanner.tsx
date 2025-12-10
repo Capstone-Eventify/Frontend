@@ -59,13 +59,15 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
 
       // Polyfill for older browsers (though html5-qrcode should handle this)
       if (!navigator.mediaDevices) {
-        // Try polyfill
-        if (navigator.getUserMedia) {
+        // Try polyfill for older browsers
+        const nav = navigator as any
+        if (nav.getUserMedia || nav.webkitGetUserMedia || nav.mozGetUserMedia || nav.msGetUserMedia) {
           // @ts-ignore - polyfill for older browsers
           navigator.mediaDevices = {
             getUserMedia: (constraints: MediaStreamConstraints) => {
               return new Promise((resolve, reject) => {
-                navigator.getUserMedia(constraints, resolve, reject)
+                const getUserMedia = nav.getUserMedia || nav.webkitGetUserMedia || nav.mozGetUserMedia || nav.msGetUserMedia
+                getUserMedia.call(navigator, constraints, resolve, reject)
               })
             }
           }
