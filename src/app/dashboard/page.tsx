@@ -440,38 +440,9 @@ function DashboardContent() {
                       label: 'Scan QR Code', 
                       icon: QrCode, 
                       onClick: () => {
-                        // Fetch organizer's events from API to get event ID for QR scanner
-                        const fetchEventForQR = async () => {
-                          try {
-                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
-                            const token = localStorage.getItem('token')
-                            if (token && user?.id) {
-                              const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
-                                headers: {
-                                  'Authorization': `Bearer ${token}`
-                                }
-                              })
-                              if (response.ok) {
-                                const data = await response.json()
-                                if (data.success && data.data && data.data.length > 0) {
-                                  setSelectedEventForQRScan(data.data[0].id)
-                                } else {
-                                  setSelectedEventForQRScan('all')
-                                }
-                              } else {
-                                setSelectedEventForQRScan('all')
-                              }
-                            } else {
-                              setSelectedEventForQRScan('all')
-                            }
-                            setShowQRScanner(true)
-                          } catch (error) {
-                            console.error('Error fetching events for QR scanner:', error)
-                            setSelectedEventForQRScan('all')
-                            setShowQRScanner(true)
-                          }
-                        }
-                        fetchEventForQR()
+                        // Scanner works for any event - always use 'all'
+                        setSelectedEventForQRScan('all')
+                        setShowQRScanner(true)
                       } 
                     },
                     { 
@@ -616,17 +587,28 @@ function DashboardContent() {
               const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
               const token = localStorage.getItem('token')
               if (token) {
-                const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/check-in`, {
-                  method: 'PUT',
+                const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/checkin`, {
+                  method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({ qrCode })
                 })
+                
+                const responseData = await response.json().catch(() => ({ success: false, message: 'Failed to parse response' }))
+                
                 if (!response.ok) {
-                  const errorData = await response.json().catch(() => ({ message: 'Failed to check in ticket' }))
-                  alert(errorData.message || 'Failed to check in ticket')
+                  // Show error message - backend will return 403 if ticket belongs to another organizer's event
+                  const errorMessage = responseData.message || 'Failed to check in ticket'
+                  if (response.status === 403) {
+                    alert(errorMessage + '\n\nYou can only check in tickets for events you organized.')
+                  } else {
+                    alert(errorMessage)
+                  }
+                } else if (responseData.success) {
+                  // Success - the QRCodeScanner component will show the success message
+                  console.log('Ticket checked in successfully:', responseData.data)
                 }
               }
             } catch (error) {

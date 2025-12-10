@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Camera, CheckCircle, XCircle, AlertCircle, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Html5Qrcode } from 'html5-qrcode'
 
 interface QRCodeScannerProps {
   isOpen: boolean
@@ -19,58 +20,143 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
   const [result, setResult] = useState<{ success: boolean; message: string; ticket?: any } | null>(null)
   const [manualCode, setManualCode] = useState('')
   const [showManualInput, setShowManualInput] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const scannerContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (isOpen && scanning) {
-      startCamera()
-    } else {
-      stopCamera()
+    // Only auto-start if scanning is true and modal is open
+    // But we'll handle starting manually from button click for better error handling
+    if (!isOpen || !scanning) {
+      stopScanning()
     }
 
     return () => {
-      stopCamera()
+      stopScanning()
     }
   }, [isOpen, scanning])
 
-  const startCamera = async () => {
+  const startScanning = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use back camera on mobile
-      })
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        streamRef.current = stream
+      // Comprehensive check for camera API availability
+      if (typeof window === 'undefined') {
+        throw new Error('Window object not available')
       }
-    } catch (error) {
-      console.error('Error accessing camera:', error)
+
+      if (!navigator) {
+        throw new Error('Navigator API not available')
+      }
+
+      // Check if we're in a secure context (HTTPS or localhost)
+      const isSecureContext = window.isSecureContext || 
+                              window.location.protocol === 'https:' ||
+                              window.location.hostname === 'localhost' ||
+                              window.location.hostname === '127.0.0.1'
+
+      if (!isSecureContext) {
+        const currentUrl = window.location.href
+        throw new Error(`Camera access requires HTTPS or localhost. Current URL: ${currentUrl}. Please access via https:// or http://localhost:3000`)
+      }
+
+      // Polyfill for older browsers (though html5-qrcode should handle this)
+      if (!navigator.mediaDevices) {
+        // Try polyfill
+        if (navigator.getUserMedia) {
+          // @ts-ignore - polyfill for older browsers
+          navigator.mediaDevices = {
+            getUserMedia: (constraints: MediaStreamConstraints) => {
+              return new Promise((resolve, reject) => {
+                navigator.getUserMedia(constraints, resolve, reject)
+              })
+            }
+          }
+        } else {
+          const currentUrl = window.location.href
+          throw new Error(`Camera API not available. Please use HTTPS (or localhost) to access the camera. Current URL: ${currentUrl}. Browser: ${navigator.userAgent}`)
+        }
+      }
+
+      if (typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        throw new Error('getUserMedia is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.')
+      }
+
+      if (!scannerContainerRef.current) {
+        throw new Error('Scanner container not found')
+      }
+
+      // Check if element exists
+      const qrReaderElement = document.getElementById('qr-reader')
+      if (!qrReaderElement) {
+        throw new Error('QR reader element not found')
+      }
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      }
+
+      const html5QrCode = new Html5Qrcode('qr-reader')
+      scannerRef.current = html5QrCode
+
+      await html5QrCode.start(
+        { facingMode: 'environment' }, // Use back camera on mobile
+        config,
+        (decodedText: string) => {
+          // QR code successfully scanned
+          console.log('QR Code scanned:', decodedText)
+          handleScan(decodedText)
+        },
+        (errorMessage: string) => {
+          // Ignore scanning errors (they're normal while scanning)
+          // Only log if it's not a "NotFoundException" (which is normal)
+          if (!errorMessage.includes('NotFoundException') && 
+              !errorMessage.includes('No QR code found')) {
+            console.debug('Scanning...', errorMessage)
+          }
+        }
+      )
+    } catch (error: any) {
+      console.error('Error starting QR scanner:', error)
+      const errorMessage = error.message || 'Unable to access camera. Please use manual entry or ensure you are on HTTPS (or localhost).'
       setResult({
         success: false,
-        message: 'Unable to access camera. Please use manual entry.'
+        message: errorMessage
       })
       setShowManualInput(true)
       setScanning(false)
+      
+      // Ensure scanner is cleaned up
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop().catch(() => {})
+          scannerRef.current.clear()
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        scannerRef.current = null
+      }
     }
   }
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
+  const stopScanning = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop()
+        scannerRef.current.clear()
+      } catch (error) {
+        console.error('Error stopping scanner:', error)
+      }
+      scannerRef.current = null
     }
   }
 
   const handleScan = async (qrCode: string) => {
     if (!qrCode || result) return
 
+    // Stop scanning immediately when QR code is detected
     setScannedCode(qrCode)
     setScanning(false)
-    stopCamera()
+    await stopScanning()
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
@@ -95,14 +181,13 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
         if (ticketResponse.status === 404) {
           setResult({
             success: false,
-            message: eventId === 'all' 
-              ? 'Ticket not found' 
-              : 'Ticket not found for this event'
+            message: 'Ticket not found'
           })
         } else if (ticketResponse.status === 403) {
+          const errorData = await ticketResponse.json().catch(() => ({}))
           setResult({
             success: false,
-            message: 'Not authorized to check in this ticket'
+            message: errorData.message || 'This ticket belongs to an event organized by another organizer. You can only check in tickets for your own events.'
           })
         } else {
           setResult({
@@ -124,14 +209,8 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
 
       const ticket = ticketData.data
 
-      // Verify event matches if eventId is specified
-      if (eventId !== 'all' && ticket.eventId !== eventId) {
-        setResult({
-          success: false,
-          message: 'Ticket does not belong to this event'
-        })
-        return
-      }
+      // No need to verify event - scanner works for any event
+      // The backend will verify that the organizer has permission to check in tickets for this event
 
       if (ticket.status !== 'CONFIRMED') {
         setResult({
@@ -172,7 +251,6 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
         setResult(null)
         setScannedCode('')
         setScanning(true)
-        startCamera()
       }, 3000)
     } catch (error: any) {
       setResult({
@@ -232,23 +310,13 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
               <>
                 {/* Camera View */}
                 {scanning && (
-                  <div className="relative mb-4">
+                  <div className="relative mb-4" ref={scannerContainerRef}>
                     <div className="aspect-square bg-black rounded-lg overflow-hidden relative">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Scanning overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-64 h-64 border-4 border-primary-500 rounded-lg relative">
-                          <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary-500 rounded-tl-lg"></div>
-                          <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary-500 rounded-tr-lg"></div>
-                          <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary-500 rounded-bl-lg"></div>
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary-500 rounded-br-lg"></div>
-                        </div>
-                      </div>
+                      <div 
+                        id="qr-reader" 
+                        className="w-full h-full"
+                        style={{ minHeight: '300px' }}
+                      ></div>
                     </div>
                     <p className="text-center text-sm text-gray-600 mt-2">
                       Position QR code within the frame
@@ -298,10 +366,23 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                     <Button
                       variant="primary"
                       className="w-full"
-                      onClick={() => {
-                        setScanning(true)
-                        setResult(null)
-                        startCamera()
+                      onClick={async () => {
+                        try {
+                          setResult(null)
+                          setScannedCode('')
+                          setScanning(true)
+                          // Small delay to ensure DOM is ready
+                          await new Promise(resolve => setTimeout(resolve, 100))
+                          await startScanning()
+                        } catch (error: any) {
+                          console.error('Error in start scanning button:', error)
+                          setScanning(false)
+                          setResult({
+                            success: false,
+                            message: error.message || 'Failed to start camera. Please try manual entry.'
+                          })
+                          setShowManualInput(true)
+                        }
                       }}
                     >
                       <Camera size={20} className="mr-2" />
@@ -313,9 +394,9 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => {
+                      onClick={async () => {
                         setScanning(false)
-                        stopCamera()
+                        await stopScanning()
                       }}
                     >
                       Stop Scanning
