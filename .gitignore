@@ -81,3 +81,14 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
+
+# Test event files and utilities
+**/test-events*.json
+**/test-events*.js
+**/test-events*.ts
+test-events/
+*.test-events.*
+test-event-data.*
+src/app/add-test-events/
+src/app/setup-test-token/
+src/app/test-flow/

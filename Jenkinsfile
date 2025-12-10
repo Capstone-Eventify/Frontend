@@ -297,9 +297,16 @@ def deployToServer(String server, String credentials, String env) {
                     npm install --prefer-offline --no-audit
                 }
                 
+                # Build the Next.js application for production
+                echo "🔨 Building Next.js application..."
+                npm run build || {
+                    echo "⚠️ Build failed, checking logs..."
+                    exit 1
+                }
+                
                 cd ..
                 
-                # Only start/restart frontend
+                # Start/restart frontend
                 pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
                 pm2 save
                 
