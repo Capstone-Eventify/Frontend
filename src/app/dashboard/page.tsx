@@ -599,21 +599,24 @@ function DashboardContent() {
                 const responseData = await response.json().catch(() => ({ success: false, message: 'Failed to parse response' }))
                 
                 if (!response.ok) {
-                  // Show error message - backend will return 403 if ticket belongs to another organizer's event
+                  // Throw error so QRCodeScanner can catch and display it
                   const errorMessage = responseData.message || 'Failed to check in ticket'
                   if (response.status === 403) {
-                    alert(errorMessage + '\n\nYou can only check in tickets for events you organized.')
+                    throw new Error(errorMessage + ' You can only check in tickets for events you organized.')
                   } else {
-                    alert(errorMessage)
+                    throw new Error(errorMessage)
                   }
-                } else if (responseData.success) {
-                  // Success - the QRCodeScanner component will show the success message
-                  console.log('Ticket checked in successfully:', responseData.data)
+                } else if (!responseData.success) {
+                  // Unexpected response format - throw error
+                  throw new Error(responseData.message || 'Check-in failed')
                 }
+                // Success - QRCodeScanner will handle the success display
+                console.log('Ticket checked in successfully:', responseData.data)
               }
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error checking in ticket:', error)
-              alert('Error checking in ticket. Please try again.')
+              // Re-throw error so QRCodeScanner can catch and display it
+              throw error
             }
           }}
         />

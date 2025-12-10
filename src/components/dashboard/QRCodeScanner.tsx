@@ -35,6 +35,13 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
     }
   }, [isOpen, scanning])
 
+  // Debug: Log when result changes
+  useEffect(() => {
+    if (result) {
+      console.log('Result state changed:', result)
+    }
+  }, [result])
+
   const startScanning = async () => {
     try {
       // Comprehensive check for camera API availability
@@ -161,7 +168,10 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
   }
 
   const handleScan = async (qrCode: string) => {
-    if (!qrCode || result) return
+    if (!qrCode) return
+
+    // Clear any previous result before processing
+    setResult(null)
 
     // Stop scanning immediately when QR code is detected
     setScannedCode(qrCode)
@@ -244,28 +254,55 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
       }
 
       // Call check-in handler
-      await onCheckIn(ticket.id, qrCode)
-
-      setResult({
-        success: true,
-        message: `Successfully checked in: ${ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'}`,
-        ticket: {
-          id: ticket.id,
-          ticketType: ticket.ticketTier?.name || ticket.ticketType,
-          attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
+      try {
+        console.log('Calling onCheckIn with ticket ID:', ticket.id)
+        await onCheckIn(ticket.id, qrCode)
+        console.log('onCheckIn completed successfully')
+        
+        // Set success result after check-in completes
+        const successMessage = `Successfully checked in: ${ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'}`
+        console.log('Setting success result:', successMessage)
+        
+        const resultData = {
+          success: true,
+          message: successMessage,
+          ticket: {
+            id: ticket.id,
+            ticketType: ticket.ticketTier?.name || ticket.ticketType,
+            attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
+          }
         }
-      })
+        console.log('Setting result:', resultData)
+        setResult(resultData)
+        
+        // Verify result was set
+        setTimeout(() => {
+          console.log('Result state after setResult:', result)
+        }, 100)
 
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setResult(null)
-        setScannedCode('')
-        setScanning(true)
-      }, 3000)
+        // Reset after 5 seconds (increased from 3 to give user time to see message)
+        setTimeout(() => {
+          console.log('Clearing result after timeout')
+          setResult(null)
+          setScannedCode('')
+          // Don't set scanning to true in manual mode
+          if (!showManualInput) {
+            setScanning(true)
+          }
+        }, 5000)
+      } catch (checkInError: any) {
+        // Handle check-in errors separately
+        console.error('Check-in error:', checkInError)
+        setResult({
+          success: false,
+          message: checkInError.message || 'Failed to complete check-in. Please try again.'
+        })
+      }
     } catch (error: any) {
+      console.error('Error in handleScan:', error)
       setResult({
         success: false,
-        message: error.message || 'Failed to check in ticket'
+        message: error.message || 'Failed to check in ticket. Please check console for details.'
       })
     }
   }
@@ -273,8 +310,20 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualCode.trim()) return
-    await handleScan(manualCode.trim())
+    
+    console.log('Manual submit - QR code:', manualCode.trim())
+    
+    // Clear any previous result before processing
+    setResult(null)
+    
+    // Store QR code before clearing input
+    const qrCodeToProcess = manualCode.trim()
     setManualCode('')
+    
+    // Process the QR code
+    await handleScan(qrCodeToProcess)
+    
+    console.log('Manual submit completed')
   }
 
   if (!isOpen) return null
@@ -440,6 +489,42 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Manual QR Code Entry</h3>
                   <p className="text-sm text-gray-600">Enter the QR code manually if scanning is not available</p>
                 </div>
+
+                {/* Result Display - Show in manual input mode too */}
+                {result && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg ${
+                      result.success
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {result.success ? (
+                        <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <p className={`font-semibold ${
+                          result.success ? 'text-green-900' : 'text-red-900'
+                        }`}>
+                          {result.message}
+                        </p>
+                        {result.ticket && (
+                          <div className="mt-2 text-sm text-gray-700">
+                            <p><strong>Ticket Type:</strong> {result.ticket.ticketType}</p>
+                            {result.ticket.attendeeName && (
+                              <p><strong>Attendee:</strong> {result.ticket.attendeeName}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
 
                 <form onSubmit={handleManualSubmit} className="space-y-4">
                   <div>
