@@ -339,7 +339,7 @@ export default function NotificationBell({ onOpen, isProfileOpen = false }: Noti
             onOpen()
           }
         }}
-        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        className="relative p-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         aria-label="Notifications"
       >
         <Bell size={20} className="text-gray-700" />

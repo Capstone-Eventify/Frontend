@@ -47,7 +47,7 @@ import { EventDetail } from '@/types/event'
 const OrganizerDashboard: React.FC = () => {
   const router = useRouter()
   const { user, isOrganizer, isLoaded } = useUser()
-  const [activeView, setActiveView] = useState<'events' | 'analytics' | 'emails'>('events')
+  const [activeView, setActiveView] = useState<'events' | 'analytics'>('events')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [organizerEvents, setOrganizerEvents] = useState<EventDetail[]>([])
   const [notifications, setNotifications] = useState<any[]>([])
@@ -478,42 +478,8 @@ const OrganizerDashboard: React.FC = () => {
             )}
             <span className="relative z-10">Analytics</span>
           </button>
-          <button
-            onClick={() => setActiveView('emails')}
-            className={`relative px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 whitespace-nowrap ${
-              activeView === 'emails'
-                ? 'text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {activeView === 'emails' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute inset-0 bg-primary-600 rounded-md"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-1">
-              <Bell size={14} />
-              Emails
-            </span>
-          </button>
         </div>
       </div>
-
-      {/* Emails View */}
-      {activeView === 'emails' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Notifications</h2>
-          <p className="text-gray-600 mb-4">
-            Email notifications are automatically sent by the backend when users register for your events, 
-            join waitlists, or make payments. You can view all notifications in the Notifications section.
-          </p>
-          <p className="text-sm text-gray-500">
-            Note: Email sending is handled by the backend. Check your email inbox for notifications.
-          </p>
-        </div>
-      )}
 
       {/* Analytics View */}
       {activeView === 'analytics' && (
@@ -660,15 +626,6 @@ const OrganizerDashboard: React.FC = () => {
                       }}
                     >
                       View All Notifications ({notifications.length})
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setActiveView('emails')}
-                    >
-                      <Bell size={14} className="mr-2" />
-                      View Emails
                     </Button>
                   </div>
                 </div>

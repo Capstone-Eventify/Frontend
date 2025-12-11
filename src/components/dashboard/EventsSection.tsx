@@ -148,14 +148,14 @@ export default function EventsSection() {
             if (isOrganizer) {
               if (myEventsResponse) {
                 if (myEventsResponse.ok) {
-                  const myEventsData = await myEventsResponse.json()
+              const myEventsData = await myEventsResponse.json()
                   console.log('✅ Organizer events API response:', {
                     success: myEventsData.success,
                     count: myEventsData.count,
                     dataLength: myEventsData.data?.length || 0
                   })
-                  if (myEventsData.success && !isCancelled) {
-                    setMyCreatedEvents(myEventsData.data || [])
+              if (myEventsData.success && !isCancelled) {
+                setMyCreatedEvents(myEventsData.data || [])
                     console.log('✅ Set myCreatedEvents:', myEventsData.data?.length || 0, 'events')
                   }
                 } else {

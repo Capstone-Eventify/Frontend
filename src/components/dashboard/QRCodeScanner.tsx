@@ -2,10 +2,26 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Camera, CheckCircle, XCircle, AlertCircle, QrCode } from 'lucide-react'
+import { X, Camera, CheckCircle, XCircle, AlertCircle, QrCode, Search, User, Mail, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Html5Qrcode } from 'html5-qrcode'
+
+interface Attendee {
+  id: string
+  name: string
+  email: string
+  ticketType: string
+  orderNumber: string
+  checkedIn: boolean
+}
+
+interface Event {
+  id: string
+  title: string
+  startDate: string
+  status: string
+}
 
 interface QRCodeScannerProps {
   isOpen: boolean
@@ -20,6 +36,12 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
   const [result, setResult] = useState<{ success: boolean; message: string; ticket?: any } | null>(null)
   const [manualCode, setManualCode] = useState('')
   const [showManualInput, setShowManualInput] = useState(false)
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loadingAttendees, setLoadingAttendees] = useState(false)
+  const [events, setEvents] = useState<Event[]>([])
+  const [selectedEventId, setSelectedEventId] = useState<string>(eventId)
+  const [loadingEvents, setLoadingEvents] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const scannerContainerRef = useRef<HTMLDivElement>(null)
 
@@ -41,6 +63,112 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
       console.log('Result state changed:', result)
     }
   }, [result])
+
+  // Fetch events when manual input is shown and eventId is 'all'
+  useEffect(() => {
+    if (showManualInput && isOpen) {
+      if (eventId === 'all') {
+        fetchEvents()
+      } else {
+        setSelectedEventId(eventId)
+        fetchAttendees(eventId)
+      }
+    }
+  }, [showManualInput, isOpen, eventId])
+
+  // Fetch attendees when selected event changes
+  useEffect(() => {
+    if (showManualInput && isOpen && selectedEventId && selectedEventId !== 'all') {
+      fetchAttendees(selectedEventId)
+    }
+  }, [selectedEventId, showManualInput, isOpen])
+
+  const fetchEvents = async () => {
+    setLoadingEvents(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setLoadingEvents(false)
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const eventList: Event[] = (data.data || []).map((event: any) => ({
+            id: event.id,
+            title: event.title,
+            startDate: event.startDate || event.date,
+            status: event.status
+          }))
+          setEvents(eventList)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error)
+    } finally {
+      setLoadingEvents(false)
+    }
+  }
+
+  const fetchAttendees = async (targetEventId: string) => {
+    if (!targetEventId || targetEventId === 'all') return
+    
+    setLoadingAttendees(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setLoadingAttendees(false)
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/tickets/event/${targetEventId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const attendeeList: Attendee[] = (data.data || []).map((ticket: any) => ({
+            id: ticket.id,
+            name: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest',
+            email: ticket.attendee?.email || '',
+            ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+            orderNumber: ticket.orderNumber,
+            checkedIn: ticket.checkedIn || false
+          }))
+          setAttendees(attendeeList)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching attendees:', error)
+    } finally {
+      setLoadingAttendees(false)
+    }
+  }
+
+  // Filter attendees based on search query
+  const filteredAttendees = attendees.filter(attendee => {
+    if (attendee.checkedIn) return false // Only show pending attendees
+    const query = searchQuery.toLowerCase()
+    return (
+      attendee.name.toLowerCase().includes(query) ||
+      attendee.email.toLowerCase().includes(query) ||
+      attendee.orderNumber.toLowerCase().includes(query)
+    )
+  })
 
   const startScanning = async () => {
     try {
@@ -151,7 +279,7 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
           // Ignore cleanup errors
         }
         scannerRef.current = null
-      }
+    }
     }
   }
 
@@ -256,21 +384,21 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
       // Call check-in handler
       try {
         console.log('Calling onCheckIn with ticket ID:', ticket.id)
-        await onCheckIn(ticket.id, qrCode)
+      await onCheckIn(ticket.id, qrCode)
         console.log('onCheckIn completed successfully')
         
         // Set success result after check-in completes
         const successMessage = `Successfully checked in: ${ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'}`
         console.log('Setting success result:', successMessage)
-        
+
         const resultData = {
-          success: true,
+        success: true,
           message: successMessage,
-          ticket: {
-            id: ticket.id,
-            ticketType: ticket.ticketTier?.name || ticket.ticketType,
-            attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
-          }
+        ticket: {
+          id: ticket.id,
+          ticketType: ticket.ticketTier?.name || ticket.ticketType,
+          attendeeName: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest'
+        }
         }
         console.log('Setting result:', resultData)
         setResult(resultData)
@@ -281,13 +409,13 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
         }, 100)
 
         // Reset after 5 seconds (increased from 3 to give user time to see message)
-        setTimeout(() => {
+      setTimeout(() => {
           console.log('Clearing result after timeout')
-          setResult(null)
-          setScannedCode('')
+        setResult(null)
+        setScannedCode('')
           // Don't set scanning to true in manual mode
           if (!showManualInput) {
-            setScanning(true)
+        setScanning(true)
           }
         }, 5000)
       } catch (checkInError: any) {
@@ -346,7 +474,7 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto z-50"
+                  className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto z-50"
         >
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
@@ -439,7 +567,7 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                         try {
                           setResult(null)
                           setScannedCode('')
-                          setScanning(true)
+                        setScanning(true)
                           // Small delay to ensure DOM is ready
                           await new Promise(resolve => setTimeout(resolve, 100))
                           await startScanning()
@@ -483,14 +611,14 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                 </div>
               </>
             ) : (
-              /* Manual Input */
+              /* Manual Input - Searchable Attendee List */
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Manual QR Code Entry</h3>
-                  <p className="text-sm text-gray-600">Enter the QR code manually if scanning is not available</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Check In Attendee</h3>
+                  <p className="text-sm text-gray-600">Search by name or email, then click Check In</p>
                 </div>
 
-                {/* Result Display - Show in manual input mode too */}
+                {/* Result Display */}
                 {result && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -526,42 +654,132 @@ export default function QRCodeScanner({ isOpen, onClose, eventId, onCheckIn }: Q
                   </motion.div>
                 )}
 
-                <form onSubmit={handleManualSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      QR Code
+                {/* Event Selector (when eventId is 'all') */}
+                {eventId === 'all' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Select Event
                     </label>
+                    {loadingEvents ? (
+                      <div className="text-center py-4 text-gray-500">
+                        <p>Loading events...</p>
+                      </div>
+                    ) : events.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        <AlertCircle size={32} className="mx-auto mb-2 text-gray-400" />
+                        <p>No events found</p>
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedEventId}
+                        onChange={(e) => {
+                          setSelectedEventId(e.target.value)
+                          setSearchQuery('') // Clear search when event changes
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                      >
+                        <option value="all">Select an event...</option>
+                        {events.map((event) => (
+                          <option key={event.id} value={event.id}>
+                            {event.title} {event.startDate ? `(${new Date(event.startDate).toLocaleDateString()})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+
+                {/* Search Bar */}
+                {selectedEventId !== 'all' && (
+                  <div className="relative">
+                    <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
-                      value={manualCode}
-                      onChange={(e) => setManualCode(e.target.value)}
-                      placeholder="Enter QR code"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by name or email..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       autoFocus
                     />
                   </div>
+                )}
 
-                  <div className="flex gap-3">
+                {/* Attendee List */}
+                {selectedEventId === 'all' ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar size={48} className="mx-auto mb-2 text-gray-400" />
+                    <p>Please select an event above to view attendees</p>
+                  </div>
+                ) : loadingAttendees ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Loading attendees...</p>
+                  </div>
+                ) : filteredAttendees.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <User size={48} className="mx-auto mb-2 text-gray-400" />
+                    <p>
+                      {searchQuery.trim() 
+                        ? 'No pending attendees found matching your search'
+                        : 'No pending attendees to check in'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-2">
+                    {filteredAttendees.map((attendee) => (
+                      <motion.div
+                        key={attendee.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <User size={20} className="text-primary-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 truncate">{attendee.name}</h4>
+                              <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+                                <div className="flex items-center gap-1">
+                                  <Mail size={14} />
+                                  <span className="truncate">{attendee.email}</span>
+                                </div>
+                                <Badge className="bg-gray-100 text-gray-700 border-0">
+                                  {attendee.ticketType}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
                     <Button
-                      type="submit"
-                      variant="primary"
-                      className="flex-1"
-                      disabled={!manualCode.trim()}
-                    >
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              setResult(null)
+                              await handleScan(attendee.id)
+                            }}
+                            className="text-green-600 border-green-300 hover:bg-green-50 whitespace-nowrap ml-3"
+                          >
+                            <CheckCircle size={16} className="mr-2" />
                       Check In
                     </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Back Button */}
                     <Button
-                      type="button"
                       variant="outline"
+                  className="w-full"
                       onClick={() => {
                         setShowManualInput(false)
-                        setManualCode('')
+                    setSearchQuery('')
+                    setResult(null)
                       }}
                     >
-                      Cancel
+                  Back to Scanner
                     </Button>
-                  </div>
-                </form>
               </div>
             )}
           </div>

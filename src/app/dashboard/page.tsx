@@ -169,18 +169,16 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Header Bar - Visible on all pages */}
+      {/* Top Header Bar - Visible on all pages - Matching sidebar style */}
       <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           {/* Mobile Menu Button */}
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="lg:hidden"
+            className="lg:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </Button>
+          </button>
           
           {/* Logo/Name */}
           <h1 
@@ -192,13 +190,17 @@ function DashboardContent() {
         </div>
         
         {/* Right Side Actions */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           {/* Notification Bell */}
-          <NotificationBell />
+          <div className="relative">
+            <NotificationBell />
+          </div>
           
           {/* User Avatar and Name */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center border-2 border-primary-300">
+          <button
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center border border-primary-200">
               {user?.avatar ? (
                 <img
                   src={user.avatar}
@@ -211,7 +213,7 @@ function DashboardContent() {
             </div>
             {/* User Name - Hidden on very small screens, shown on sm and up */}
             <span className="hidden sm:inline text-sm font-medium text-gray-900">{user?.name || 'User'}</span>
-          </div>
+          </button>
         </div>
       </div>
 

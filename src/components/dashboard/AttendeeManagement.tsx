@@ -123,6 +123,44 @@ export default function AttendeeManagement({
     await handleCheckIn(ticketId, qrCode)
   }
 
+  // Quick check-in by order number or ticket ID - much faster than manual QR entry!
+  const handleQuickCheckIn = async (searchValue: string) => {
+    if (!searchValue.trim()) return
+
+    // Try to find by order number first (most common - e.g., "TIX-ABC123")
+    const attendeeByOrder = attendees.find(
+      att => att.orderNumber.toLowerCase() === searchValue.trim().toLowerCase() && att.checkInStatus === 'pending'
+    )
+    
+    if (attendeeByOrder) {
+      await handleCheckIn(attendeeByOrder.id)
+      setSearchQuery('')
+      return
+    }
+
+    // Try to find by ticket ID (QR code - UUID format)
+    const attendeeById = attendees.find(
+      att => (att.id.toLowerCase() === searchValue.trim().toLowerCase() || 
+              att.qrCode.toLowerCase() === searchValue.trim().toLowerCase()) && 
+              att.checkInStatus === 'pending'
+    )
+    
+    if (attendeeById) {
+      await handleCheckIn(attendeeById.id)
+      setSearchQuery('')
+      return
+    }
+
+    // If exact match not found, check if search matches any pending attendee
+    const matchingAttendee = filteredAttendees.find(att => att.checkInStatus === 'pending')
+    if (matchingAttendee) {
+      await handleCheckIn(matchingAttendee.id)
+      setSearchQuery('')
+    } else {
+      alert('No pending attendee found. Make sure you\'re searching for someone who hasn\'t checked in yet.')
+    }
+  }
+
   const handleExport = () => {
     // Generate CSV
     const headers = ['Name', 'Email', 'Ticket Type', 'Purchase Date', 'Price', 'Status', 'Order Number']
@@ -236,15 +274,35 @@ export default function AttendeeManagement({
           {/* Filters */}
           <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
+              <div className="flex-1 flex gap-2">
               <div className="flex-1 relative">
                 <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search by name, email, or order number..."
+                    placeholder="Type order number, name, or email... Press Enter to check in"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        e.preventDefault()
+                        await handleQuickCheckIn(searchQuery)
+                      }
+                    }}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleQuickCheckIn(searchQuery)}
+                  disabled={!searchQuery.trim()}
+                  title="Quick check-in (or press Enter)"
+                  className="whitespace-nowrap"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Quick Check In
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -349,6 +407,7 @@ export default function AttendeeManagement({
                             size="sm"
                             onClick={() => handleCheckIn(attendee.id)}
                             className="text-green-600 border-green-300 hover:bg-green-50"
+                            title="Click to check in or press Enter when searching"
                           >
                             <CheckCircle size={16} className="mr-2" />
                             Check In

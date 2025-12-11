@@ -27,6 +27,7 @@ const statusConfig = {
   confirmed: { color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
   pending: { color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle },
   cancelled: { color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
+  refunded: { color: 'text-orange-600', bgColor: 'bg-orange-50', icon: RotateCcw },
   refund_requested: { color: 'text-orange-600', bgColor: 'bg-orange-50', icon: RotateCcw }
 }
 
@@ -51,15 +52,23 @@ export default function TicketsSection() {
           return
         }
 
+        console.log('Fetching tickets from:', `${apiUrl}/api/tickets`)
+        
         const response = await fetch(`${apiUrl}/api/tickets`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
 
+        console.log('Tickets API response status:', response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log('Tickets API response data:', data)
+          
           if (data.success) {
+            console.log('Raw tickets from API:', data.data)
+            
             // Format tickets to match frontend structure
             const formattedTickets = data.data.map((ticket: any) => ({
               id: ticket.id,
@@ -78,8 +87,15 @@ export default function TicketsSection() {
               orderId: ticket.orderNumber,
               image: ticket.event?.image || ''
             }))
+            
+            console.log('Formatted tickets:', formattedTickets)
+            console.log('Ticket statuses:', formattedTickets.map(t => t.status))
+            
             setAllTickets(formattedTickets)
           }
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to parse error response' }))
+          console.error('Failed to fetch tickets:', response.status, errorData)
         }
       } catch (error) {
         console.error('Error fetching tickets:', error)
@@ -92,6 +108,8 @@ export default function TicketsSection() {
   }, [])
 
   const handleRefundRequest = async (ticketId: string, reason: string) => {
+    console.log('Requesting refund for ticket:', ticketId, 'Reason:', reason)
+    
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
@@ -102,6 +120,7 @@ export default function TicketsSection() {
       }
 
       // Call refund API
+      // Note: Custom reasons are automatically mapped to Stripe-accepted reasons on the backend
       const response = await fetch(`${apiUrl}/api/payments/refund`, {
         method: 'POST',
         headers: {
@@ -109,13 +128,16 @@ export default function TicketsSection() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          paymentId: ticketId, // You may need to get paymentId from ticket
+          ticketId: ticketId,
           reason
         })
       })
 
+      console.log('Refund response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('Refund response data:', data)
         if (data.success) {
           // Refresh tickets
           const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
@@ -148,11 +170,13 @@ export default function TicketsSection() {
           }
         }
       } else {
-        alert('Failed to request refund. Please try again.')
+        const errorData = await response.json().catch(() => ({ message: 'Failed to process refund' }))
+        console.error('Refund error response:', errorData)
+        alert(errorData.message || 'Failed to process refund')
       }
     } catch (error) {
       console.error('Error requesting refund:', error)
-      alert('Error requesting refund. Please try again.')
+      alert('Failed to request refund. Please try again.')
     }
   }
 
@@ -211,11 +235,30 @@ export default function TicketsSection() {
     return matchesStatus && matchesSearch
   })
 
+  console.log('Filtering tickets:', {
+    selectedStatus,
+    totalTickets: allTickets.length,
+    filteredTickets: filteredTickets.length,
+    allStatuses: [...new Set(allTickets.map(t => t.status))],
+    searchQuery
+  })
+
   // Group tickets by order
   const groupedTickets = groupTicketsByOrder(filteredTickets)
 
   const getStatusBadge = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig]
+    
+    // Fallback for unknown status
+    if (!config) {
+      return (
+        <Badge className="bg-gray-50 text-gray-600 border-0">
+          <AlertCircle size={14} className="mr-1" />
+          {status.charAt(0).toUpperCase() + status.slice(1)}
+        </Badge>
+      )
+    }
+    
     const Icon = config.icon
     return (
       <Badge className={`${config.bgColor} ${config.color} border-0`}>
@@ -232,12 +275,6 @@ export default function TicketsSection() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Tickets</h1>
           <p className="text-gray-600">Manage your event tickets and passes</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Download size={16} className="mr-2" />
-            Download All
-          </Button>
         </div>
       </div>
 
@@ -287,11 +324,11 @@ export default function TicketsSection() {
               Cancelled
             </Button>
             <Button
-              variant={selectedStatus === 'refund_requested' ? 'primary' : 'outline'}
+              variant={selectedStatus === 'refunded' ? 'primary' : 'outline'}
               size="sm"
-              onClick={() => setSelectedStatus('refund_requested')}
+              onClick={() => setSelectedStatus('refunded')}
             >
-              Refund Requested
+              Refunded
             </Button>
           </div>
         </div>
@@ -421,14 +458,7 @@ export default function TicketsSection() {
                           <QrCode size={16} className="mr-2" />
                           View QR Codes
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Download size={16} className="mr-2" />
-                          Download All
-                        </Button>
+
                         <Button 
                           variant="outline" 
                           size="sm"
