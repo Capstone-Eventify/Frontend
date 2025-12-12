@@ -164,7 +164,7 @@ export default function ProfileSection() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, [user?.id]) // Removed updateUser from dependencies to prevent unnecessary re-renders
+  }, []) // Only run on mount
 
   // Use user data from API with fallbacks
   const userData = {
@@ -274,7 +274,7 @@ export default function ProfileSection() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, [user?.id, isAdmin, isOrganizer, canCreateEvents])
+  }, []) // Only run on mount
 
   const handleSave = async () => {
     try {

@@ -97,7 +97,7 @@ const LiveEventsSection = () => {
     return () => {
       isCancelled = true
     }
-  }, [isAuthenticated, user?.id])
+  }, []) // Only run on mount
 
   const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()

@@ -73,6 +73,66 @@ export default function EventsSection() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedEventForShare, setSelectedEventForShare] = useState<any>(null)
 
+  // Manual refresh function for when data needs to be updated
+  const refreshData = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      
+      // Refresh events
+      const eventsResponse = await fetch(`${apiUrl}/api/events`)
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json()
+        if (eventsData.success) {
+          setAllEvents(eventsData.data || [])
+        }
+      }
+
+      // Refresh user-specific data if authenticated
+      if (user?.id) {
+        const token = localStorage.getItem('token')
+        if (token) {
+          const [favoritesResponse, ticketsResponse, myEventsResponse] = await Promise.all([
+            fetch(`${apiUrl}/api/favorites`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiUrl}/api/tickets`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            isOrganizer ? fetch(`${apiUrl}/api/events/organizer/my-events`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).catch(() => null) : Promise.resolve(null)
+          ])
+
+          // Process responses
+          if (favoritesResponse.ok) {
+            const favoritesData = await favoritesResponse.json()
+            if (favoritesData.success) {
+              setMyFavoriteEvents(favoritesData.data || [])
+            }
+          }
+
+          if (ticketsResponse.ok) {
+            const ticketsData = await ticketsResponse.json()
+            if (ticketsData.success) {
+              const registeredEventIds = [...new Set(ticketsData.data.map((ticket: any) => ticket.eventId))]
+              const registeredEvents = (eventsData?.data || []).filter((event: any) => registeredEventIds.includes(event.id))
+              setMyRegisteredEvents(registeredEvents)
+            }
+          }
+
+          if (myEventsResponse && myEventsResponse.ok) {
+            const myEventsData = await myEventsResponse.json()
+            if (myEventsData.success) {
+              setMyCreatedEvents(myEventsData.data || [])
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+    }
+  }
+
   // Fetch events from API
   useEffect(() => {
     let isCancelled = false
@@ -186,7 +246,7 @@ export default function EventsSection() {
     return () => {
       isCancelled = true
     }
-  }, [user?.id, isOrganizer])
+  }, []) // Only run on mount - user changes shouldn't trigger refetch
 
   const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()

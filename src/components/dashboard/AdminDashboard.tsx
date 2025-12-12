@@ -16,11 +16,14 @@ import {
   MessageSquare,
   Send,
   Eye,
-  Filter
+  Filter,
+  Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useUser } from '@/contexts/UserContext'
+import NotificationTestPanel from '@/components/notifications/NotificationTestPanel'
+import CommunicationTestPanel from '@/components/admin/CommunicationTestPanel'
 
 interface OrganizerApplication {
   id: string
@@ -59,7 +62,7 @@ interface SupportTicket {
 
 export default function AdminDashboard() {
   const { updateUserRole, refreshUser } = useUser()
-  const [activeTab, setActiveTab] = useState<'applications' | 'support'>('applications')
+  const [activeTab, setActiveTab] = useState<'applications' | 'support' | 'notifications' | 'communications'>('applications')
   const [applications, setApplications] = useState<OrganizerApplication[]>([])
   const [filteredApplications, setFilteredApplications] = useState<OrganizerApplication[]>([])
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -427,6 +430,28 @@ export default function AdminDashboard() {
         >
           <MessageSquare size={16} className="inline mr-2" />
           Support Tickets ({supportTickets.filter(t => t.status === 'open' || t.status === 'in_progress').length})
+        </button>
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+            activeTab === 'notifications'
+              ? 'bg-white text-primary-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Bell size={16} className="inline mr-2" />
+          Notification Testing
+        </button>
+        <button
+          onClick={() => setActiveTab('communications')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+            activeTab === 'communications'
+              ? 'bg-white text-primary-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Mail size={16} className="inline mr-2" />
+          SMS & Email Testing
         </button>
       </div>
 
@@ -924,6 +949,37 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          <NotificationTestPanel />
+          
+          {/* Additional notification management features */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification System Status</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">Real-time WebSocket</h4>
+                <p className="text-sm text-blue-700">
+                  Test real-time notifications using the buttons above. Notifications will appear instantly in the notification bell.
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="font-medium text-green-900 mb-2">Email Integration</h4>
+                <p className="text-sm text-green-700">
+                  Email notifications are sent automatically for event registrations, cancellations, and refunds.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'communications' && (
+        <div className="space-y-6">
+          <CommunicationTestPanel />
         </div>
       )}
     </div>

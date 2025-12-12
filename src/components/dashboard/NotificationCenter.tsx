@@ -107,7 +107,7 @@ export default function NotificationCenter() {
     }
 
     fetchNotifications()
-  }, [user?.id])
+  }, []) // Only run on mount
 
   const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 

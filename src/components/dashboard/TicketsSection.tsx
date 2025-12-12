@@ -105,7 +105,50 @@ export default function TicketsSection() {
     }
 
     fetchTickets()
-  }, [])
+  }, []) // Only run on mount
+
+  // Manual refresh function for when tickets need to be updated
+  const refreshTickets = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      const response = await fetch(`${apiUrl}/api/tickets`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const formattedTickets = data.data.map((ticket: any) => ({
+            id: ticket.id,
+            eventId: ticket.eventId,
+            eventTitle: ticket.event?.title || '',
+            eventDate: ticket.event?.startDate ? new Date(ticket.event.startDate).toLocaleDateString() : '',
+            eventTime: ticket.event?.startTime || '',
+            eventLocation: ticket.event?.venueName || ticket.event?.city || '',
+            ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+            price: `${ticket.price.toFixed(2)}`,
+            purchaseDate: new Date(ticket.createdAt).toLocaleDateString(),
+            status: ticket.status.toLowerCase(),
+            qrCode: ticket.qrCode || '',
+            seatNumber: ticket.metadata?.seatNumber || null,
+            orderNumber: ticket.orderNumber,
+            orderId: ticket.orderNumber,
+            image: ticket.event?.image || ''
+          }))
+          
+          setAllTickets(formattedTickets)
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing tickets:', error)
+    }
+  }
 
   const handleRefundRequest = async (ticketId: string, reason: string) => {
     console.log('Requesting refund for ticket:', ticketId, 'Reason:', reason)

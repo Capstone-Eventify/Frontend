@@ -42,7 +42,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
       }
     }
-  }, [user?.id])
+  }, []) // Only run on mount
 
   // Save preferences to localStorage
   const handlePreferenceChange = (key: string, value: boolean) => {

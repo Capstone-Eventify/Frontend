@@ -86,6 +86,9 @@ export default function DashboardOverview() {
           const ticketsData = await ticketsResponse.json()
           if (ticketsData.success && !isCancelled) {
             const tickets = ticketsData.data || []
+            console.log('DashboardOverview - User effect - Tickets loaded:', tickets)
+            console.log('DashboardOverview - User effect - Confirmed tickets:', tickets.filter((t: any) => t.status === 'CONFIRMED'))
+            console.log('DashboardOverview - User effect - Upcoming events:', tickets.filter((t: any) => t.status === 'CONFIRMED' && !t.checkedIn))
             setUserTickets(tickets)
 
             // Calculate events attended (tickets with checkedIn === true)
@@ -103,7 +106,7 @@ export default function DashboardOverview() {
 
             // Calculate active tickets (confirmed tickets that haven't been checked in)
             const active = tickets.filter((ticket: any) => 
-              ticket.status === 'CONFIRMED' && !ticket.checkedIn
+              (ticket.status === 'CONFIRMED' || ticket.status === 'confirmed') && !ticket.checkedIn
             ).length
             setActiveTickets(active)
           }
@@ -120,7 +123,62 @@ export default function DashboardOverview() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, [user?.id])
+  }, []) // Only run on mount
+
+  // Separate effect to handle user loading
+  useEffect(() => {
+    if (user?.id && userTickets.length === 0) {
+      // Re-fetch data when user is loaded and we don't have tickets yet
+      const fetchData = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const token = localStorage.getItem('token')
+          
+          if (!token) return
+
+          const ticketsResponse = await fetch(`${apiUrl}/api/tickets`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (ticketsResponse.ok) {
+            const ticketsData = await ticketsResponse.json()
+            if (ticketsData.success) {
+              const tickets = ticketsData.data || []
+              console.log('DashboardOverview - Tickets loaded:', tickets)
+              console.log('DashboardOverview - Confirmed tickets:', tickets.filter((t: any) => t.status === 'CONFIRMED'))
+              console.log('DashboardOverview - Upcoming events:', tickets.filter((t: any) => t.status === 'CONFIRMED' && !t.checkedIn))
+              setUserTickets(tickets)
+
+              // Calculate events attended
+              const attendedTickets = tickets.filter((ticket: any) => ticket.checkedIn === true)
+              setEventsAttended(attendedTickets.length)
+
+              // Get unique attended events
+              const uniqueAttendedEvents = attendedTickets.reduce((acc: any[], ticket: any) => {
+                if (!acc.find(e => e.eventId === ticket.eventId)) {
+                  acc.push(ticket)
+                }
+                return acc
+              }, [])
+              setAttendedEvents(uniqueAttendedEvents)
+
+              // Calculate active tickets
+              const active = tickets.filter((ticket: any) => 
+                (ticket.status === 'CONFIRMED' || ticket.status === 'confirmed') && !ticket.checkedIn
+              ).length
+              setActiveTickets(active)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error)
+        }
+      }
+
+      fetchData()
+    }
+  }, [user?.id, userTickets.length])
 
   const handleBrowseEvents = () => {
     router.replace('/dashboard?tab=events')
@@ -305,7 +363,13 @@ export default function DashboardOverview() {
           </div>
         </div>
         <div className="p-6">
-          {userTickets.filter((t: any) => t.status === 'CONFIRMED' && !t.checkedIn).length === 0 ? (
+          {userTickets.filter((t: any) => {
+            if (!(t.status === 'CONFIRMED' || t.status === 'confirmed') || t.checkedIn || !t.event) return false
+            // Only show future events
+            const eventDate = new Date(t.event.startDate)
+            const now = new Date()
+            return eventDate > now
+          }).length === 0 ? (
             <div className="text-center py-8">
               <Ticket size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 mb-4">No upcoming events</p>
@@ -319,7 +383,13 @@ export default function DashboardOverview() {
           ) : (
             <div className="space-y-4">
               {userTickets
-                .filter((t: any) => t.status === 'CONFIRMED' && !t.checkedIn)
+                .filter((t: any) => {
+                  if (!(t.status === 'CONFIRMED' || t.status === 'confirmed') || t.checkedIn || !t.event) return false
+                  // Only show future events
+                  const eventDate = new Date(t.event.startDate)
+                  const now = new Date()
+                  return eventDate > now
+                })
                 .slice(0, 5)
                 .map((ticket: any, index: number) => {
                   const event = ticket.event

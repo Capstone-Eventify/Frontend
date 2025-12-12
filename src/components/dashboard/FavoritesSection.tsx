@@ -29,7 +29,7 @@ export default function FavoritesSection() {
     } else {
       setIsLoading(false)
     }
-  }, [isAuthenticated, user])
+  }, []) // Only run on mount
 
   const loadFavorites = async () => {
     try {

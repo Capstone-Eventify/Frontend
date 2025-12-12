@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { UserProvider } from '@/contexts/UserContext'
+import { SocketProvider } from '@/contexts/SocketContext'
 import AuthModalWrapper from '@/components/auth/AuthModalWrapper'
 import ConditionalLayout from '@/components/layout/ConditionalLayout'
+import NotificationToast from '@/components/notifications/NotificationToast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -36,10 +38,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <UserProvider>
           <AuthProvider>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
-            <AuthModalWrapper />
+            <SocketProvider>
+              <ConditionalLayout>
+                {children}
+              </ConditionalLayout>
+              <AuthModalWrapper />
+              <NotificationToast />
+            </SocketProvider>
           </AuthProvider>
         </UserProvider>
       </body>

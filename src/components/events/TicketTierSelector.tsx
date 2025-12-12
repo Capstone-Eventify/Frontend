@@ -39,6 +39,7 @@ export default function TicketTierSelector({
   // Use ref to track if component is mounted and avoid calling onSelectionChange during initial render
   const isMountedRef = useRef(false)
   const onSelectionChangeRef = useRef(onSelectionChange)
+  const initialSelectionsRef = useRef(initialSelections)
 
   // Update ref when callback changes
   useEffect(() => {
@@ -46,8 +47,13 @@ export default function TicketTierSelector({
   }, [onSelectionChange])
 
   // Sync selections with initialSelections prop when it changes externally
+  // Use JSON.stringify for deep comparison to prevent infinite loops
   useEffect(() => {
-    if (initialSelections.length > 0) {
+    const currentInitialStr = JSON.stringify(initialSelections)
+    const prevInitialStr = JSON.stringify(initialSelectionsRef.current)
+    
+    if (initialSelections.length > 0 && currentInitialStr !== prevInitialStr) {
+      initialSelectionsRef.current = initialSelections
       setSelections(initialSelections)
     }
   }, [initialSelections])
