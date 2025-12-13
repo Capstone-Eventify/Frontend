@@ -164,7 +164,7 @@ export default function ProfileSection() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, []) // Only run on mount
+  }, [user?.id, updateUser]) // Run when user or updateUser changes
 
   // Use user data from API with fallbacks
   const userData = {
@@ -215,7 +215,7 @@ export default function ProfileSection() {
     }
     // Reset avatar preview when user changes
     setAvatarPreview(null)
-  }, [userProfile, user?.name, user?.email, user?.avatar])
+  }, [userProfile, user?.name, user?.email, user?.avatar, userData.name, userData.email, userData.phone, userData.street, userData.city, userData.state, userData.zipCode, userData.country, userData.bio])
 
   // Load organizer application status from API (only for non-admin users)
   useEffect(() => {
@@ -274,7 +274,7 @@ export default function ProfileSection() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, []) // Only run on mount
+  }, [isAdmin, isOrganizer, canCreateEvents, user?.id]) // Run when user properties change
 
   const handleSave = async () => {
     try {

@@ -202,7 +202,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
     }
 
     setupUpgrade()
-  }, [upgradeTierId, event.ticketTiers, event.id]) // Removed user dependency
+  }, [upgradeTierId, event.ticketTiers, event.id, user]) // Include user dependency
 
   // Demo promo codes
   const validPromoCodes: Record<string, number> = {
@@ -255,7 +255,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
     }
 
     fetchAttendees()
-  }, [event.id]) // Removed user dependency
+  }, [event.id, user]) // Include user dependency
 
   const handleTicketSelection = useCallback((selections: TicketSelection[]) => {
     setTicketSelections(selections)

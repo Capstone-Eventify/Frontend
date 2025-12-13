@@ -21,7 +21,7 @@ export default function NotificationTestPanel() {
   const [lastResponse, setLastResponse] = useState<string>('')
 
   const sendTestNotification = async (type: string, title: string, message: string) => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || user.role !== 'admin') {
       setLastResponse('Admin access required')
       return
     }
@@ -86,7 +86,7 @@ export default function NotificationTestPanel() {
   ]
 
   // Only show for admin users
-  if (!user || user.role !== 'ADMIN') {
+  if (!user || user.role !== 'admin') {
     return null
   }
 

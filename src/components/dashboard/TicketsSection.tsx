@@ -89,7 +89,7 @@ export default function TicketsSection() {
             }))
             
             console.log('Formatted tickets:', formattedTickets)
-            console.log('Ticket statuses:', formattedTickets.map(t => t.status))
+            console.log('Ticket statuses:', formattedTickets.map((t: any) => t.status))
             
             setAllTickets(formattedTickets)
           }
@@ -282,7 +282,7 @@ export default function TicketsSection() {
     selectedStatus,
     totalTickets: allTickets.length,
     filteredTickets: filteredTickets.length,
-    allStatuses: [...new Set(allTickets.map(t => t.status))],
+    allStatuses: Array.from(new Set(allTickets.map((t: any) => t.status))),
     searchQuery
   })
 

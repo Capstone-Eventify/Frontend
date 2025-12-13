@@ -123,7 +123,7 @@ export default function DashboardOverview() {
     return () => {
       isCancelled = true // Cleanup on unmount or dependency change
     }
-  }, []) // Only run on mount
+  }, [user?.id]) // Run when user changes
 
   // Separate effect to handle user loading
   useEffect(() => {

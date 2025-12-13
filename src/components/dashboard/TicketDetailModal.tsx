@@ -161,7 +161,7 @@ export default function TicketDetailModal({
 
   const handleDownloadAllTickets = async () => {
     console.log('Downloading tickets:', tickets)
-    console.log('Ticket structure:', tickets.map(t => ({ id: t.id, qrCode: t.qrCode })))
+    console.log('Ticket structure:', tickets.map((t: any) => ({ id: t.id, qrCode: t.qrCode })))
     
     if (tickets.length === 1) {
       // Single ticket - download directly

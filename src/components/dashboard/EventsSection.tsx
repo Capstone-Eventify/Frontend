@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { 
   Calendar, 
@@ -66,6 +67,7 @@ export default function EventsSection() {
   const [allEvents, setAllEvents] = useState<any[]>([])
   const [myRegisteredEvents, setMyRegisteredEvents] = useState<any[]>([])
   const [myCreatedEvents, setMyCreatedEvents] = useState<any[]>([])
+  const [myFavoriteEvents, setMyFavoriteEvents] = useState<any[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<any>(null)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
@@ -80,10 +82,12 @@ export default function EventsSection() {
       
       // Refresh events
       const eventsResponse = await fetch(`${apiUrl}/api/events`)
+      let allEventsData: any[] = []
       if (eventsResponse.ok) {
         const eventsData = await eventsResponse.json()
         if (eventsData.success) {
-          setAllEvents(eventsData.data || [])
+          allEventsData = eventsData.data || []
+          setAllEvents(allEventsData)
         }
       }
 
@@ -114,8 +118,8 @@ export default function EventsSection() {
           if (ticketsResponse.ok) {
             const ticketsData = await ticketsResponse.json()
             if (ticketsData.success) {
-              const registeredEventIds = [...new Set(ticketsData.data.map((ticket: any) => ticket.eventId))]
-              const registeredEvents = (eventsData?.data || []).filter((event: any) => registeredEventIds.includes(event.id))
+              const registeredEventIds = Array.from(new Set(ticketsData.data.map((ticket: any) => ticket.eventId)))
+              const registeredEvents = allEventsData.filter((event: any) => registeredEventIds.includes(event.id))
               setMyRegisteredEvents(registeredEvents)
             }
           }
@@ -246,7 +250,7 @@ export default function EventsSection() {
     return () => {
       isCancelled = true
     }
-  }, []) // Only run on mount - user changes shouldn't trigger refetch
+  }, [isOrganizer, user?.id, user?.role]) // Run when user properties change
 
   const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -410,7 +414,7 @@ export default function EventsSection() {
   }
 
   // Get events based on active tab
-  const getEventsForTab = (): any[] => {
+  const getEventsForTab = useCallback((): any[] => {
     switch (activeTab) {
       case 'my-events':
         return myRegisteredEvents
@@ -419,7 +423,7 @@ export default function EventsSection() {
       default:
         return allEvents
     }
-  }
+  }, [activeTab, myRegisteredEvents, myCreatedEvents, allEvents])
 
   // Filter events
   const filteredEvents = useMemo(() => {
@@ -432,7 +436,7 @@ export default function EventsSection() {
                            event.location?.toLowerCase().includes(searchQuery.toLowerCase())
       return matchesCategory && matchesSearch
     })
-  }, [activeTab, selectedCategory, searchQuery, allEvents, myRegisteredEvents, myCreatedEvents])
+  }, [activeTab, selectedCategory, searchQuery, getEventsForTab])
 
   const renderEventCard = (event: any, index: number) => {
     const isEnded = isEventEnded(event.date, event.time) || event.status === 'ended' || event.status === 'cancelled'
@@ -449,9 +453,11 @@ export default function EventsSection() {
         onClick={() => handleEventClick(event.id)}
       >
         <div className="relative">
-          <img
+          <Image
             src={event.image}
             alt={event.title}
+            width={400}
+            height={192}
             className="w-full h-48 object-cover"
           />
           <div className="absolute top-4 right-4 flex space-x-2">
@@ -603,9 +609,11 @@ export default function EventsSection() {
         onClick={() => handleEventClick(event.id)}
       >
         <div className="flex items-start space-x-4">
-          <img
+          <Image
             src={event.image}
             alt={event.title}
+            width={96}
+            height={96}
             className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
           />
           <div className="flex-1 min-w-0">

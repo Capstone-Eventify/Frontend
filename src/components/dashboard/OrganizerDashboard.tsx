@@ -140,7 +140,7 @@ const OrganizerDashboard: React.FC = () => {
     return () => {
       isCancelled = true
     }
-  }, []) // Only run on mount
+  }, [isLoaded, isOrganizer, user?.id]) // Run when user properties change
 
   const handleCreateEvent = () => {
     setEditingEvent(null)

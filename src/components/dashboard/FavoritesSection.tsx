@@ -29,7 +29,7 @@ export default function FavoritesSection() {
     } else {
       setIsLoading(false)
     }
-  }, []) // Only run on mount
+  }, [isAuthenticated, user]) // Run when authentication state changes
 
   const loadFavorites = async () => {
     try {

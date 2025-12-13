@@ -269,7 +269,7 @@ export default function PaymentForm(props: PaymentFormProps) {
     }
 
     createIntent()
-  }, [stripePromise, props.eventId, props.ticketTierId, props.quantity, props.promoCode, props.discount])
+  }, [stripePromise, props.eventId, props.ticketTierId, props.quantity, props.promoCode, props.discount, props.total])
 
   if (isLoading || !stripePromise) {
     return (

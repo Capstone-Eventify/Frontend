@@ -107,7 +107,7 @@ export default function NotificationCenter() {
     }
 
     fetchNotifications()
-  }, []) // Only run on mount
+  }, [user?.id]) // Run when user changes
 
   const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 

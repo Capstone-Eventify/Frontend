@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { Check, Calendar, Users, Ticket, Star, ArrowRight, ArrowLeft, Camera, MapPin, User } from 'lucide-react'
@@ -86,9 +87,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, onSkip, cla
           <div className="text-center">
             <div className="relative inline-block">
               {avatarPreview ? (
-                <img
+                <Image
                   src={avatarPreview}
                   alt="Profile preview"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-primary-200"
                 />
               ) : (

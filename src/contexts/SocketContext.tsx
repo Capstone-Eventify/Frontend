@@ -152,7 +152,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setSocket(null)
       setIsConnected(false)
     }
-  }, [isAuthenticated]) // Removed user dependency to prevent frequent reconnections
+  }, [isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Request notification permission on mount
   useEffect(() => {

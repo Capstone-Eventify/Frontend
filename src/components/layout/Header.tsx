@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
@@ -106,9 +107,11 @@ const Header = () => {
                     className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 transition-colors border-2 border-primary-300"
                   >
                     {user?.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.name || 'User'}
+                        width={40}
+                        height={40}
                         className="w-full h-full rounded-full object-cover"
                         onError={(e) => {
                           // If image fails to load (e.g., 403), hide it and show icon instead
