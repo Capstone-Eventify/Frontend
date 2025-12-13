@@ -77,6 +77,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [hasNextPage, setHasNextPage] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Load notifications from API
   const loadNotifications = useCallback(async (page = 1, append = false) => {
@@ -103,7 +104,8 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
 
       const response = await fetch(`${apiUrl}/api/notifications?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
         }
       })
 
@@ -250,17 +252,20 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
       
       if (!token) return
 
-      await fetch(`${apiUrl}/api/notifications/${id}`, {
-        method: 'DELETE',
+      // Mark as read instead of deleting
+      await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      // Update local state
-      setNotifications(prev => prev.filter(n => n.id !== id))
+      // Update local state to mark as read
+      setNotifications(prev => prev.map(n => 
+        n.id === id ? { ...n, isRead: true } : n
+      ))
     } catch (error) {
-      console.error('Error deleting notification:', error)
+      console.error('Error dismissing notification:', error)
     }
   }
 
@@ -271,7 +276,29 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
       
       if (!token) return
 
-      // Delete all API notifications
+      // Mark all notifications as read instead of deleting them
+      await fetch(`${apiUrl}/api/notifications/read-all`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      // Update local state to mark all as read
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    } catch (error) {
+      console.error('Error clearing all notifications:', error)
+    }
+  }
+
+  const permanentlyDeleteAll = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      // Delete all API notifications permanently
       const apiNotifications = notifications.filter(n => !n.id?.startsWith('notif_'))
       await Promise.all(
         apiNotifications.map(n => 
@@ -286,8 +313,9 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
 
       // Clear all notifications from local state
       setNotifications([])
+      setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error clearing all notifications:', error)
+      console.error('Error permanently deleting notifications:', error)
     }
   }
 
@@ -430,15 +458,26 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                       </Button>
                     )}
                     {notifications.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={clearAllNotifications}
-                        className="text-xs text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 size={14} className="mr-1" />
-                        Clear all
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearAllNotifications}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          <Check size={14} className="mr-1" />
+                          Mark all read
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          Delete all
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -534,8 +573,8 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                                       e.stopPropagation()
                                       removeNotification(notification.id)
                                     }}
-                                    className="text-gray-400 hover:text-red-600 w-6 h-6 p-0 flex-shrink-0"
-                                    title="Remove notification"
+                                    className="text-gray-400 hover:text-blue-600 w-6 h-6 p-0 flex-shrink-0"
+                                    title="Mark as read"
                                   >
                                     <X size={12} />
                                   </Button>
@@ -589,6 +628,49 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
             </div>
           </motion.div>
         </>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Delete All Notifications?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              This will permanently delete all your notifications. This action cannot be undone.
+            </p>
+            <div className="flex space-x-3 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={permanentlyDeleteAll}
+                className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
+              >
+                Delete All
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   )
