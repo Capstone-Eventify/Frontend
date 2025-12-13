@@ -101,42 +101,49 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     let isMounted = true
     
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = localStorage.getItem(STORAGE_KEY)
-        if (storedUser && storedUser !== 'null' && storedUser !== 'undefined') {
-          try {
-            const parsedUser = JSON.parse(storedUser)
-            if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && isMounted) {
-              setUser(parsedUser)
-            } else {
+    // Add a small delay to ensure DOM is ready
+    const initializeUser = () => {
+      if (typeof window !== 'undefined' && isMounted) {
+        try {
+          const storedUser = localStorage.getItem(STORAGE_KEY)
+          if (storedUser && storedUser !== 'null' && storedUser !== 'undefined') {
+            try {
+              const parsedUser = JSON.parse(storedUser)
+              if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && isMounted) {
+                setUser(parsedUser)
+              } else {
+                localStorage.removeItem(STORAGE_KEY)
+              }
+            } catch (error) {
+              console.error('Error parsing stored user data:', error)
               localStorage.removeItem(STORAGE_KEY)
             }
-          } catch (error) {
-            console.error('Error parsing stored user data:', error)
-            localStorage.removeItem(STORAGE_KEY)
           }
-        }
-        
-        if (isMounted) {
-          setIsLoaded(true)
-        }
-        
-        // Refresh user data from API to get latest role
-        const token = localStorage.getItem('token')
-        if (token && isMounted) {
-          refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
-        }
-      } catch (error) {
-        console.error('Error in UserProvider useEffect:', error)
-        if (isMounted) {
-          setIsLoaded(true)
+          
+          if (isMounted) {
+            setIsLoaded(true)
+          }
+          
+          // Refresh user data from API to get latest role
+          const token = localStorage.getItem('token')
+          if (token && isMounted) {
+            refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
+          }
+        } catch (error) {
+          console.error('Error in UserProvider useEffect:', error)
+          if (isMounted) {
+            setIsLoaded(true)
+          }
         }
       }
     }
     
+    // Use setTimeout to ensure this runs after hydration
+    const timeoutId = setTimeout(initializeUser, 0)
+    
     return () => {
       isMounted = false
+      clearTimeout(timeoutId)
     }
   }, [])
 
