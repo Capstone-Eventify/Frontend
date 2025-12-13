@@ -111,3 +111,20 @@ tmp/
 *.debug.*
 *.dev.*
 *.local.*
+
+# Setup and utility scripts
+create-*.js
+create-*.ts
+create-*.tsx
+check-*.js
+check-*.ts
+check-*.tsx
+setup-*.js
+setup-*.ts
+setup-*.tsx
+migrate-*.js
+migrate-*.ts
+
+# Development utility scripts
+*-server.js
+*-server.ts
