@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useUser } from './UserContext'
+import ClientOnly from '@/components/ClientOnly'
 
 interface Notification {
   id?: string
@@ -50,6 +51,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
+    // Ensure we're on the client side
+    if (typeof window === 'undefined') return
+
     if (!isAuthenticated) {
       // Disconnect if user is not authenticated
       if (socket) {

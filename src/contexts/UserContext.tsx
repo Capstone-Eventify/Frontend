@@ -67,12 +67,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           })
           if (response.ok) {
             const userData = await response.json()
-            if (userData.success && userData.data) {
+            if (userData && userData.success && userData.data && userData.data.id) {
               const role = userData.data.role?.toLowerCase() || 'attendee'
               const updatedUser: User = {
                 id: userData.data.id,
-                name: userData.data.name || `${userData.data.firstName} ${userData.data.lastName}`,
-                email: userData.data.email,
+                name: userData.data.name || `${userData.data.firstName || ''} ${userData.data.lastName || ''}`.trim() || 'User',
+                email: userData.data.email || '',
                 role: role as UserRole,
                 organizerStatus: userData.data.organizerStatus?.toLowerCase() as OrganizerStatus | undefined,
                 isAdmin: userData.data.role === 'ADMIN' || role === 'admin',
@@ -84,6 +84,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
               // Save updated user to localStorage
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
             }
+          } else if (response.status === 401) {
+            // Token is invalid, clear user data
+            setUser(null)
+            localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem('token')
           }
         } catch (error) {
           console.error('Error refreshing user:', error)
@@ -94,24 +99,44 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // Load user from localStorage on mount and refresh from API
   useEffect(() => {
+    let isMounted = true
+    
     if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem(STORAGE_KEY)
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser)
-          setUser(parsedUser)
-        } catch (error) {
-          console.error('Error parsing stored user data:', error)
-          localStorage.removeItem(STORAGE_KEY)
+      try {
+        const storedUser = localStorage.getItem(STORAGE_KEY)
+        if (storedUser && storedUser !== 'null' && storedUser !== 'undefined') {
+          try {
+            const parsedUser = JSON.parse(storedUser)
+            if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && isMounted) {
+              setUser(parsedUser)
+            } else {
+              localStorage.removeItem(STORAGE_KEY)
+            }
+          } catch (error) {
+            console.error('Error parsing stored user data:', error)
+            localStorage.removeItem(STORAGE_KEY)
+          }
+        }
+        
+        if (isMounted) {
+          setIsLoaded(true)
+        }
+        
+        // Refresh user data from API to get latest role
+        const token = localStorage.getItem('token')
+        if (token && isMounted) {
+          refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
+        }
+      } catch (error) {
+        console.error('Error in UserProvider useEffect:', error)
+        if (isMounted) {
+          setIsLoaded(true)
         }
       }
-      setIsLoaded(true)
-      
-      // Refresh user data from API to get latest role
-      const token = localStorage.getItem('token')
-      if (token) {
-        refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
-      }
+    }
+    
+    return () => {
+      isMounted = false
     }
   }, [])
 
@@ -134,6 +159,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUser(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('token')
     }
   }
 
