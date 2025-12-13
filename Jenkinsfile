@@ -322,11 +322,7 @@ def deployToServer(String server, String credentials, String env) {
                 # Start with production command (npm start uses the built .next folder)
                 cd frontend
                 export NODE_ENV=production
-                pm2 start npm --name "eventify-${env}-frontend" -- start || {
-                    echo "⚠️ PM2 start failed, trying ecosystem config..."
-                    cd ..
-                    pm2 start ecosystem.config.js --only eventify-${env}-frontend
-                }
+                pm2 start npm --name "eventify-${env}-frontend" -- start
                 cd ..
                 pm2 save
                 
