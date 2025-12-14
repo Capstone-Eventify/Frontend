@@ -399,7 +399,7 @@ function DashboardContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.8 }}
                 transition={{ duration: 0.2, staggerChildren: 0.05 }}
-                className="absolute bottom-20 right-0 flex flex-col-reverse items-end space-y-reverse space-y-3 mb-3 z-50 pointer-events-auto"
+                className="absolute bottom-20 right-0 flex flex-col-reverse items-stretch space-y-reverse space-y-3 mb-3 z-50 pointer-events-auto min-w-max"
                 onClick={(e) => e.stopPropagation()}
               >
               {(() => {
@@ -528,12 +528,12 @@ function DashboardContent() {
                         action.onClick()
                         setIsQuickActionsOpen(false)
                       }}
-                      className="group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all pointer-events-auto bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-600"
+                      className="group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pointer-events-auto bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-600"
                       title={action.label}
                     >
                       <Icon size={22} />
-                      {/* Tooltip */}
-                      <span className="absolute right-full mr-3 px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      {/* Text appears on the left side on hover */}
+                      <span className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl z-[60] min-w-max">
                         {action.label}
                       </span>
                     </motion.button>
