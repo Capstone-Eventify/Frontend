@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/contexts/UserContext'
-import DemoUserSwitcher from '@/components/demo/DemoUserSwitcher'
+
 import NotificationBell from './NotificationBell'
 
 const Header = () => {
@@ -18,7 +18,7 @@ const Header = () => {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
-  const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
+
   const { openAuthModal } = useAuth()
   const { isAuthenticated, user, logout } = useUser()
 
@@ -308,11 +308,7 @@ const Header = () => {
         )}
       </div>
 
-      {/* COMMENTED OUT: Demo User Switcher - Use real API authentication instead */}
-      {/* <DemoUserSwitcher
-        isOpen={showDemoSwitcher}
-        onClose={() => setShowDemoSwitcher(false)}
-      /> */}
+
     </motion.header>
   )
 }
