@@ -16,19 +16,59 @@ interface ImageManagerProps {
   onImagesChange: (images: ImageItem[]) => void
   displayType: 'carousel' | 'static'
   onDisplayTypeChange: (type: 'carousel' | 'static') => void
+  eventName?: string // Event name for folder organization in S3
 }
 
 export default function ImageManager({
   images,
   onImagesChange,
   displayType,
-  onDisplayTypeChange
+  onDisplayTypeChange,
+  eventName
 }: ImageManagerProps) {
   const [imageUrl, setImageUrl] = useState('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Upload image to S3
+  const uploadImageToS3 = async (file: File): Promise<string> => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      throw new Error('Please sign in to upload images')
+    }
+
+    const formData = new FormData()
+    formData.append('image', file)
+    formData.append('folder', 'events')
+    if (eventName) {
+      formData.append('subFolder', eventName)
+    }
+
+    const response = await fetch(`${apiUrl}/api/upload/image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to upload image' }))
+      throw new Error(errorData.message || 'Failed to upload image')
+    }
+
+    const result = await response.json()
+    if (result.success) {
+      return result.data.url
+    } else {
+      throw new Error(result.message || 'Failed to upload image')
+    }
+  }
 
   const handleAddImage = () => {
     if (!imageUrl.trim()) return
@@ -102,26 +142,41 @@ export default function ImageManager({
   }
 
   // File Upload Handlers
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    Array.from(files).forEach((file) => {
+    setUploading(true)
+    const uploadPromises: Promise<ImageItem | null>[] = []
+
+    Array.from(files).forEach((file, index) => {
       if (file.type.startsWith('image/')) {
-        // Create a data URL for the image
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          const dataUrl = reader.result as string
-          const newImage: ImageItem = {
-            id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            url: dataUrl,
-            isPrimary: images.length === 0
-          }
-          onImagesChange([...images, newImage])
-        }
-        reader.readAsDataURL(file)
+        const uploadPromise = uploadImageToS3(file)
+          .then((s3Url) => {
+            const newImage: ImageItem = {
+              id: `img_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+              url: s3Url,
+              isPrimary: images.length === 0 && index === 0
+            }
+            return newImage
+          })
+          .catch((error) => {
+            console.error('Error uploading image:', error)
+            alert(`Failed to upload ${file.name}: ${error.message}`)
+            return null
+          })
+        uploadPromises.push(uploadPromise)
       }
     })
+
+    const uploadedImages = await Promise.all(uploadPromises)
+    const successfulUploads = uploadedImages.filter((img): img is ImageItem => img !== null)
+    
+    if (successfulUploads.length > 0) {
+      onImagesChange([...images, ...successfulUploads])
+    }
+    
+    setUploading(false)
 
     // Reset file input
     if (fileInputRef.current) {
@@ -129,28 +184,44 @@ export default function ImageManager({
     }
   }
 
-  const handleDropFiles = (e: React.DragEvent) => {
+  const handleDropFiles = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
     const files = e.dataTransfer.files
     if (!files || files.length === 0) return
 
-    Array.from(files).forEach((file) => {
+    setUploading(true)
+    const uploadPromises: Promise<ImageItem | null>[] = []
+
+    Array.from(files).forEach((file, index) => {
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          const dataUrl = reader.result as string
-          const newImage: ImageItem = {
-            id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            url: dataUrl,
-            isPrimary: images.length === 0
-          }
-          onImagesChange([...images, newImage])
-        }
-        reader.readAsDataURL(file)
+        const uploadPromise = uploadImageToS3(file)
+          .then((s3Url) => {
+            const newImage: ImageItem = {
+              id: `img_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+              url: s3Url,
+              isPrimary: images.length === 0 && index === 0
+            }
+            return newImage
+          })
+          .catch((error) => {
+            console.error('Error uploading image:', error)
+            alert(`Failed to upload ${file.name}: ${error.message}`)
+            return null
+          })
+        uploadPromises.push(uploadPromise)
       }
     })
+
+    const uploadedImages = await Promise.all(uploadPromises)
+    const successfulUploads = uploadedImages.filter((img): img is ImageItem => img !== null)
+    
+    if (successfulUploads.length > 0) {
+      onImagesChange([...images, ...successfulUploads])
+    }
+    
+    setUploading(false)
   }
 
   const handleDragOverFiles = (e: React.DragEvent) => {
@@ -213,9 +284,10 @@ export default function ImageManager({
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             className="mt-2"
+            disabled={uploading}
           >
             <Upload size={16} className="mr-2" />
-            Browse Files
+            {uploading ? 'Uploading...' : 'Browse Files'}
           </Button>
           <input
             ref={fileInputRef}
@@ -266,10 +338,10 @@ export default function ImageManager({
                   scale: dragOverIndex === index ? 1.02 : 1
                 }}
                 draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
+                onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, index)}
+                onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, index)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
+                onDrop={(e) => handleDrop(e as unknown as React.DragEvent, index)}
                 onDragEnd={handleDragEnd}
                 className={`flex items-center gap-3 p-3 border rounded-lg transition-all bg-white ${
                   dragOverIndex === index

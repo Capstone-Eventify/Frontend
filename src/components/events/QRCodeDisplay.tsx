@@ -25,9 +25,52 @@ export default function QRCodeDisplay({
   qrCode,
   seatNumber
 }: QRCodeDisplayProps) {
-  const handleDownload = () => {
-    // In a real app, this would generate a downloadable ticket PDF
-    alert('Ticket download feature coming soon!')
+  const handleDownload = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please log in to download your ticket')
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        // Get the filename from the response headers
+        const contentDisposition = response.headers.get('content-disposition')
+        let filename = `ticket_${ticketId}.pdf`
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+          if (filenameMatch) {
+            filename = filenameMatch[1]
+          }
+        }
+
+        // Create blob and download
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to download ticket' }))
+        alert(errorData.message || 'Failed to download ticket')
+      }
+    } catch (error) {
+      console.error('Error downloading ticket:', error)
+      alert('Failed to download ticket. Please try again.')
+    }
   }
 
   if (!isOpen) return null

@@ -60,35 +60,30 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ className }) => {
     }
 
     setIsLoading(true)
+    setError('')
     try {
-      // API call commented out for now
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/resetpassword/${token}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ password }),
-      // })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/resetpassword/${token}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      })
 
-      // const data = await response.json()
+      const data = await response.json()
 
-      // if (response.ok && data.success) {
-      //   setIsSuccess(true)
-      //   setTimeout(() => {
-      //     router.push('/login')
-      //   }, 2000)
-      // } else {
-      //   setError(data.message || 'Failed to reset password. The link may have expired.')
-      // }
-
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsSuccess(true)
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.')
+      if (response.ok && data.success) {
+        setIsSuccess(true)
+        setTimeout(() => {
+          router.push('/?signin=true')
+        }, 2000)
+      } else {
+        setError(data.message || 'Failed to reset password. The link may have expired.')
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -107,8 +102,8 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ className }) => {
           <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 break-words">
             The password reset link is invalid or missing. Please request a new one.
           </p>
-          <Button onClick={() => router.push('/login')} variant="primary" className="w-full">
-            Go to Login
+          <Button onClick={() => router.push('/?signin=true')} variant="primary" className="w-full">
+            Go to Sign In
           </Button>
         </motion.div>
       </div>
@@ -126,7 +121,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ className }) => {
           <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-green-500 mb-3 sm:mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 break-words">Password Reset Successful!</h2>
           <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 break-words">
-            Your password has been reset successfully. Redirecting to login...
+            Your password has been reset successfully. Redirecting to sign in...
           </p>
         </motion.div>
       </div>
@@ -258,10 +253,10 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ className }) => {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/?signin=true')}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200"
             >
-              ← Back to Login
+              ← Back to Sign In
             </button>
           </div>
         </div>

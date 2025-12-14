@@ -1,20 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/contexts/UserContext'
-import DemoUserSwitcher from '@/components/demo/DemoUserSwitcher'
-import { Users } from 'lucide-react'
+
 
 const HeroSection = () => {
   const router = useRouter()
   const { openAuthModal } = useAuth()
   const { isAuthenticated, canCreateEvents, isOrganizer } = useUser()
-  const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
+
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -96,26 +95,12 @@ const HeroSection = () => {
             >
               Create Event
             </Button>
-            {!isAuthenticated && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto border-white/50 text-white/90 hover:bg-white/10 hover:text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
-                onClick={() => setShowDemoSwitcher(true)}
-              >
-                <Users size={20} className="mr-2" />
-                Try Demo Users
-              </Button>
-            )}
+
           </motion.div>
         </motion.div>
       </div>
 
-      {/* Demo User Switcher */}
-      <DemoUserSwitcher
-        isOpen={showDemoSwitcher}
-        onClose={() => setShowDemoSwitcher(false)}
-      />
+
 
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

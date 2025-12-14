@@ -39,19 +39,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuth, className, initialMode = 's
 
   const handleForgotPassword = async (email: string) => {
     try {
-      // API call commented out for now
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/forgotpassword`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ email }),
-      // })
-      // const data = await response.json()
-      // if (!response.ok) {
-      //   console.error('Password reset error:', data.message)
-      // }
-      console.log('Password reset requested for:', email)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/forgotpassword`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        console.error('Password reset error:', data.message)
+      }
     } catch (error) {
       console.error('Password reset request failed:', error)
     }

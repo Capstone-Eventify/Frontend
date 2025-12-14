@@ -23,9 +23,14 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   // Use images array or fallback to single image
-  const imageList = images && images.length > 0 
-    ? images 
-    : [{ id: 'default', url: '', isPrimary: true }]
+  // Filter out empty or invalid URLs
+  const validImages = images && images.length > 0 
+    ? images.filter(img => img && img.url && img.url.trim() !== '')
+    : []
+  
+  const imageList = validImages.length > 0 
+    ? validImages 
+    : [{ id: 'default', url: '/placeholder-event.jpg', isPrimary: true }]
 
   const nextImage = () => {
     setCurrentIndex((prev) => (prev + 1) % imageList.length)
@@ -60,7 +65,9 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
                 alt={`${eventTitle} - Image ${index + 1}`}
                 className="w-full h-full object-cover aspect-square"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none'
+                  const target = e.target as HTMLImageElement
+                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
+                  target.onerror = null // Prevent infinite loop
                 }}
               />
               {index === 0 && image.isPrimary && (
@@ -83,16 +90,16 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
               onClick={() => setLightboxOpen(false)}
             >
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute top-4 right-4 text-white hover:bg-white/20"
                 onClick={() => setLightboxOpen(false)}
               >
                 <X size={24} />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute left-4 text-white hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -102,8 +109,8 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
                 <ChevronLeft size={24} />
               </Button>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 className="absolute right-4 text-white hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -145,7 +152,9 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
             className="w-full h-full object-cover cursor-pointer"
             onClick={() => openLightbox(currentIndex)}
             onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none'
+              const target = e.target as HTMLImageElement
+              target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="600"%3E%3Crect fill="%23ddd" width="800" height="600"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="24" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ENo Image Available%3C/text%3E%3C/svg%3E'
+              target.onerror = null // Prevent infinite loop
             }}
           />
         </AnimatePresence>
@@ -155,7 +164,7 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
           <>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm hover:bg-white"
               onClick={prevImage}
             >
@@ -163,7 +172,7 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm hover:bg-white"
               onClick={nextImage}
             >
@@ -208,16 +217,16 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
             onClick={() => setLightboxOpen(false)}
           >
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute top-4 right-4 text-white hover:bg-white/20"
               onClick={() => setLightboxOpen(false)}
             >
               <X size={24} />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute left-4 text-white hover:bg-white/20"
               onClick={(e) => {
                 e.stopPropagation()
@@ -227,8 +236,8 @@ export default function ImageGallery({ images, displayType, eventTitle }: ImageG
               <ChevronLeft size={24} />
             </Button>
             <Button
-              variant="ghost"
-              size="icon"
+              variant="outline"
+              size="sm"
               className="absolute right-4 text-white hover:bg-white/20"
               onClick={(e) => {
                 e.stopPropagation()

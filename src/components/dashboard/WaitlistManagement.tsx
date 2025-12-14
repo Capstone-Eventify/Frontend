@@ -39,12 +39,46 @@ export default function WaitlistManagement({
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
 
   useEffect(() => {
-    // Load waitlist entries for this event
-    if (typeof window !== 'undefined') {
-      const allEntries = JSON.parse(localStorage.getItem('eventify_waitlist') || '[]')
-      const eventEntries = allEntries.filter((entry: WaitlistEntry) => entry.eventId === eventId)
-      setWaitlistEntries(eventEntries)
+    // Load waitlist entries for this event from API
+    const fetchWaitlist = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) return
+
+        const response = await fetch(`${apiUrl}/api/waitlist/events/${eventId}/waitlist`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Format entries to match WaitlistEntry type
+            const formattedEntries = (data.data || []).map((entry: any) => ({
+              id: entry.id,
+              eventId: entry.eventId,
+              userId: entry.userId,
+              userName: entry.userName,
+              userEmail: entry.userEmail,
+              ticketTierId: entry.ticketTierId,
+              ticketTierName: entry.ticketTierName,
+              quantity: entry.quantity,
+              status: entry.status,
+              requestedAt: entry.requestedAt,
+              notes: entry.notes
+            }))
+            setWaitlistEntries(formattedEntries)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching waitlist:', error)
+      }
     }
+
+    fetchWaitlist()
   }, [eventId])
 
   const filteredEntries = waitlistEntries.filter(entry => {
@@ -52,7 +86,7 @@ export default function WaitlistManagement({
     return entry.status === filterStatus
   })
 
-  const handleApprove = (entryId: string) => {
+  const handleApprove = async (entryId: string) => {
     const entry = waitlistEntries.find(e => e.id === entryId)
     if (!entry) return
 
@@ -62,58 +96,123 @@ export default function WaitlistManagement({
       return
     }
 
-    // Update waitlist entry status
-    const allEntries = JSON.parse(localStorage.getItem('eventify_waitlist') || '[]')
-    const updatedEntries = allEntries.map((e: WaitlistEntry) => 
-      e.id === entryId ? { ...e, status: 'approved' as const } : e
-    )
-    localStorage.setItem('eventify_waitlist', JSON.stringify(updatedEntries))
-    setWaitlistEntries(updatedEntries.filter((e: WaitlistEntry) => e.eventId === eventId))
-
-    // Create ticket for approved entry
-    const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-    const newTicket = {
-      id: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      eventId: entry.eventId,
-      eventTitle: eventTitle,
-      eventDate: new Date().toLocaleDateString(),
-      eventTime: new Date().toLocaleTimeString(),
-      eventLocation: '',
-      ticketType: entry.ticketTierName,
-      price: 0, // Will be set based on tier
-      purchaseDate: new Date().toISOString(),
-      status: 'confirmed',
-      attendeeName: entry.userName,
-      attendeeEmail: entry.userEmail,
-      qrCode: `EVENT-${entry.eventId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      orderNumber: `ORD-${Date.now()}`,
-      image: '',
-      checkInStatus: 'pending' as 'pending' | 'checked_in' | 'no_show'
-    }
-    localStorage.setItem('eventify_tickets', JSON.stringify([...tickets, newTicket]))
-
-    // Update event attendees count
-    const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    const updatedEvents = organizerEvents.map((e: any) => {
-      if (e.id === eventId) {
-        return { ...e, attendees: (e.attendees || 0) + entry.quantity }
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to approve waitlist entries')
+        return
       }
-      return e
-    })
-    localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
 
-    alert(`Approved! Ticket created for ${entry.userName}`)
+      // Update waitlist entry status via API
+      const response = await fetch(`${apiUrl}/api/waitlist/waitlist/${entryId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'APPROVED' })
+      })
+
+      if (response.ok) {
+        // Refresh waitlist entries
+        const refreshResponse = await fetch(`${apiUrl}/api/waitlist/events/${eventId}/waitlist`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          if (refreshData.success) {
+            const formattedEntries = (refreshData.data || []).map((e: any) => ({
+              id: e.id,
+              eventId: e.eventId,
+              userId: e.userId,
+              userName: e.userName,
+              userEmail: e.userEmail,
+              ticketTierId: e.ticketTierId,
+              ticketTierName: e.ticketTierName,
+              quantity: e.quantity,
+              status: e.status,
+              requestedAt: e.requestedAt,
+              notes: e.notes
+            }))
+            setWaitlistEntries(formattedEntries)
+          }
+        }
+
+        alert(`Approved! Ticket created for ${entry.userName}`)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to approve waitlist entry' }))
+        throw new Error(errorData.message || 'Failed to approve waitlist entry')
+      }
+    } catch (error: any) {
+      console.error('Error approving waitlist entry:', error)
+      alert(`Failed to approve waitlist entry: ${error.message}`)
+    }
   }
 
-  const handleReject = (entryId: string) => {
+  const handleReject = async (entryId: string) => {
     if (!confirm('Are you sure you want to reject this waitlist request?')) return
 
-    const allEntries = JSON.parse(localStorage.getItem('eventify_waitlist') || '[]')
-    const updatedEntries = allEntries.map((e: WaitlistEntry) => 
-      e.id === entryId ? { ...e, status: 'rejected' as const } : e
-    )
-    localStorage.setItem('eventify_waitlist', JSON.stringify(updatedEntries))
-    setWaitlistEntries(updatedEntries.filter((e: WaitlistEntry) => e.eventId === eventId))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to reject waitlist entries')
+        return
+      }
+
+      // Update waitlist entry status via API
+      const response = await fetch(`${apiUrl}/api/waitlist/waitlist/${entryId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'REJECTED' })
+      })
+
+      if (response.ok) {
+        // Refresh waitlist entries
+        const refreshResponse = await fetch(`${apiUrl}/api/waitlist/events/${eventId}/waitlist`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          if (refreshData.success) {
+            const formattedEntries = (refreshData.data || []).map((e: any) => ({
+              id: e.id,
+              eventId: e.eventId,
+              userId: e.userId,
+              userName: e.userName,
+              userEmail: e.userEmail,
+              ticketTierId: e.ticketTierId,
+              ticketTierName: e.ticketTierName,
+              quantity: e.quantity,
+              status: e.status,
+              requestedAt: e.requestedAt,
+              notes: e.notes
+            }))
+            setWaitlistEntries(formattedEntries)
+          }
+        }
+
+        alert('Waitlist entry rejected')
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to reject waitlist entry' }))
+        throw new Error(errorData.message || 'Failed to reject waitlist entry')
+      }
+    } catch (error: any) {
+      console.error('Error rejecting waitlist entry:', error)
+      alert(`Failed to reject waitlist entry: ${error.message}`)
+    }
   }
 
   const getStatusBadge = (status: string) => {

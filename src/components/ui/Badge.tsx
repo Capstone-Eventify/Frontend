@@ -9,6 +9,7 @@ interface BadgeProps {
   variant?: 'live' | 'starting' | 'day' | 'success' | 'warning' | 'error' | 'outline'
   size?: 'sm' | 'md' | 'lg'
   className?: string
+  onClick?: () => void
 }
 
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(

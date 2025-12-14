@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -21,7 +21,7 @@ import TicketTierSelector from './TicketTierSelector'
 import PromoCodeInput from './PromoCodeInput'
 import PaymentForm from './PaymentForm'
 import { useUser } from '@/contexts/UserContext'
-import { sendRegistrationEmail, sendWaitlistEmail } from '@/lib/emailNotifications'
+// REMOVED: Mock email notifications - Backend handles email sending
 
 interface TicketSelection {
   tierId: string
@@ -149,40 +149,60 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
 
   // Pre-select upgrade tier if provided
   useEffect(() => {
-    if (upgradeTierId && event.ticketTiers) {
-      const upgradeTier = event.ticketTiers.find(tier => tier.id === upgradeTierId)
-      if (upgradeTier && typeof window !== 'undefined') {
-        // Check if user has existing tickets for this event
-        const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-        const eventTickets = tickets.filter((t: any) => 
-          t.eventId === event.id && t.status === 'confirmed'
-        )
-        
-        if (eventTickets.length > 0) {
-          setIsUpgrade(true)
-          // Get the highest price tier user currently has
-          const userTierPrices = eventTickets
-            .map((t: any) => {
-              const price = typeof t.price === 'string' ? parseFloat(t.price.replace('$', '')) : (t.price || 0)
-              return price
+    const setupUpgrade = async () => {
+      if (upgradeTierId && event.ticketTiers) {
+        const upgradeTier = event.ticketTiers.find(tier => tier.id === upgradeTierId)
+        if (upgradeTier && user) {
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+            const token = localStorage.getItem('token')
+            
+            if (!token) return
+
+            // Fetch user's tickets for this event from API
+            const response = await fetch(`${apiUrl}/api/tickets`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
             })
-            .filter((p: number) => !isNaN(p))
-          
-          const maxPrice = userTierPrices.length > 0 ? Math.max(...userTierPrices) : 0
-          setCurrentTierPrice(maxPrice)
-          setUpgradeCost(upgradeTier.price - maxPrice)
+
+            if (response.ok) {
+              const data = await response.json()
+              if (data.success) {
+                const eventTickets = data.data.filter((t: any) => 
+                  t.eventId === event.id && t.status === 'CONFIRMED'
+                )
+                
+                if (eventTickets.length > 0) {
+                  setIsUpgrade(true)
+                  // Get the highest price tier user currently has
+                  const userTierPrices = eventTickets
+                    .map((t: any) => t.price || 0)
+                    .filter((p: number) => !isNaN(p))
+                  
+                  const maxPrice = userTierPrices.length > 0 ? Math.max(...userTierPrices) : 0
+                  setCurrentTierPrice(maxPrice)
+                  setUpgradeCost(upgradeTier.price - maxPrice)
+                }
+                
+                setTicketSelections([{
+                  tierId: upgradeTier.id,
+                  tierName: upgradeTier.name,
+                  price: upgradeTier.price,
+                  quantity: 1
+                }])
+                setAttendees([{ name: user?.name || '', email: user?.email || '' }])
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching tickets for upgrade:', error)
+          }
         }
-        
-        setTicketSelections([{
-          tierId: upgradeTier.id,
-          tierName: upgradeTier.name,
-          price: upgradeTier.price,
-          quantity: 1
-        }])
-        setAttendees([{ name: user?.name || '', email: user?.email || '' }])
       }
     }
-  }, [upgradeTierId, event.ticketTiers, event.id, user])
+
+    setupUpgrade()
+  }, [upgradeTierId, event.ticketTiers, event.id, user]) // Include user dependency
 
   // Demo promo codes
   const validPromoCodes: Record<string, number> = {
@@ -205,17 +225,39 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
   }
 
   useEffect(() => {
-    // Update current attendees from localStorage
-    if (typeof window !== 'undefined') {
-      const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-      const eventTickets = tickets.filter((t: any) => 
-        t.eventId === event.id && t.status === 'confirmed'
-      )
-      setCurrentAttendees(eventTickets.length)
-    }
-  }, [event.id])
+    // Fetch current attendees from API
+    const fetchAttendees = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token || !user) return
 
-  const handleTicketSelection = (selections: TicketSelection[]) => {
+        // Fetch tickets for this event
+        const response = await fetch(`${apiUrl}/api/tickets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const eventTickets = data.data.filter((t: any) => 
+              t.eventId === event.id && t.status === 'CONFIRMED'
+            )
+            setCurrentAttendees(eventTickets.length)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching attendees:', error)
+      }
+    }
+
+    fetchAttendees()
+  }, [event.id, user]) // Include user dependency
+
+  const handleTicketSelection = useCallback((selections: TicketSelection[]) => {
     setTicketSelections(selections)
     // Generate attendee forms for total tickets
     const totalTickets = selections.reduce((sum, sel) => sum + sel.quantity, 0)
@@ -229,7 +271,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
     const totalRequested = totalTickets
     const remainingCapacity = event.maxAttendees - currentAttendees
     setWillGoToWaitlist(totalRequested > remainingCapacity)
-  }
+  }, [event.maxAttendees, currentAttendees])
 
   const handleAttendeeChange = (index: number, field: keyof AttendeeInfo, value: string) => {
     const newAttendees = [...attendees]
@@ -318,157 +360,14 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
   }
 
   const handlePaymentComplete = () => {
-    // Double check event hasn't ended before completing payment
-    if (eventHasEnded) {
-      alert('This event has ended. Registration is no longer available.')
-      router.push(`/events/${event.id}`)
-      return
-    }
+    // PaymentForm already calls /api/payments/confirm which creates tickets in the backend
+    // Just redirect to success page - tickets are already created via API
+    router.push('/dashboard?tab=tickets&success=true')
     
-    const totalRequestedTickets = ticketSelections.reduce((sum, sel) => sum + sel.quantity, 0)
-    const remainingCapacity = event.maxAttendees - currentAttendees
-    
-    if (totalRequestedTickets > remainingCapacity) {
-      // Add to waitlist
-      const waitlistEntries: WaitlistEntry[] = ticketSelections.flatMap((selection, selIndex) => {
-        const startIndex = ticketSelections
-          .slice(0, selIndex)
-          .reduce((sum, s) => sum + s.quantity, 0)
-        
-        return Array(selection.quantity).fill(null).map((_, index) => {
-          const attendeeIndex = startIndex + index
-          return {
-            id: `waitlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            eventId: event.id,
-            userId: user?.id || '',
-            userName: attendees[attendeeIndex]?.name || user?.name || '',
-            userEmail: attendees[attendeeIndex]?.email || user?.email || '',
-            ticketTierId: selection.tierId,
-            ticketTierName: selection.tierName,
-            quantity: 1,
-            requestedAt: new Date().toISOString(),
-            status: 'pending' as const,
-            notes: ''
-          }
-        })
-      })
-
-      const existingWaitlist = JSON.parse(localStorage.getItem('eventify_waitlist') || '[]')
-      localStorage.setItem('eventify_waitlist', JSON.stringify([...existingWaitlist, ...waitlistEntries]))
-      
-      // Send email notification to organizer for each waitlist entry
-      if (event.organizer?.email) {
-        waitlistEntries.forEach(entry => {
-          sendWaitlistEmail(
-            event.organizer.email,
-            event.organizer.name || 'Organizer',
-            event.id,
-            event.title,
-            entry.userName,
-            entry.userEmail,
-            entry.quantity,
-            entry.ticketTierName
-          )
-        })
-      }
-      
-      // Show waitlist confirmation
-      alert(`You've been added to the waitlist. The organizer will review your request and notify you.`)
-      router.push('/dashboard?tab=tickets&waitlist=true')
-    } else {
-      // Create confirmed tickets
-      const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-      
-      // Create a single order ID for this purchase
-      const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const purchaseTimestamp = Date.now()
-      
-      const newTickets = ticketSelections.flatMap(selection => {
-        return Array(selection.quantity).fill(null).map((_, index) => {
-          const attendeeIndex = ticketSelections
-            .slice(0, ticketSelections.indexOf(selection))
-            .reduce((sum, s) => sum + s.quantity, 0) + index
-          
-          // Generate seat number only if event has assigned seating
-          const seatNumber = event.hasSeating 
-            ? `${String.fromCharCode(65 + (index % 26))}-${Math.floor(index / 26) + 1}` // A-1, B-1, etc.
-            : null
-
-          return {
-            id: `ticket_${purchaseTimestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-            eventId: event.id,
-            eventTitle: event.title,
-            eventDate: event.date,
-            eventTime: event.time,
-            eventLocation: event.location,
-            ticketType: selection.tierName,
-            ticketTierId: selection.tierId,
-            price: selection.price,
-            purchaseDate: new Date().toISOString(),
-            status: 'confirmed',
-            attendeeName: attendees[attendeeIndex]?.name || '',
-            attendeeEmail: attendees[attendeeIndex]?.email || '',
-            qrCode: `EVENT-${event.id}-${purchaseTimestamp}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-            orderNumber: orderId,
-            orderId: orderId, // Add orderId for grouping
-            image: event.image,
-            seatNumber: seatNumber,
-            checkInStatus: 'pending' as 'pending' | 'checked_in' | 'no_show'
-          }
-        })
-      })
-
-      localStorage.setItem('eventify_tickets', JSON.stringify([...tickets, ...newTickets]))
-      
-      // Send email notifications to organizer for each ticket purchase
-      if (event.organizer?.email) {
-        // Group tickets by attendee and ticket type to send consolidated emails
-        const ticketGroups = newTickets.reduce((acc: any, ticket: any) => {
-          const key = `${ticket.attendeeEmail}_${ticket.ticketTierId}`
-          if (!acc[key]) {
-            acc[key] = {
-              attendeeName: ticket.attendeeName,
-              attendeeEmail: ticket.attendeeEmail,
-              ticketType: ticket.ticketType,
-              ticketTierId: ticket.ticketTierId,
-              quantity: 0,
-              totalAmount: 0
-            }
-          }
-          acc[key].quantity += 1
-          acc[key].totalAmount += parseFloat(String(ticket.price).replace('$', '')) || 0
-          return acc
-        }, {})
-
-        // Send one email per attendee/ticket type combination
-        Object.values(ticketGroups).forEach((group: any) => {
-          sendRegistrationEmail(
-            event.organizer.email,
-            event.organizer.name || 'Organizer',
-            event.id,
-            event.title,
-            group.attendeeName,
-            group.attendeeEmail,
-            group.quantity,
-            group.ticketType,
-            group.totalAmount
-          )
-        })
-      }
-      
-      // Update event attendees count
-      const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      const updatedEvents = organizerEvents.map((e: any) => {
-        if (e.id === event.id) {
-          return { ...e, attendees: (e.attendees || 0) + totalRequestedTickets }
-        }
-        return e
-      })
-      localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-      
-      // Redirect to success page
-      router.push('/dashboard?tab=tickets&success=true')
-    }
+    // REMOVED: All localStorage ticket creation - handled by backend API
+    // REMOVED: All localStorage waitlist creation - use /api/waitlist endpoint
+    // REMOVED: All localStorage event updates - backend handles this
+    // REMOVED: All mock email notifications - backend handles email sending
   }
 
   const renderStepContent = () => {
@@ -485,7 +384,7 @@ export default function CheckoutFlow({ event, upgradeTierId }: CheckoutFlowProps
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm sm:text-base font-bold text-gray-900 mb-2 break-words">Ticket Upgrade - Payment Required</h4>
                     <p className="text-xs sm:text-sm text-gray-700 mb-3 break-words">
-                      You're upgrading your ticket to a higher tier. Pay the price difference to complete the upgrade.
+                      You&apos;re upgrading your ticket to a higher tier. Pay the price difference to complete the upgrade.
                     </p>
                     <div className="bg-white rounded-lg p-2 sm:p-3 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                       <div className="flex items-center justify-between gap-2">

@@ -30,21 +30,73 @@ export default function OrganizerApplicationModal({
   })
   const [applicationErrors, setApplicationErrors] = useState<Record<string, string>>({})
   const [application, setApplication] = useState<any>(existingApplication || null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Load user's application from API if not provided
   useEffect(() => {
-    if (existingApplication) {
-      setApplication(existingApplication)
-    } else {
-      setApplication(null)
-      setApplicationFormData({
-        organizationName: '',
-        website: '',
-        description: '',
-        reason: '',
-        experience: ''
-      })
-      setApplicationErrors({})
+    const fetchMyApplication = async () => {
+      if (!existingApplication && isOpen) {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const token = localStorage.getItem('token')
+          
+          if (!token) return
+
+          const response = await fetch(`${apiUrl}/api/organizer-applications/my-application`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data) {
+              setApplication(data.data)
+              setApplicationFormData({
+                organizationName: data.data.organizationName || '',
+                website: data.data.website || '',
+                description: data.data.description || '',
+                reason: data.data.reason || '',
+                experience: data.data.experience || ''
+              })
+            }
+          } else if (response.status === 404) {
+            // No application found, which is fine
+            setApplication(null)
+            setApplicationFormData({
+              organizationName: '',
+              website: '',
+              description: '',
+              reason: '',
+              experience: ''
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching application:', error)
+        }
+      } else if (existingApplication) {
+        setApplication(existingApplication)
+        setApplicationFormData({
+          organizationName: existingApplication.organizationName || '',
+          website: existingApplication.website || '',
+          description: existingApplication.description || '',
+          reason: existingApplication.reason || '',
+          experience: existingApplication.experience || ''
+        })
+      } else {
+        setApplication(null)
+        setApplicationFormData({
+          organizationName: '',
+          website: '',
+          description: '',
+          reason: '',
+          experience: ''
+        })
+        setApplicationErrors({})
+      }
     }
+
+    fetchMyApplication()
   }, [existingApplication, isOpen])
 
   const handleApplicationInputChange = (field: string, value: string) => {
@@ -74,35 +126,57 @@ export default function OrganizerApplicationModal({
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmitApplication = () => {
+  const handleSubmitApplication = async () => {
     if (!validateApplication()) return
 
-    const newApplication = {
-      id: `app_${Date.now()}`,
-      userId: user?.id,
-      userEmail: user?.email,
-      userName: user?.name,
-      organizationName: applicationFormData.organizationName,
-      website: applicationFormData.website,
-      description: applicationFormData.description,
-      reason: applicationFormData.reason,
-      experience: applicationFormData.experience,
-      status: 'pending',
-      submittedAt: new Date().toISOString()
-    }
+    setIsSubmitting(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to submit an application')
+        setIsSubmitting(false)
+        return
+      }
 
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      const applications = JSON.parse(localStorage.getItem('eventify_organizer_applications') || '[]')
-      // Remove old application if resubmitting
-      const filteredApplications = applications.filter((app: any) => app.userId !== user?.id)
-      localStorage.setItem('eventify_organizer_applications', JSON.stringify([...filteredApplications, newApplication]))
-    }
+      const response = await fetch(`${apiUrl}/api/organizer-applications`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          organizationName: applicationFormData.organizationName,
+          website: applicationFormData.website || null,
+          description: applicationFormData.description,
+          reason: applicationFormData.reason,
+          experience: applicationFormData.experience || null
+        })
+      })
 
-    setApplication(newApplication)
-    // Notify parent component
-    if (onApplicationSubmitted) {
-      onApplicationSubmitted()
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          setApplication(result.data)
+          alert('Organizer application submitted successfully!')
+          // Notify parent component
+          if (onApplicationSubmitted) {
+            onApplicationSubmitted()
+          }
+          onClose()
+        } else {
+          throw new Error(result.message || 'Failed to submit application')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to submit application' }))
+        throw new Error(errorData.message || 'Failed to submit application')
+      }
+    } catch (error: any) {
+      console.error('Error submitting application:', error)
+      alert(`Failed to submit application: ${error.message}`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -198,11 +272,7 @@ export default function OrganizerApplicationModal({
                     variant="outline" 
                     onClick={() => {
                       setApplication(null)
-                      if (typeof window !== 'undefined' && user?.id) {
-                        const applications = JSON.parse(localStorage.getItem('eventify_organizer_applications') || '[]')
-                        const updatedApplications = applications.filter((app: any) => app.userId !== user.id)
-                        localStorage.setItem('eventify_organizer_applications', JSON.stringify(updatedApplications))
-                      }
+                      // Applications are now managed via API, no localStorage needed
                     }}
                     className="w-full"
                   >
@@ -213,7 +283,7 @@ export default function OrganizerApplicationModal({
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 mb-4">
-                  Apply to become an organizer and start creating your own events. Once approved, you'll be able to create, manage, and sell tickets for your events.
+                  Apply to become an organizer and start creating your own events. Once approved, you&apos;ll be able to create, manage, and sell tickets for your events.
                 </p>
 
                 <div>
@@ -303,12 +373,12 @@ export default function OrganizerApplicationModal({
           <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 flex-shrink-0">
             {!application ? (
               <>
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button onClick={handleSubmitApplication}>
+                <Button onClick={handleSubmitApplication} disabled={isSubmitting}>
                   <Save size={16} className="mr-2" />
-                  Submit Application
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               </>
             ) : (

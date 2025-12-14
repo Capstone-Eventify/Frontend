@@ -104,6 +104,88 @@ export default function TicketDetailModal({
     onClose()
   }
 
+  const handleDownloadTicket = async (ticketId: string) => {
+    console.log('Downloading ticket with ID:', ticketId)
+    
+    if (!ticketId) {
+      alert('Ticket ID is missing. Please try again.')
+      return
+    }
+    
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please log in to download your ticket')
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        // Get the filename from the response headers
+        const contentDisposition = response.headers.get('content-disposition')
+        let filename = `ticket_${ticketId}.pdf`
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+          if (filenameMatch) {
+            filename = filenameMatch[1]
+          }
+        }
+
+        // Create blob and download
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to download ticket' }))
+        alert(errorData.message || 'Failed to download ticket')
+      }
+    } catch (error) {
+      console.error('Error downloading ticket:', error)
+      alert('Failed to download ticket. Please try again.')
+    }
+  }
+
+  const handleDownloadAllTickets = async () => {
+    console.log('Downloading tickets:', tickets)
+    console.log('Ticket structure:', tickets.map((t: any) => ({ id: t.id, qrCode: t.qrCode })))
+    
+    if (tickets.length === 1) {
+      // Single ticket - download directly
+      const ticketId = tickets[0].id
+      if (ticketId) {
+        await handleDownloadTicket(ticketId)
+      } else {
+        console.error('Ticket ID not found in ticket:', tickets[0])
+        alert('Ticket ID not found')
+      }
+    } else {
+      // Multiple tickets - download each one
+      for (const ticket of tickets) {
+        if (ticket.id) {
+          await handleDownloadTicket(ticket.id)
+          // Add a small delay between downloads to avoid overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 500))
+        } else {
+          console.error('Ticket ID not found in ticket:', ticket)
+        }
+      }
+    }
+  }
+
   return (
     <>
       <AnimatePresence>
@@ -233,39 +315,55 @@ export default function TicketDetailModal({
                       Your Tickets ({tickets.length} {tickets.length === 1 ? 'Ticket' : 'Tickets'})
                     </h4>
                     <div className="space-y-4">
-                      {Object.entries(ticketsByTier).map(([tierName, tierTickets]: [string, any[]]) => {
-                        const tierPrice = typeof tierTickets[0].price === 'string' 
-                          ? parseFloat(tierTickets[0].price.replace('$', '')) 
-                          : (tierTickets[0].price || 0)
+                      {Object.entries(ticketsByTier).map(([tierName, tierTickets]: [string, unknown]) => {
+                        const tickets = tierTickets as any[]
+                        const tierPrice = typeof tickets[0]?.price === 'string' 
+                          ? parseFloat(tickets[0].price.replace('$', '')) 
+                          : (tickets[0]?.price || 0)
                         return (
                           <div key={tierName} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div>
                                 <h5 className="font-semibold text-gray-900">{tierName}</h5>
                                 <p className="text-sm text-gray-600">
-                                  {tierTickets.length} {tierTickets.length === 1 ? 'ticket' : 'tickets'} × ${tierPrice.toFixed(2)}
+                                  {tickets.length} {tickets.length === 1 ? 'ticket' : 'tickets'} × ${tierPrice.toFixed(2)}
                                 </p>
                               </div>
                               <p className="text-lg font-bold text-gray-900">
-                                ${(tierPrice * tierTickets.length).toFixed(2)}
+                                ${(tierPrice * tickets.length).toFixed(2)}
                               </p>
                             </div>
                             <div className="space-y-2">
-                              {tierTickets.map((t, idx) => (
+                              {tickets.map((t, idx) => (
                                 <div key={t.id} className="bg-gray-50 rounded-lg p-3 text-sm">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-gray-900">
                                       Ticket {idx + 1} {t.attendeeName && `- ${t.attendeeName}`}
                                     </span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setSelectedTicketForQR(t)}
-                                      className="text-xs"
-                                    >
-                                      <QrCode size={12} className="mr-1" />
-                                      QR
-                                    </Button>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedTicketForQR(t)}
+                                        className="text-xs"
+                                      >
+                                        <QrCode size={12} className="mr-1" />
+                                        QR
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          console.log('Individual ticket download:', t)
+                                          handleDownloadTicket(t.id)
+                                        }}
+                                        className="text-xs"
+                                        disabled={!t.id}
+                                      >
+                                        <Download size={12} className="mr-1" />
+                                        PDF
+                                      </Button>
+                                    </div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                                     <div>
@@ -349,9 +447,10 @@ export default function TicketDetailModal({
                           <Button
                             variant="outline"
                             className="w-full"
+                            onClick={() => handleDownloadAllTickets()}
                           >
                             <Download size={16} className="mr-2" />
-                            Download Ticket
+                            Download {tickets.length > 1 ? 'All Tickets' : 'Ticket'}
                           </Button>
                           <Button
                             variant="outline"

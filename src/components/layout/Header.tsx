@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUser } from '@/contexts/UserContext'
-import DemoUserSwitcher from '@/components/demo/DemoUserSwitcher'
+
 import NotificationBell from './NotificationBell'
 
 const Header = () => {
@@ -17,8 +18,7 @@ const Header = () => {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
-  const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
-  const [activeSection, setActiveSection] = useState<string>("home")
+
   const { openAuthModal } = useAuth()
   const { isAuthenticated, user, logout } = useUser()
 
@@ -47,63 +47,6 @@ const Header = () => {
     router.push('/dashboard')
   }
 
-  useEffect(() => {
-    const sectionsIds = NAVIGATION_ITEMS.map((item) => item.href.replace("#", ""))
-    const footerEl = document.getElementById('footer')
-  
-    // We'll track which sections are currently visible
-    const visibleSections = new Set<string>()
-  
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const id = entry.target.getAttribute('id')
-        if (!id) return
-  
-        if (entry.isIntersecting) {
-          visibleSections.add(id)
-        } else {
-          visibleSections.delete(id)
-        }
-      })
-  
-      // Remove footer from activeSection if visible
-      if (visibleSections.has('footer')) {
-        setActiveSection('')
-        return
-      }
-  
-      // Check if any section (excluding footer) is visible, if yes set the one with highest visibility
-      const visibleSectionIds = sectionsIds.filter(id => visibleSections.has(id))
-  
-      if (visibleSectionIds.length > 0) {
-        // Optionally, pick the first visible section or do some prioritization
-        setActiveSection(visibleSectionIds[0])
-      } else {
-        // If no sections visible (like top of page or footer), clear active
-        setActiveSection('')
-      }
-  
-    }, { threshold: 0.5 })
-  
-    // Observe all sections
-    sectionsIds.forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    })
-  
-    // Observe footer as well
-    if (footerEl) observer.observe(footerEl)
-  
-    return () => {
-      sectionsIds.forEach((id) => {
-        const el = document.getElementById(id)
-        if (el) observer.unobserve(el)
-      })
-      if (footerEl) observer.unobserve(footerEl)
-    }
-  }, [])
-  
-  
   return (
     <motion.header 
       className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50"
@@ -136,16 +79,10 @@ const Header = () => {
               <motion.div key={item.name} whileHover={{ y: -2 }}>
                 <Link
                   href={item.href}
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 border-b-2 ${
-                    activeSection === item.href.replace('#', '')
-                      ? 'border-primary-600 text-primary-600 font-semibold'
-                      : 'border-transparent text-gray-700 hover:border-primary-600 hover:text-primary-600'
-                  }`}
+                  className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
                 >
                   {item.name}
                 </Link>
-
-
               </motion.div>
             ))}
           </nav>
@@ -170,10 +107,17 @@ const Header = () => {
                     className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 transition-colors border-2 border-primary-300"
                   >
                     {user?.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.name || 'User'}
+                        width={40}
+                        height={40}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          // If image fails to load (e.g., 403), hide it and show icon instead
+                          console.error('Failed to load avatar image:', e.currentTarget.src)
+                          e.currentTarget.style.display = 'none'
+                        }}
                       />
                     ) : (
                       <User size={20} className="text-primary-600" />
@@ -220,7 +164,8 @@ const Header = () => {
                             <LayoutDashboard size={16} className="text-gray-500 flex-shrink-0" />
                             <span className="whitespace-normal break-words">Dashboard</span>
                           </button>
-                          <button
+                          {/* COMMENTED OUT: Switch User (Demo) button - Use real API authentication instead */}
+                          {/* <button
                             onClick={() => {
                               setShowDemoSwitcher(true)
                               setIsProfileDropdownOpen(false)
@@ -229,7 +174,7 @@ const Header = () => {
                           >
                             <User size={16} className="text-gray-500 flex-shrink-0" />
                             <span className="whitespace-normal break-words">Switch User (Demo)</span>
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => {
                               handleLogout()
@@ -290,19 +235,13 @@ const Header = () => {
             <div className="flex flex-col space-y-4">
               {NAVIGATION_ITEMS.map((item) => (
                 <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsMenuOpen(false)}
-                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 border-b-2 ${
-                  activeSection === item.href.replace('#', '')
-                    ? 'border-primary-600 text-primary-600 font-semibold'
-                    : 'border-transparent text-gray-700 hover:border-primary-600 hover:text-primary-600'
-                }`}
-              >
-                {item.name}
-              </Link>
-              
-              
+                  key={item.name}
+                  href={item.href}
+                  className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 {isAuthenticated ? (
@@ -369,11 +308,7 @@ const Header = () => {
         )}
       </div>
 
-      {/* Demo User Switcher */}
-      <DemoUserSwitcher
-        isOpen={showDemoSwitcher}
-        onClose={() => setShowDemoSwitcher(false)}
-      />
+
     </motion.header>
   )
 }

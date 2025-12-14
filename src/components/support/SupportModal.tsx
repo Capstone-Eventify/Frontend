@@ -72,44 +72,45 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
     setIsSubmitting(true)
 
     try {
-      // Store support ticket in localStorage
-      if (typeof window !== 'undefined') {
-        const tickets = JSON.parse(localStorage.getItem('eventify_support_tickets') || '[]')
-        const newTicket = {
-          id: `SUP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          ...formData,
-          status: 'open',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-        tickets.push(newTicket)
-        localStorage.setItem('eventify_support_tickets', JSON.stringify(tickets))
-
-        // API call (commented out for now)
-        // const token = localStorage.getItem('token')
-        // if (token) {
-        //   await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/support/tickets`, {
-        //     method: 'POST',
-        //     headers: {
-        //       'Authorization': `Bearer ${token}`,
-        //       'Content-Type': 'application/json'
-        //     },
-        //     body: JSON.stringify(formData)
-        //   })
-        // }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to create a support ticket')
+        setIsSubmitting(false)
+        return
       }
 
-      setIsSubmitted(true)
-      setTimeout(() => {
-        setIsSubmitted(false)
-        setFormData({
-          subject: '',
-          message: '',
-          category: 'general',
-          priority: 'medium'
+      const response = await fetch(`${apiUrl}/api/support-tickets`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subject: formData.subject,
+          description: formData.message,
+          category: formData.category,
+          priority: formData.priority
         })
-        onClose()
-      }, 2000)
+      })
+
+      if (response.ok) {
+        setIsSubmitted(true)
+        setTimeout(() => {
+          setIsSubmitted(false)
+          setFormData({
+            subject: '',
+            message: '',
+            category: 'general',
+            priority: 'medium'
+          })
+          onClose()
+        }, 2000)
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to submit support ticket' }))
+        alert(errorData.message || 'Failed to submit support ticket. Please try again.')
+      }
     } catch (error) {
       console.error('Failed to submit support ticket:', error)
       alert('Failed to submit support ticket. Please try again.')
@@ -148,7 +149,7 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Contact Support</h2>
-                <p className="text-sm text-gray-600">We're here to help!</p>
+                <p className="text-sm text-gray-600">We&apos;re here to help!</p>
               </div>
             </div>
             <Button
@@ -174,7 +175,7 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Ticket Submitted!</h3>
                 <p className="text-gray-600">
-                  Your support ticket has been created. We'll get back to you soon.
+                  Your support ticket has been created. We&apos;ll get back to you soon.
                 </p>
               </motion.div>
             ) : (

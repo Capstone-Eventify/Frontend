@@ -15,33 +15,72 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { getEventById } from '@/data/eventDetails'
 import { useUser } from '@/contexts/UserContext'
 
 export default function FavoritesSection() {
   const router = useRouter()
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, user } = useUser()
   const [favoriteEvents, setFavoriteEvents] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isAuthenticated && user) {
       loadFavorites()
+    } else {
+      setIsLoading(false)
     }
-  }, [])
+  }, [isAuthenticated, user]) // Run when authentication state changes
 
-  const loadFavorites = () => {
-    const favorites = JSON.parse(localStorage.getItem('eventify_favorites') || '[]')
-    const events = favorites
-      .map((id: string) => getEventById(id))
-      .filter((event: any) => event !== undefined)
-    setFavoriteEvents(events)
+  const loadFavorites = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/favorites`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setFavoriteEvents(data.data || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const removeFavorite = (eventId: string) => {
-    const favorites = JSON.parse(localStorage.getItem('eventify_favorites') || '[]')
-    const newFavorites = favorites.filter((id: string) => id !== eventId)
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
-    loadFavorites()
+  const removeFavorite = async (eventId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) return
+
+      const response = await fetch(`${apiUrl}/api/favorites/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        // Reload favorites
+        loadFavorites()
+      }
+    } catch (error) {
+      console.error('Error removing favorite:', error)
+    }
   }
 
   const handleEventClick = (eventId: string) => {
@@ -77,7 +116,7 @@ export default function FavoritesSection() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Favorites</h1>
-          <p className="text-gray-600">Events you've saved for later</p>
+          <p className="text-gray-600">Events you&apos;ve saved for later</p>
         </div>
         <Badge className="bg-red-50 text-red-700 border-red-200">
           {favoriteEvents.length} {favoriteEvents.length === 1 ? 'event' : 'events'}

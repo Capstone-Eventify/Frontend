@@ -43,31 +43,28 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     if (!validateEmail()) return
 
     setIsLoading(true)
+    setError('')
     try {
-      // API call commented out for now
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/forgotpassword`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ email }),
-      // })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/forgotpassword`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
 
-      // const data = await response.json()
+      const data = await response.json()
 
-      // if (response.ok && data.success) {
-      //   onResetPassword?.(email)
-      //   setIsSubmitted(true)
-      // } else {
-      //   setError(data.message || 'Something went wrong. Please try again.')
-      // }
-
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      onResetPassword?.(email)
-      setIsSubmitted(true)
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.')
+      if (response.ok && data.success) {
+        onResetPassword?.(email)
+        setIsSubmitted(true)
+      } else {
+        setError(data.message || 'Something went wrong. Please try again.')
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -99,11 +96,11 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           {/* Content */}
           <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-white to-green-50/30 text-center">
             <p className="text-sm sm:text-base text-gray-700 mb-4 sm:mb-6 break-words px-2">
-              We've sent a password reset link to <strong className="break-all">{email}</strong>
+              We&apos;ve sent a password reset link to <strong className="break-all">{email}</strong>
             </p>
             <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 px-2">
               Please check your email and click the link to reset your password. 
-              If you don't see the email, check your spam folder.
+              If you don&apos;t see the email, check your spam folder.
             </p>
             
             <div className="space-y-4">

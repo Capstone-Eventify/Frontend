@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Minus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -36,9 +36,36 @@ export default function TicketTierSelector({
         }))
   )
 
+  // Use ref to track if component is mounted and avoid calling onSelectionChange during initial render
+  const isMountedRef = useRef(false)
+  const onSelectionChangeRef = useRef(onSelectionChange)
+  const initialSelectionsRef = useRef(initialSelections)
+
+  // Update ref when callback changes
   useEffect(() => {
-    onSelectionChange(selections.filter(sel => sel.quantity > 0))
-  }, [selections, onSelectionChange])
+    onSelectionChangeRef.current = onSelectionChange
+  }, [onSelectionChange])
+
+  // Sync selections with initialSelections prop when it changes externally
+  // Use JSON.stringify for deep comparison to prevent infinite loops
+  useEffect(() => {
+    const currentInitialStr = JSON.stringify(initialSelections)
+    const prevInitialStr = JSON.stringify(initialSelectionsRef.current)
+    
+    if (initialSelections.length > 0 && currentInitialStr !== prevInitialStr) {
+      initialSelectionsRef.current = initialSelections
+      setSelections(initialSelections)
+    }
+  }, [initialSelections])
+
+  // Call onSelectionChange only when selections actually change (not on initial mount)
+  useEffect(() => {
+    if (isMountedRef.current) {
+      onSelectionChangeRef.current(selections.filter(sel => sel.quantity > 0))
+    } else {
+      isMountedRef.current = true
+    }
+  }, [selections])
 
   const updateQuantity = (tierId: string, change: number) => {
     setSelections(prev => prev.map(sel => {

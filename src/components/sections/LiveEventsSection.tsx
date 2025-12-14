@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { MapPin, Clock, Users, Heart, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { liveEvents } from '@/data/events'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -17,37 +16,137 @@ import { EventDetail } from '@/types/event'
 
 const LiveEventsSection = () => {
   const router = useRouter()
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, user } = useUser()
   const { openAuthModal } = useAuth()
+  const [liveEvents, setLiveEvents] = useState<any[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
   const [showShareModal, setShowShareModal] = useState(false)
   const [selectedEventForShare, setSelectedEventForShare] = useState<EventDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
+  // Fetch live events and favorites from API
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('eventify_favorites')
-      if (stored) {
-        setFavorites(JSON.parse(stored))
+    let isCancelled = false
+    
+    const fetchData = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        
+        // Fetch live events (always needed)
+        const eventsPromise = fetch(`${apiUrl}/api/events?status=LIVE&limit=3`)
+        
+        // Fetch favorites in parallel if authenticated
+        const token = isAuthenticated && user?.id ? localStorage.getItem('token') : null
+        const favoritesPromise = token ? fetch(`${apiUrl}/api/favorites`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }) : null
+
+        // Wait for both requests
+        const [eventsResponse, favoritesResponse] = await Promise.all([
+          eventsPromise,
+          favoritesPromise || Promise.resolve(null)
+        ])
+
+        if (isCancelled) return
+
+        // Process events
+        if (eventsResponse.ok) {
+          const data = await eventsResponse.json()
+          if (data.success && !isCancelled) {
+            const formattedEvents = (data.data || []).map((event: any) => ({
+              id: event.id,
+              title: event.title,
+              description: event.description,
+              location: event.isOnline ? 'Online Event' : (event.venueName || event.location || 'TBA'),
+              price: event.price || 'FREE',
+              attendees: event.attendees || event._count?.tickets || 0,
+              status: 'LIVE NOW',
+              timeInfo: event.startTime ? `Started at ${event.startTime}` : 'Happening now',
+              image: event.image || '/placeholder-event.jpg',
+              buttonText: 'Join Now',
+              buttonVariant: 'primary' as const,
+              date: event.date || event.startDate,
+              time: event.time || event.startTime,
+              category: event.category
+            }))
+            setLiveEvents(formattedEvents)
+          }
+        }
+
+        // Process favorites
+        if (favoritesResponse && favoritesResponse.ok && !isCancelled) {
+          const favData = await favoritesResponse.json()
+          if (favData.success) {
+            const favoriteIds = (favData.data || []).map((fav: any) => fav.eventId)
+            setFavorites(favoriteIds)
+          }
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Error fetching data:', error)
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
       }
     }
-  }, [])
 
-  const toggleFavorite = (eventId: string, e: React.MouseEvent) => {
+    fetchData()
+    
+    return () => {
+      isCancelled = true
+    }
+  }, [isAuthenticated, user?.id]) // Run when authentication state changes
+
+  const toggleFavorite = async (eventId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
     if (!isAuthenticated) {
-      // Open auth modal with redirect URL to the event detail page
       openAuthModal('signin', `/events/${eventId}`)
       return
     }
 
-    const newFavorites = favorites.includes(eventId)
-      ? favorites.filter(id => id !== eventId)
-      : [...favorites, eventId]
-    
-    setFavorites(newFavorites)
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        openAuthModal('signin', `/events/${eventId}`)
+        return
+      }
+
+      const isCurrentlyFavorite = favorites.includes(eventId)
+      
+      if (isCurrentlyFavorite) {
+        // Remove from favorites
+        const response = await fetch(`${apiUrl}/api/favorites/${eventId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          setFavorites(favorites.filter(id => id !== eventId))
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`${apiUrl}/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId })
+        })
+        if (response.ok) {
+          setFavorites([...favorites, eventId])
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
   }
 
   const handleShare = (event: any, e: React.MouseEvent) => {
@@ -121,7 +220,17 @@ const LiveEventsSection = () => {
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {liveEvents.map((event, index) => {
+            {isLoading ? (
+              <div className="col-span-full text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading live events...</p>
+              </div>
+            ) : liveEvents.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">No live events at the moment. Check back soon!</p>
+              </div>
+            ) : (
+              liveEvents.map((event, index) => {
               const isFavorite = favorites.includes(event.id)
               return (
                 <motion.div
@@ -215,7 +324,7 @@ const LiveEventsSection = () => {
                   </div>
                 </motion.div>
               )
-            })}
+            }))}
           </motion.div>
 
           {/* View All Button */}
