@@ -33,57 +33,7 @@ interface Notification {
   }
 }
 
-// Mock notifications
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'Event Registration Confirmed',
-    message: 'Your registration for Tech Innovation Summit 2024 has been confirmed.',
-    type: 'success',
-    timestamp: '2 hours ago',
-    isRead: false,
-    action: {
-      label: 'View Ticket',
-      onClick: () => console.log('View ticket')
-    }
-  },
-  {
-    id: '2',
-    title: 'Event Starting Soon',
-    message: 'Digital Marketing Masterclass starts in 30 minutes.',
-    type: 'warning',
-    timestamp: '30 minutes ago',
-    isRead: false,
-    action: {
-      label: 'Join Now',
-      onClick: () => console.log('Join event')
-    }
-  },
-  {
-    id: '3',
-    title: 'New Event Available',
-    message: 'Check out the latest events in your area.',
-    type: 'info',
-    timestamp: '1 day ago',
-    isRead: true,
-    action: {
-      label: 'Browse Events',
-      onClick: () => console.log('Browse events')
-    }
-  },
-  {
-    id: '4',
-    title: 'Payment Failed',
-    message: 'Your payment for Global Design Conference could not be processed.',
-    type: 'error',
-    timestamp: '2 days ago',
-    isRead: true,
-    action: {
-      label: 'Retry Payment',
-      onClick: () => console.log('Retry payment')
-    }
-  }
-]
+// Removed mock notifications - now fetching from API only
 
 const notificationIcons = {
   success: CheckCircle,
@@ -106,88 +56,127 @@ export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  // Load notifications from localStorage
+  // Load notifications from API
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('eventify_notifications')
-      if (stored) {
-        try {
-          const storedNotifications = JSON.parse(stored)
-          // Convert stored notifications to the format we need
-          const formattedNotifications: Notification[] = storedNotifications
-            .filter((n: any) => {
-              // Filter: show event_deleted notifications only to the organizer who owns the event
-              // For other types, show to all users (demo purposes)
-              if (n.type === 'event_deleted') {
-                // If organizerId matches current user's ID, show it
-                // Or if organizerId is not set, show to all (demo)
-                return !n.organizerId || n.organizerId === user?.id || !user
-              }
-              return true // Show all other notifications
-            })
-            .map((n: any) => ({
+    const fetchNotifications = async () => {
+      if (!user?.id) {
+        // No notifications if not logged in
+        setNotifications([])
+        return
+      }
+
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        
+        if (!token) {
+          setNotifications([])
+          return
+        }
+
+        const response = await fetch(`${apiUrl}/api/notifications`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const apiNotifications: Notification[] = (data.data || []).map((n: any) => ({
               id: n.id,
               title: n.title,
               message: n.message,
               type: n.type || 'info',
-              timestamp: n.timestamp || n.createdAt,
-              reason: n.reason,
-              eventId: n.eventId,
-              eventTitle: n.eventTitle,
-              isRead: n.isRead || n.read || false,
-              action: n.action
+              timestamp: n.createdAt,
+              isRead: n.isRead || false,
+              link: n.link
             }))
-          
-          // Merge with mock notifications for demo (excluding duplicates)
-          setNotifications([
-            ...formattedNotifications, 
-            ...mockNotifications.filter(mn => !formattedNotifications.some(fn => fn.id === mn.id))
-          ])
-        } catch (error) {
-          console.error('Error loading notifications:', error)
-          setNotifications(mockNotifications)
+            
+            setNotifications(apiNotifications)
+          } else {
+            setNotifications([])
+          }
+        } else {
+          setNotifications([])
         }
-      } else {
-        setNotifications(mockNotifications)
+      } catch (error) {
+        console.error('Error loading notifications:', error)
+        setNotifications([])
       }
     }
-  }, [user?.id])
+
+    fetchNotifications()
+  }, [user?.id]) // Run when user changes
 
   const unreadCount = notifications.filter(n => !n.isRead && !n.read).length
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     const updated = notifications.map(n => n.id === id ? { ...n, isRead: true, read: true } : n)
     setNotifications(updated)
     
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => n.id === id ? { ...n, read: true, isRead: true } : n)
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Update via API
+    if (user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/${id}/read`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+      }
     }
   }
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const updated = notifications.map(n => ({ ...n, isRead: true, read: true }))
     setNotifications(updated)
     
-    // Update in localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.map((n: any) => ({ ...n, read: true, isRead: true }))
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Update via API
+    if (user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/read-all`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error)
+      }
     }
   }
 
-  const removeNotification = (id: string) => {
+  const removeNotification = async (id: string) => {
     const updated = notifications.filter(n => n.id !== id)
     setNotifications(updated)
     
-    // Remove from localStorage
-    if (typeof window !== 'undefined') {
-      const stored = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      const updatedStored = stored.filter((n: any) => n.id !== id)
-      localStorage.setItem('eventify_notifications', JSON.stringify(updatedStored))
+    // Delete via API
+    if (user?.id) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        const token = localStorage.getItem('token')
+        if (token) {
+          await fetch(`${apiUrl}/api/notifications/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error deleting notification:', error)
+      }
     }
   }
 

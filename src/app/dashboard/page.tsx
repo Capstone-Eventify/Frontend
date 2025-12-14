@@ -15,15 +15,14 @@ import {
   LogOut,
   Heart,
   Shield,
-  ChevronLeft,
-  ChevronRight,
   Zap,
   BarChart3,
   Users,
   FileText,
   CheckCircle,
   MessageSquare,
-  Search
+  Search,
+  QrCode
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useUser } from '@/contexts/UserContext'
@@ -37,8 +36,10 @@ import OrganizerDashboard from '@/components/dashboard/OrganizerDashboard'
 import SettingsModal from '@/components/dashboard/SettingsModal'
 import AdminDashboard from '@/components/dashboard/AdminDashboard'
 import NotificationBell from '@/components/layout/NotificationBell'
+import QRCodeScanner from '@/components/dashboard/QRCodeScanner'
+import SupportTickets from '@/components/support/SupportTickets'
 
-type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin'
+type DashboardSection = 'overview' | 'events' | 'tickets' | 'favorites' | 'profile' | 'organizer' | 'admin' | 'support'
 
 const getNavigationItems = (canCreateEvents: boolean, isAdmin: boolean) => {
   if (isAdmin) {
@@ -51,13 +52,14 @@ const getNavigationItems = (canCreateEvents: boolean, isAdmin: boolean) => {
     ]
   }
   
-  // Regular users see: Overview, Events, Tickets, Favorites, Profile, Organizer (if approved)
+  // Regular users see: Overview, Events, Tickets, Favorites, Profile, Support, Organizer (if approved)
   return [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'tickets', label: 'My Tickets', icon: Ticket },
     { id: 'favorites', label: 'Favorites', icon: Heart },
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'support', label: 'Support', icon: MessageSquare },
     ...(canCreateEvents ? [{ id: 'organizer', label: 'Organizer', icon: Plus }] : []),
   ]
 }
@@ -67,17 +69,20 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  // Sidebar should always stay expanded - removed collapse functionality
+  const [isSidebarCollapsed] = useState(false)
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const { user, isOrganizer, canCreateEvents, isAuthenticated, isAdmin, logout } = useUser()
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [selectedEventForQRScan, setSelectedEventForQRScan] = useState<string>('')
+  const { user, isOrganizer, canCreateEvents, isAuthenticated, isAdmin, logout, isLoaded } = useUser()
   const { openAuthModal } = useAuth()
 
   // Check for query params to set active section - updates when URL changes
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['overview', 'events', 'tickets', 'favorites', 'profile', 'organizer', 'admin'].includes(tab)) {
+    if (tab && ['overview', 'events', 'tickets', 'favorites', 'profile', 'organizer', 'admin', 'support'].includes(tab)) {
       setActiveSection(tab as DashboardSection)
     } else {
       setActiveSection('overview')
@@ -92,20 +97,43 @@ function DashboardContent() {
 
   // Redirect to home and open auth modal if not authenticated (but not if we're logging out)
   useEffect(() => {
+    // Wait for user context to load before checking authentication
+    if (!isLoaded) {
+      return // Still loading, don't redirect yet
+    }
+
     if (!isAuthenticated && !isLoggingOut) {
       router.replace('/')
       // Small delay to ensure navigation completes before opening modal
       setTimeout(() => {
         openAuthModal('signin', '/dashboard')
       }, 100)
+      return
     }
-  }, [isAuthenticated, isLoggingOut, router, openAuthModal])
+
+    // Check if user needs to complete onboarding
+    if (isAuthenticated && user && !user.hasCompletedOnboarding) {
+      router.replace('/onboarding')
+    }
+  }, [isAuthenticated, isLoggingOut, user, router, openAuthModal, isLoaded])
 
   const handleLogout = () => {
     setIsLoggingOut(true)
     logout()
     // Use replace to ensure we go to home and prevent back navigation
     router.replace('/')
+  }
+
+  // Show loading state while user context is loading
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -132,6 +160,8 @@ function DashboardContent() {
         )
       case 'admin':
         return <AdminDashboard />
+      case 'support':
+        return <SupportTickets />
       default:
         return <DashboardOverview />
     }
@@ -139,36 +169,38 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Header Bar - Visible on all pages */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center space-x-4">
+      {/* Top Header Bar - Visible on all pages - Matching sidebar style */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40" style={{ height: '60px' }}>
+        <div className="flex items-center space-x-3">
           {/* Mobile Menu Button */}
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="lg:hidden"
+            className="lg:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </Button>
+          </button>
           
           {/* Logo/Name */}
           <h1 
             onClick={() => router.push('/')}
-            className="text-xl lg:text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
+            className="text-lg sm:text-xl lg:text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors break-words"
           >
             Eventify
           </h1>
         </div>
         
         {/* Right Side Actions */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           {/* Notification Bell */}
-          <NotificationBell />
+          <div className="relative">
+            <NotificationBell />
+          </div>
           
           {/* User Avatar and Name */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center border-2 border-primary-300">
+          <button
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center border border-primary-200">
               {user?.avatar ? (
                 <img
                   src={user.avatar}
@@ -181,27 +213,17 @@ function DashboardContent() {
             </div>
             {/* User Name - Hidden on very small screens, shown on sm and up */}
             <span className="hidden sm:inline text-sm font-medium text-gray-900">{user?.name || 'User'}</span>
-          </div>
+          </button>
         </div>
       </div>
 
       <div className="flex">
         {/* Sidebar - Always visible on desktop, collapsible */}
-        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 ${
+        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 fixed left-0 top-[60px] bottom-0 z-30 ${
           isSidebarCollapsed ? 'w-16' : 'w-64'
-        }`} style={{ height: 'calc(100vh - 60px)' }}>
-          <div className="flex flex-col h-full relative">
-            {/* Collapse Toggle */}
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="absolute -right-3 top-4 z-10 w-6 h-6 bg-white border border-gray-300 rounded-full flex items-center justify-center hover:bg-gray-50 shadow-sm"
-            >
-              {isSidebarCollapsed ? (
-                <ChevronRight size={14} className="text-gray-600" />
-              ) : (
-                <ChevronLeft size={14} className="text-gray-600" />
-              )}
-            </button>
+        }`}>
+          <div className="flex flex-col h-full relative overflow-y-auto">
+            {/* Collapse Toggle - Removed to prevent sidebar from collapsing */}
 
             {/* Navigation */}
             <nav className={`flex-1 space-y-2 pt-4 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
@@ -342,9 +364,9 @@ function DashboardContent() {
         )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col" style={{ minHeight: 'calc(100vh - 60px)' }}>
+            <div className={`flex-1 flex flex-col ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} pt-[60px]`}>
               {/* Content Area */}
-              <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto">
+              <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto" style={{ height: 'calc(100vh - 60px)' }}>
             <motion.div
               key={activeSection}
               initial={{ opacity: 0, y: 20 }}
@@ -377,7 +399,7 @@ function DashboardContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.8 }}
                 transition={{ duration: 0.2, staggerChildren: 0.05 }}
-                className="absolute bottom-20 right-0 flex flex-col-reverse items-end space-y-reverse space-y-3 mb-3 z-50 pointer-events-auto"
+                className="absolute bottom-20 right-0 flex flex-col-reverse items-stretch space-y-reverse space-y-3 mb-3 z-50 pointer-events-auto min-w-max"
                 onClick={(e) => e.stopPropagation()}
               >
               {(() => {
@@ -415,6 +437,16 @@ function DashboardContent() {
                 // Organizer-specific actions (users who can create events)
                 else if (canCreateEvents || isOrganizer) {
                   actions = [
+                    { 
+                      id: 'scan-qr-code', 
+                      label: 'Scan QR Code', 
+                      icon: QrCode, 
+                      onClick: () => {
+                        // Scanner works for any event - always use 'all'
+                        setSelectedEventForQRScan('all')
+                        setShowQRScanner(true)
+                      } 
+                    },
                     { 
                       id: 'create-event', 
                       label: 'Create Event', 
@@ -477,8 +509,7 @@ function DashboardContent() {
                       label: 'Contact Support', 
                       icon: MessageSquare, 
                       onClick: () => {
-                        // Could open a support modal or navigate to support page
-                        alert('Contact support feature coming soon!')
+                        handleSectionChange('support' as DashboardSection)
                       } 
                     },
                   ]
@@ -497,12 +528,12 @@ function DashboardContent() {
                         action.onClick()
                         setIsQuickActionsOpen(false)
                       }}
-                      className="group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all pointer-events-auto bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-600"
+                      className="group relative flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pointer-events-auto bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-600"
                       title={action.label}
                     >
                       <Icon size={22} />
-                      {/* Tooltip */}
-                      <span className="absolute right-full mr-3 px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      {/* Text appears on the left side on hover */}
+                      <span className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl z-[60] min-w-max">
                         {action.label}
                       </span>
                     </motion.button>
@@ -542,6 +573,56 @@ function DashboardContent() {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
       />
+
+      {/* QR Code Scanner */}
+      {showQRScanner && (
+        <QRCodeScanner
+          isOpen={showQRScanner}
+          onClose={() => {
+            setShowQRScanner(false)
+            setSelectedEventForQRScan('')
+          }}
+          eventId={selectedEventForQRScan || 'all'}
+          onCheckIn={async (ticketId: string, qrCode: string) => {
+            // Handle check-in via API
+            try {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+              const token = localStorage.getItem('token')
+              if (token) {
+                const response = await fetch(`${apiUrl}/api/tickets/${ticketId}/checkin`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ qrCode })
+                })
+                
+                const responseData = await response.json().catch(() => ({ success: false, message: 'Failed to parse response' }))
+                
+                if (!response.ok) {
+                  // Throw error so QRCodeScanner can catch and display it
+                  const errorMessage = responseData.message || 'Failed to check in ticket'
+                  if (response.status === 403) {
+                    throw new Error(errorMessage + ' You can only check in tickets for events you organized.')
+                  } else {
+                    throw new Error(errorMessage)
+                  }
+                } else if (!responseData.success) {
+                  // Unexpected response format - throw error
+                  throw new Error(responseData.message || 'Check-in failed')
+                }
+                // Success - QRCodeScanner will handle the success display
+                console.log('Ticket checked in successfully:', responseData.data)
+              }
+            } catch (error: any) {
+              console.error('Error checking in ticket:', error)
+              // Re-throw error so QRCodeScanner can catch and display it
+              throw error
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

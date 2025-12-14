@@ -13,7 +13,7 @@ import { Users } from 'lucide-react'
 const HeroSection = () => {
   const router = useRouter()
   const { openAuthModal } = useAuth()
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, canCreateEvents, isOrganizer } = useUser()
   const [showDemoSwitcher, setShowDemoSwitcher] = useState(false)
 
   return (
@@ -39,7 +39,7 @@ const HeroSection = () => {
         >
           <motion.h1
             variants={fadeInUp}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight px-2"
           >
             Professional Event Management
             <br />
@@ -48,7 +48,7 @@ const HeroSection = () => {
 
           <motion.p
             variants={fadeInUp}
-            className="text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed px-4"
           >
             Create, manage, and sell tickets for events of any size. From intimate gatherings to large conferences, Eventify provides all the tools you need.
           </motion.p>
@@ -60,7 +60,7 @@ const HeroSection = () => {
             <Button
               variant="primary"
               size="lg"
-              className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 text-lg"
+              className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
               onClick={() => {
                 if (isAuthenticated) {
                   router.push('/dashboard?tab=events')
@@ -80,8 +80,19 @@ const HeroSection = () => {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg"
-              onClick={() => openAuthModal('signup')}
+              className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-gray-900 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
+              onClick={() => {
+                if (isAuthenticated && (canCreateEvents || isOrganizer)) {
+                  // Navigate directly to dashboard create event page
+                  router.push('/dashboard?tab=organizer&create=true')
+                } else if (isAuthenticated) {
+                  // User is logged in but not an organizer - navigate to profile to apply
+                  router.push('/dashboard?tab=profile')
+                } else {
+                  // Not logged in - open signup modal
+                  openAuthModal('signup')
+                }
+              }}
             >
               Create Event
             </Button>
@@ -89,7 +100,7 @@ const HeroSection = () => {
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full sm:w-auto border-white/50 text-white/90 hover:bg-white/10 hover:text-white px-8 py-4 text-lg"
+                className="w-full sm:w-auto border-white/50 text-white/90 hover:bg-white/10 hover:text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
                 onClick={() => setShowDemoSwitcher(true)}
               >
                 <Users size={20} className="mr-2" />

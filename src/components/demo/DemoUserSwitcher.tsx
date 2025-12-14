@@ -36,7 +36,7 @@ const DEMO_USERS = {
     isAdmin: false,
     organizerStatus: undefined,
     joinDate: new Date('2024-03-01').toISOString(),
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80'
+    avatar: 'https://images.unsplash.com/photo-1494790108379-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80'
   }
 }
 

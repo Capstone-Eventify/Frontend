@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -16,81 +16,84 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { eventDetails } from '@/data/eventDetails'
-
-// Mock organizer data
-const organizers: Record<string, any> = {
-  'org1': {
-    id: 'org1',
-    name: 'Tech Events Inc.',
-    email: 'contact@techevents.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
-    bio: 'Leading technology event organizer with 10+ years of experience in bringing together innovators, entrepreneurs, and industry leaders. We specialize in creating transformative experiences that drive technological advancement and networking opportunities.',
-    location: 'San Francisco, CA',
-    website: 'https://techevents.com',
-    rating: 4.8,
-    totalEvents: 45,
-    totalAttendees: 125000,
-    joinDate: '2014-01-15',
-    categories: ['Technology', 'Innovation', 'Startups']
-  },
-  'org2': {
-    id: 'org2',
-    name: 'Marketing Pro',
-    email: 'hello@marketingpro.com',
-    bio: 'Digital marketing experts helping businesses grow online through comprehensive training and masterclasses.',
-    location: 'New York, NY',
-    rating: 4.6,
-    totalEvents: 28,
-    totalAttendees: 35000,
-    joinDate: '2018-03-20',
-    categories: ['Marketing', 'Digital', 'Business']
-  },
-  'org3': {
-    id: 'org3',
-    name: 'Design Collective',
-    email: 'info@designcollective.com',
-    bio: 'Celebrating design excellence worldwide. We bring together creative professionals to inspire and innovate.',
-    location: 'New York, NY',
-    rating: 4.9,
-    totalEvents: 62,
-    totalAttendees: 180000,
-    joinDate: '2012-06-10',
-    categories: ['Design', 'Creative', 'UX/UI']
-  },
-  'org4': {
-    id: 'org4',
-    name: 'Startup Hub',
-    email: 'contact@startuphub.com',
-    bio: 'Supporting the next generation of entrepreneurs through pitch competitions, networking events, and mentorship programs.',
-    location: 'Austin, TX',
-    rating: 4.7,
-    totalEvents: 35,
-    totalAttendees: 12000,
-    joinDate: '2019-04-05',
-    categories: ['Startup', 'Entrepreneurship', 'Investment']
-  }
-}
 
 export default function OrganizerProfilePage() {
   const params = useParams()
   const router = useRouter()
   const organizerId = params.id as string
-  const organizer = organizers[organizerId]
+  const [organizer, setOrganizer] = useState<any>(null)
+  const [organizerEvents, setOrganizerEvents] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchOrganizerData = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        
+        // Fetch events by organizer - this will include organizer info
+        const response = await fetch(`${apiUrl}/api/events/organizer/${organizerId}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data && data.data.length > 0) {
+            // Get organizer info from first event
+            const firstEvent = data.data[0]
+            if (firstEvent.organizer) {
+              setOrganizer({
+                id: firstEvent.organizer.id,
+                name: firstEvent.organizer.name,
+                email: firstEvent.organizer.email,
+                avatar: firstEvent.organizer.avatar,
+                bio: firstEvent.organizer.bio,
+                totalEvents: data.data.length,
+                totalAttendees: data.data.reduce((sum: number, e: any) => sum + (e.attendees || 0), 0),
+                joinDate: data.data[data.data.length - 1]?.createdAt || new Date().toISOString(),
+                categories: Array.from(new Set(data.data.map((e: any) => e.category).filter(Boolean)))
+              })
+            }
+            setOrganizerEvents(data.data)
+          } else {
+            // Organizer exists but has no events - try to get user info
+            // Note: This would require a user endpoint, for now show not found
+            setOrganizer(null)
+          }
+        } else {
+          setOrganizer(null)
+        }
+      } catch (error) {
+        console.error('Error fetching organizer data:', error)
+        setOrganizer(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (organizerId) {
+      fetchOrganizerData()
+    }
+  }, [organizerId])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading organizer profile...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!organizer) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Organizer Not Found</h1>
+          <p className="text-gray-600 mb-4">This organizer does not exist or has no events.</p>
           <Button onClick={() => router.push('/')}>Go Home</Button>
         </div>
       </div>
     )
   }
-
-  // Get events by this organizer
-  const organizerEvents = eventDetails.filter(event => event.organizer.id === organizerId)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -125,6 +128,7 @@ export default function OrganizerProfilePage() {
                       src={organizer.avatar}
                       alt={organizer.name}
                       fill
+                      sizes="128px"
                       className="rounded-full object-cover"
                     />
                   ) : (
@@ -134,13 +138,9 @@ export default function OrganizerProfilePage() {
                   )}
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">{organizer.name}</h1>
-                {organizer.rating && (
-                  <div className="flex items-center justify-center gap-1 mb-4">
-                    <Star size={18} className="text-yellow-400 fill-current" />
-                    <span className="font-semibold text-gray-900">{organizer.rating}</span>
-                    <span className="text-gray-600">({organizer.totalEvents} events)</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-center gap-1 mb-4">
+                  <span className="text-gray-600">({organizer.totalEvents} {organizer.totalEvents === 1 ? 'event' : 'events'})</span>
+                </div>
               </div>
 
               {/* Contact Info */}
@@ -149,25 +149,6 @@ export default function OrganizerProfilePage() {
                   <Mail size={16} className="text-gray-400" />
                   <span className="text-gray-600">{organizer.email}</span>
                 </div>
-                {organizer.location && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin size={16} className="text-gray-400" />
-                    <span className="text-gray-600">{organizer.location}</span>
-                  </div>
-                )}
-                {organizer.website && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <TrendingUp size={16} className="text-gray-400" />
-                    <a
-                      href={organizer.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:underline"
-                    >
-                      Visit Website
-                    </a>
-                  </div>
-                )}
               </div>
 
               {/* Stats */}
@@ -182,18 +163,12 @@ export default function OrganizerProfilePage() {
                     {organizer.totalAttendees.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Member Since</span>
-                  <span className="font-semibold text-gray-900">
-                    {new Date(organizer.joinDate).getFullYear()}
-                  </span>
-                </div>
               </div>
 
               {/* Categories */}
               {organizer.categories && organizer.categories.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-3">Specialties</p>
+                  <p className="text-sm font-medium text-gray-700 mb-3">Event Categories</p>
                   <div className="flex flex-wrap gap-2">
                     {organizer.categories.map((category: string, index: number) => (
                       <Badge key={index} variant="outline" size="sm">
@@ -245,7 +220,7 @@ export default function OrganizerProfilePage() {
                       onClick={() => router.push(`/events/${event.id}`)}
                     >
                       <img
-                        src={event.image}
+                        src={event.image || '/placeholder-event.jpg'}
                         alt={event.title}
                         className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                       />
@@ -254,21 +229,23 @@ export default function OrganizerProfilePage() {
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Calendar size={14} />
-                            {event.date}
+                            {event.date ? new Date(event.date).toLocaleDateString() : 'TBA'}
                           </div>
                           <div className="flex items-center gap-1">
                             <MapPin size={14} />
-                            {event.location}
+                            {event.location || 'TBA'}
                           </div>
                           <div className="flex items-center gap-1">
                             <Users size={14} />
-                            {event.attendees.toLocaleString()} attending
+                            {event.attendees?.toLocaleString() || 0} attending
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-primary-600 mb-1">{event.price}</p>
-                        <Badge variant="outline" size="sm">{event.category}</Badge>
+                        <p className="font-bold text-primary-600 mb-1">{event.price || 'FREE'}</p>
+                        {event.category && (
+                          <Badge variant="outline" size="sm">{event.category}</Badge>
+                        )}
                       </div>
                     </motion.div>
                   ))}

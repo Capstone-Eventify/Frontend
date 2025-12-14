@@ -99,7 +99,7 @@ export default function RefundRequestModal({
           {/* Warning */}
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-orange-800">
-              Refund requests are subject to the event's refund policy. Your request will be reviewed and processed within 5-7 business days.
+              Refund requests are subject to the event&apos;s refund policy. Your request will be reviewed and processed within 5-7 business days.
             </p>
           </div>
 

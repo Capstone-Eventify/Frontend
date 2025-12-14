@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { getEventById } from '@/data/eventDetails'
+// REMOVED: Mock data import - Now fetching from API only
 import { useUser } from '@/contexts/UserContext'
 import { useAuth } from '@/contexts/AuthContext'
 import ShareEventModal from '@/components/events/ShareEventModal'
@@ -147,51 +147,89 @@ export default function EventDetailPage() {
   }, [params.id])
 
   useEffect(() => {
-    // Try to get event from eventDetails first
-    let foundEvent = getEventById(params.id as string)
+    let isCancelled = false
     
-    // If not found, check organizer events in localStorage
-    if (!foundEvent && typeof window !== 'undefined') {
-      const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-      foundEvent = organizerEvents.find((e: any) => e.id === params.id)
-    }
-    
-    setEvent(foundEvent)
-    
-    if (foundEvent) {
-      // Check if event is in favorites
-      const favorites = JSON.parse(localStorage.getItem('eventify_favorites') || '[]')
-      setIsFavorite(favorites.includes(foundEvent.id))
-
-      // Check if user is the event owner (organizer)
-      if (isAuthenticated && user && typeof window !== 'undefined') {
-        // Check organizerId from localStorage events
-        const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-        const eventFromStorage = organizerEvents.find((e: any) => e.id === foundEvent.id)
-        const eventOrganizerId = eventFromStorage?.organizerId || foundEvent.organizer?.id
+    const fetchEvent = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         
-        // Check if current user is the organizer
-        if (eventOrganizerId === user.id || (foundEvent.organizer?.id && foundEvent.organizer.id === user.id)) {
-          setIsEventOwner(true)
-        }
-
-        // Check if user has registered for this event
-        const tickets = JSON.parse(localStorage.getItem('eventify_tickets') || '[]')
-        const eventTickets = tickets.filter((t: any) => 
-          t.eventId === foundEvent.id && 
-          t.status === 'confirmed'
-        )
+        // Fetch event from API
+        const response = await fetch(`${apiUrl}/api/events/${params.id}`)
         
-        if (eventTickets.length > 0) {
-          setUserTickets(eventTickets)
-          setIsRegistered(true)
-          // Get unique tier IDs that user has tickets for
-          const tierIds = [...new Set(eventTickets.map((t: any) => t.ticketTierId).filter(Boolean))]
-          setRegisteredTierIds(tierIds)
+        if (isCancelled) return
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && !isCancelled) {
+            setEvent(data.data)
+            
+            // Check if user is the event owner (no API call needed)
+            if (data.data.organizer?.id === user?.id) {
+              setIsEventOwner(true)
+            }
+            
+            // Fetch user-specific data in parallel if authenticated
+            if (isAuthenticated && user) {
+              const token = localStorage.getItem('token')
+              if (token && !isCancelled) {
+                // Parallelize API calls for better performance
+                const [favResponse, ticketsResponse] = await Promise.all([
+                  fetch(`${apiUrl}/api/favorites/check/${params.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  }),
+                  fetch(`${apiUrl}/api/tickets`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  })
+                ])
+
+                if (isCancelled) return
+
+                // Process favorites
+                if (favResponse.ok) {
+                  const favData = await favResponse.json()
+                  if (favData.success && !isCancelled) {
+                    setIsFavorite(favData.data.isFavorite)
+                  }
+                }
+
+                // Process tickets
+                if (ticketsResponse.ok) {
+                  const ticketsData = await ticketsResponse.json()
+                  if (ticketsData.success && !isCancelled) {
+                    const eventTickets = ticketsData.data.filter((t: any) => 
+                      t.eventId === params.id && 
+                      t.status === 'CONFIRMED'
+                    )
+                    
+                    if (eventTickets.length > 0) {
+                      setUserTickets(eventTickets)
+                      setIsRegistered(true)
+                      const tierIds = Array.from(new Set(eventTickets.map((t: any) => t.ticketTierId).filter(Boolean))) as string[]
+                      setRegisteredTierIds(tierIds)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else if (response.status === 404) {
+          // Event not found
+          if (!isCancelled) {
+            setEvent(null)
+          }
         }
-      } else {
-        setIsEventOwner(false)
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Error fetching event:', error)
+          setEvent(null)
+        }
       }
+    }
+
+    fetchEvent()
+    
+    return () => {
+      isCancelled = true
     }
   }, [params.id, isAuthenticated, user])
 
@@ -219,27 +257,143 @@ export default function EventDetailPage() {
     )
   }
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (!isAuthenticated) {
-      // Open auth modal with redirect URL
       openAuthModal('signin', `/events/${event.id}`)
       return
     }
 
-    const favorites = JSON.parse(localStorage.getItem('eventify_favorites') || '[]')
-    let newFavorites: string[]
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        openAuthModal('signin', `/events/${event.id}`)
+        return
+      }
 
-    if (isFavorite) {
-      newFavorites = favorites.filter((id: string) => id !== event.id)
-    } else {
-      newFavorites = [...favorites, event.id]
+      if (isFavorite) {
+        // Remove from favorites
+        const response = await fetch(`${apiUrl}/api/favorites/${event.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          setIsFavorite(false)
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch(`${apiUrl}/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId: event.id })
+        })
+        if (response.ok) {
+          setIsFavorite(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
     }
+  }
 
-    localStorage.setItem('eventify_favorites', JSON.stringify(newFavorites))
-    setIsFavorite(!isFavorite)
+  // Helper function to check if event has ended
+  const isEventEnded = () => {
+    // Check status first
+    if (event.status === 'ended' || event.status === 'cancelled') {
+      return true
+    }
+    
+    // Check if end date/time has passed
+    if (event.endDate) {
+      try {
+        // Parse end date (e.g., "Dec 15, 2024")
+        const dateParts = event.endDate.split(', ')
+        if (dateParts.length >= 2) {
+          const year = parseInt(dateParts[1])
+          const monthDay = dateParts[0].split(' ')
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const month = monthNames.indexOf(monthDay[0])
+          const day = parseInt(monthDay[1])
+          
+          // Parse end time if available (e.g., "5:00 PM")
+          let endHour = 23
+          let endMinute = 59
+          if (event.endTime) {
+            const timeMatch = event.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i)
+            if (timeMatch) {
+              let hour = parseInt(timeMatch[1])
+              const minute = parseInt(timeMatch[2])
+              const period = timeMatch[3].toUpperCase()
+              
+              if (period === 'PM' && hour !== 12) hour += 12
+              if (period === 'AM' && hour === 12) hour = 0
+              
+              endHour = hour
+              endMinute = minute
+            }
+          }
+          
+          const eventEndDateTime = new Date(year, month, day, endHour, endMinute)
+          const now = new Date()
+          
+          return eventEndDateTime < now
+        }
+      } catch {
+        // If parsing fails, fall back to checking start date
+        if (event.date) {
+          try {
+            const dateParts = event.date.split(', ')
+            if (dateParts.length >= 2) {
+              const year = parseInt(dateParts[1])
+              const monthDay = dateParts[0].split(' ')
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+              const month = monthNames.indexOf(monthDay[0])
+              const day = parseInt(monthDay[1])
+              const eventDate = new Date(year, month, day)
+              const now = new Date()
+              return eventDate < now
+            }
+          } catch {
+            return false
+          }
+        }
+      }
+    }
+    
+    // Fall back to checking start date if no end date
+    if (event.date) {
+      try {
+        const dateParts = event.date.split(', ')
+        if (dateParts.length >= 2) {
+          const year = parseInt(dateParts[1])
+          const monthDay = dateParts[0].split(' ')
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const month = monthNames.indexOf(monthDay[0])
+          const day = parseInt(monthDay[1])
+          const eventDate = new Date(year, month, day)
+          const now = new Date()
+          return eventDate < now
+        }
+      } catch {
+        return false
+      }
+    }
+    
+    return false
   }
 
   const handleRegister = () => {
+    // Check if event has ended
+    if (isEventEnded()) {
+      return
+    }
+    
     // Admins cannot register for events
     if (isAdmin) {
       return
@@ -292,7 +446,7 @@ export default function EventDetailPage() {
     const maxUserTierPrice = userTierPrices.length > 0 ? Math.max(...userTierPrices) : 0
     
     // Return tiers with price higher than user's current max
-    return event.ticketTiers.filter(tier => tier.price > maxUserTierPrice)
+    return event.ticketTiers.filter((tier: any) => tier.price > maxUserTierPrice)
   }
 
   const upgradeableTiers = getUpgradeableTiers()
@@ -313,43 +467,37 @@ export default function EventDetailPage() {
     }
   }
 
-  const confirmDeleteEvent = (reason: string) => {
+  const confirmDeleteEvent = async (reason: string) => {
     if (!event) return
 
-    // Get organizer's user ID from the event
-    const organizerEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    const eventFromStorage = organizerEvents.find((e: any) => e.id === event.id)
-    const organizerUserId = eventFromStorage?.organizerId || event.organizer?.id
-
-    // Delete event from localStorage
-    const updatedEvents = organizerEvents.filter((e: any) => e.id !== event.id)
-    localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-
-    // Only create notification if admin is deleting (not if organizer is deleting their own event)
-    if (isAdmin && !isEventOwner && reason) {
-      const notification = {
-        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: 'event_deleted',
-        title: 'Event Deleted by Admin',
-        message: `Your event "${event.title}" has been deleted by an administrator.`,
-        reason: reason,
-        eventId: event.id,
-        eventTitle: event.title,
-        organizerId: organizerUserId,
-        isRead: false,
-        read: false,
-        timestamp: new Date().toISOString(),
-        createdAt: new Date().toISOString()
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('You must be logged in to delete events')
+        return
       }
 
-      // Store notification for organizer (only if admin deleted it, not if organizer deleted their own)
-      const notifications = JSON.parse(localStorage.getItem('eventify_notifications') || '[]')
-      notifications.push(notification)
-      localStorage.setItem('eventify_notifications', JSON.stringify(notifications))
-    }
+      // Delete event via API
+      const response = await fetch(`${apiUrl}/api/events/${event.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
 
-    // Navigate back to dashboard or events page
-    router.push('/dashboard')
+      if (response.ok) {
+        // If admin deleted event, notification will be created by backend
+        router.push('/dashboard')
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete event' }))
+        alert(errorData.message || 'Failed to delete event')
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      alert('Error deleting event. Please try again.')
+    }
   }
 
   return (
@@ -369,8 +517,8 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Event Images */}
@@ -380,7 +528,13 @@ export default function EventDetailPage() {
               className="relative rounded-2xl overflow-hidden"
             >
               <ImageGallery
-                images={event.images || (event.image ? [{ id: 'img_1', url: event.image, isPrimary: true }] : [])}
+                images={
+                  event.images && Array.isArray(event.images) && event.images.length > 0
+                    ? event.images
+                    : event.image
+                      ? [{ id: 'img_1', url: event.image, isPrimary: true }]
+                      : []
+                }
                 displayType={event.imageDisplayType || 'carousel'}
                 eventTitle={event.title}
               />
@@ -428,8 +582,8 @@ export default function EventDetailPage() {
                       </Badge>
                     )}
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-3">{event.title}</h1>
-                  <p className="text-lg text-gray-600">{event.description}</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 break-words">{event.title}</h1>
+                  <p className="text-base sm:text-lg text-gray-600 break-words">{event.description}</p>
                   {isRegistered && (
                     <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2 text-green-700">
@@ -511,7 +665,7 @@ export default function EventDetailPage() {
               {event.tags && event.tags.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="flex flex-wrap gap-2">
-                    {event.tags.map((tag, index) => (
+                    {event.tags.map((tag: any, index: number) => (
                       <Badge key={index} variant="outline" size="sm">
                         {tag}
                       </Badge>
@@ -526,10 +680,10 @@ export default function EventDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl p-6 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">About This Event</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">About This Event</h2>
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line break-words">
                 {event.fullDescription}
               </p>
             </motion.div>
@@ -539,9 +693,9 @@ export default function EventDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl p-6 border border-gray-200"
+              className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Organizer</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Organizer</h2>
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                   {event.organizer.avatar ? (
@@ -551,6 +705,7 @@ export default function EventDetailPage() {
                       width={64}
                       height={64}
                       className="rounded-full"
+                      unoptimized={event.organizer.avatar?.includes('s3') || event.organizer.avatar?.includes('amazonaws')}
                     />
                   ) : (
                     <User size={32} className="text-primary-600" />
@@ -631,13 +786,13 @@ export default function EventDetailPage() {
                         return acc
                       }, {})
                     ).map(([tierName, tickets]: [string, any[]]) => {
-                      const currentTier = event.ticketTiers.find(t => t.name === tierName)
+                      const currentTier = event.ticketTiers.find((t: any) => t.name === tierName)
                       const tierPrice = typeof tickets[0].price === 'string' 
                         ? parseFloat(tickets[0].price.replace('$', '')) 
                         : (tickets[0].price || 0)
                       
                       // Get upgrade options for this specific tier (tiers with higher price)
-                      const availableUpgrades = event.ticketTiers.filter(tier => tier.price > tierPrice)
+                      const availableUpgrades = event.ticketTiers.filter((tier: any) => tier.price > tierPrice)
                       
                       return (
                         <div
@@ -719,53 +874,71 @@ export default function EventDetailPage() {
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">
                   {isAdmin ? 'Ticket Pricing' : (isRegistered ? 'Available Tickets' : 'Ticket Pricing')}
                 </h3>
-                <div className="space-y-4">
-                  {event.ticketTiers.map((tier) => {
-                    const isUserTier = !isAdmin && registeredTierIds.includes(tier.id)
-                    const tierTickets = userTickets.filter((t: any) => t.ticketTierId === tier.id)
-                    
-                    return (
-                      <div
-                        key={tier.id}
-                        className={`border rounded-lg p-4 transition-colors ${
-                          isUserTier 
-                            ? 'border-green-300 bg-green-50' 
-                            : 'border-gray-200 hover:border-primary-300'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-gray-900">{tier.name}</h4>
-                              {isUserTier && !isAdmin && (
-                                <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
-                                  Your Ticket
-                                </Badge>
+                {event.ticketTiers && Array.isArray(event.ticketTiers) && event.ticketTiers.length > 0 ? (
+                  <div className="space-y-4">
+                    {event.ticketTiers.map((tier: any) => {
+                      const isUserTier = !isAdmin && registeredTierIds.includes(tier.id)
+                      const tierTickets = userTickets.filter((t: any) => t.ticketTierId === tier.id)
+                      
+                      return (
+                        <div
+                          key={tier.id}
+                          className={`border rounded-lg p-4 transition-colors ${
+                            isUserTier 
+                              ? 'border-green-300 bg-green-50' 
+                              : 'border-gray-200 hover:border-primary-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-gray-900">{tier.name}</h4>
+                                {isUserTier && !isAdmin && (
+                                  <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                                    Your Ticket
+                                  </Badge>
+                                )}
+                              </div>
+                              {tier.description && (
+                                <p className="text-sm text-gray-600">{tier.description}</p>
+                              )}
+                              {tier.available !== undefined && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {tier.available > 0 
+                                    ? `${tier.available} ${tier.available === 1 ? 'ticket' : 'tickets'} available`
+                                    : 'Sold out'}
+                                </p>
+                              )}
+                              {isUserTier && !isAdmin && tierTickets.length > 0 && (
+                                <p className="text-xs text-green-700 mt-1">
+                                  {tierTickets.length} {tierTickets.length === 1 ? 'ticket' : 'tickets'} purchased
+                                </p>
                               )}
                             </div>
-                            {tier.description && (
-                              <p className="text-sm text-gray-600">{tier.description}</p>
-                            )}
-                            {isUserTier && !isAdmin && tierTickets.length > 0 && (
-                              <p className="text-xs text-green-700 mt-1">
-                                {tierTickets.length} {tierTickets.length === 1 ? 'ticket' : 'tickets'} purchased
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-primary-600">
+                                {tier.price === 0 || tier.price === '0' ? 'FREE' : `$${typeof tier.price === 'number' ? tier.price.toFixed(2) : tier.price}`}
                               </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-primary-600">
-                              {tier.price === 0 ? 'FREE' : `$${tier.price}`}
-                            </p>
+                              {tier.quantity && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Qty: {tier.quantity}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg p-4 text-center">
+                    <p className="text-gray-600 text-sm">No ticket tiers available for this event.</p>
+                  </div>
+                )}
               </div>
 
               {/* Registration Actions */}
-              {(isAdmin || isEventOwner) ? null : !isRegistered && event.status !== 'ended' && event.status !== 'cancelled' ? (
+              {(isAdmin || isEventOwner) ? null : !isRegistered && !isEventEnded() ? (
                 <Button
                   variant="primary"
                   size="lg"
@@ -786,11 +959,11 @@ export default function EventDetailPage() {
                     View All My Tickets
                   </Button>
                 </div>
-              ) : (event.status === 'ended' || event.status === 'cancelled') ? (
+              ) : isEventEnded() ? (
                 <div className="border-t border-gray-200 pt-4">
                   <div className="text-center py-4">
                     <p className="text-gray-600 font-medium">
-                      {event.status === 'ended' ? 'This event has ended' : 'This event has been cancelled'}
+                      {event.status === 'cancelled' ? 'This event has been cancelled' : 'This event has ended'}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">Registration is no longer available</p>
                   </div>
@@ -822,7 +995,7 @@ export default function EventDetailPage() {
       </div>
 
       {/* Share Modal */}
-      {showShareModal && (
+      {showShareModal && event && (
         <ShareEventModal
           event={event}
           onClose={() => setShowShareModal(false)}
@@ -842,7 +1015,7 @@ export default function EventDetailPage() {
             price: selectedTicketForUpgrade.tierPrice,
             description: selectedTicketForUpgrade.tierDescription
           }}
-          availableUpgrades={event.ticketTiers.filter(tier => tier.price > selectedTicketForUpgrade.tierPrice)}
+          availableUpgrades={event.ticketTiers.filter((tier: any) => tier.price > selectedTicketForUpgrade.tierPrice)}
           ticketQuantity={selectedTicketForUpgrade.tickets.length}
           onUpgrade={handleUpgrade}
         />

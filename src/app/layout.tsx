@@ -3,8 +3,11 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { UserProvider } from '@/contexts/UserContext'
+import { SocketProvider } from '@/contexts/SocketContext'
 import AuthModalWrapper from '@/components/auth/AuthModalWrapper'
 import ConditionalLayout from '@/components/layout/ConditionalLayout'
+import NotificationToast from '@/components/notifications/NotificationToast'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -33,15 +36,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={inter.className}>
-        <UserProvider>
-          <AuthProvider>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
-            <AuthModalWrapper />
-          </AuthProvider>
-        </UserProvider>
+      <body className={inter.className} suppressHydrationWarning={true}>
+        <ErrorBoundary>
+          <UserProvider>
+            <AuthProvider>
+              <SocketProvider>
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
+                <AuthModalWrapper />
+                <NotificationToast />
+              </SocketProvider>
+            </AuthProvider>
+          </UserProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

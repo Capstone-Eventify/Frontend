@@ -2,12 +2,12 @@ pipeline {
     agent any
     
     environment {
-        DEV_SERVER = '3.17.205.208'
-        QA_SERVER = '18.218.168.41'  
-        PROD_SERVER = '18.117.193.239'
+        DEV_SERVER = '3.15.170.92'
+        QA_SERVER = '52.14.183.52'
+        PROD_SERVER = '3.20.236.137'
         
-        
-       
+        // No hardcoded emails - using Jenkins global variables instead!
+        // Variables available from Jenkins: Developers, QA, Product, Backend
     }
     
     stages {
@@ -101,6 +101,7 @@ pipeline {
 
 // Main notification function
 def sendNotifications(String status) {
+<<<<<<< HEAD
     def environment = getEnvironmentName(env.BRANCH_NAME)
     def duration = currentBuild.durationString.replace(' and counting', '')
     
@@ -109,6 +110,16 @@ def sendNotifications(String status) {
     def commitEmail = env.COMMIT_EMAIL ?: ''
     def commitHash = env.COMMIT_HASH ?: 'N/A'
     
+=======
+                def environment = getEnvironmentName(env.BRANCH_NAME)
+    def duration = currentBuild.durationString.replace(' and counting', '')
+                
+                def commitMsg = env.COMMIT_MSG ?: 'No commit message'
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+    def commitEmail = env.COMMIT_EMAIL ?: ''
+                def commitHash = env.COMMIT_HASH ?: 'N/A'
+                
+>>>>>>> QA
     // Get recipients based on branch and status
     def recipients = getRecipients(env.BRANCH_NAME, status, commitEmail)
     
@@ -253,7 +264,11 @@ def sendSlackNotification(String environment, String status, String duration, St
             message: message
         )
         echo "✅ Slack notification sent to #team1"
+<<<<<<< HEAD
     } catch (Exception e) {
+=======
+                } catch (Exception e) {
+>>>>>>> QA
         echo "⚠️ Slack notification failed: ${e.getMessage()}"
     }
 }
@@ -283,7 +298,8 @@ def deployToServer(String server, String credentials, String env) {
                 
                 if [ -d frontend ]; then
                     cd frontend
-                    git pull origin ${BRANCH_NAME}
+                    git fetch origin ${BRANCH_NAME}
+                    git reset --hard origin/${BRANCH_NAME}
                 else
                     git clone -b ${BRANCH_NAME} https://github.com/Capstone-Eventify/Frontend.git frontend
                     cd frontend
@@ -296,10 +312,33 @@ def deployToServer(String server, String credentials, String env) {
                     npm install --prefer-offline --no-audit
                 }
                 
+                # Build the Next.js application for production
+                echo "🔨 Building Next.js application..."
+                export NODE_ENV=production
+                npm run build || {
+                    echo "⚠️ Build failed, checking logs..."
+                    exit 1
+                }
+                
+                # Verify build output exists
+                if [ ! -d ".next" ]; then
+                    echo "❌ Build output (.next) not found!"
+                    exit 1
+                fi
+                
+                echo "✅ Build completed successfully"
+                
                 cd ..
                 
-                # Only start/restart frontend
-                pm2 restart eventify-${env}-frontend || pm2 start ecosystem.config.js --only eventify-${env}-frontend
+                # Ensure PM2 uses production mode - explicitly use npm start
+                pm2 stop eventify-${env}-frontend || true
+                pm2 delete eventify-${env}-frontend || true
+                
+                # Start with production command (npm start uses the built .next folder)
+                cd frontend
+                export NODE_ENV=production
+                pm2 start npm --name "eventify-${env}-frontend" -- start
+                cd ..
                 pm2 save
                 
                 echo "✅ Frontend is running successfully"

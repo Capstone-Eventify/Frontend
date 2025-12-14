@@ -60,11 +60,20 @@ export default function EventFormModal({
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([])
   const [tagInput, setTagInput] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (eventData && mode === 'edit') {
       // Convert old image format to new images array if needed
-      let images = eventData.images || []
+      let images: Array<{ id: string; url: string; isPrimary: boolean }> = []
+      if (eventData.images && Array.isArray(eventData.images)) {
+        // Check if images is array of strings or objects
+        if (eventData.images.length > 0 && typeof eventData.images[0] === 'string') {
+          images = (eventData.images as string[]).map((url, idx) => ({ id: `img_${idx + 1}`, url, isPrimary: idx === 0 }))
+        } else {
+          images = (eventData.images as unknown as Array<{ id: string; url: string; isPrimary: boolean }>)
+        }
+      }
       if (!images.length && eventData.image) {
         images = [{ id: 'img_1', url: eventData.image, isPrimary: true }]
       }
@@ -88,13 +97,13 @@ export default function EventFormModal({
         meetingLink: eventData.meetingLink || '',
         image: eventData.image || '',
         images: images,
-        imageDisplayType: eventData.imageDisplayType || 'carousel',
+        imageDisplayType: (eventData as any).imageDisplayType || 'carousel',
         tags: eventData.tags || [],
         requirements: eventData.requirements || '',
         refundPolicy: eventData.refundPolicy || '',
         maxAttendees: eventData.maxAttendees,
-        hasSeating: eventData.hasSeating || false,
-        seatingArrangement: eventData.seatingArrangement || null
+        hasSeating: (eventData as any).hasSeating || false,
+        seatingArrangement: (eventData as any).seatingArrangement || null
       })
       setTicketTiers(eventData.ticketTiers || [])
     } else {
@@ -124,8 +133,7 @@ export default function EventFormModal({
         refundPolicy: '',
         maxAttendees: 0,
         hasSeating: false,
-        seatingArrangement: null,
-        status: 'draft' // New events are drafts by default
+        seatingArrangement: null
       })
       setTicketTiers([])
     }
@@ -169,45 +177,108 @@ export default function EventFormModal({
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return
     }
 
-    // Get primary image URL for backward compatibility
-    const primaryImage = formData.images.find(img => img.isPrimary)?.url || formData.images[0]?.url || formData.image
+    setIsSubmitting(true)
 
-      const eventToSave = {
-        id: mode === 'edit' && eventData ? eventData.id : `event_${Date.now()}`,
-        ...formData,
-        image: primaryImage, // Keep for backward compatibility
-        ticketTiers,
-        seatingArrangement: formData.hasSeating ? formData.seatingArrangement : null,
-        attendees: 0,
-        status: mode === 'edit' && eventData?.status ? eventData.status : (formData.status || 'draft'), // Keep existing status when editing, default to draft for new events
-        organizerId: user?.id || 'org1', // Store organizerId for filtering
-        organizer: {
-          id: user?.id || 'org1',
-          name: user?.name || 'Organizer',
-          email: user?.email || 'organizer@example.com'
-        },
-        createdAt: mode === 'edit' && eventData ? eventData.createdAt : new Date().toISOString(),
-        price: ticketTiers.length > 0 ? `$${Math.min(...ticketTiers.map(t => t.price))}` : 'FREE'
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to create events')
+        setIsSubmitting(false)
+        return
       }
 
-    // Save to localStorage
-    const storedEvents = JSON.parse(localStorage.getItem('eventify_organizer_events') || '[]')
-    if (mode === 'edit' && eventData) {
-      const updatedEvents = storedEvents.map((e: any) => 
-        e.id === eventData.id ? eventToSave : e
-      )
-      localStorage.setItem('eventify_organizer_events', JSON.stringify(updatedEvents))
-    } else {
-      localStorage.setItem('eventify_organizer_events', JSON.stringify([...storedEvents, eventToSave]))
-    }
+      // Get primary image URL
+      const primaryImage = formData.images.find(img => img.isPrimary)?.url || formData.images[0]?.url || formData.image
 
-    onSave(eventToSave)
-    onClose()
+      // Prepare event data for API (matching backend createEvent format)
+      const eventPayload: any = {
+        title: formData.title,
+        description: formData.description,
+        fullDescription: formData.fullDescription || formData.description,
+        category: formData.category,
+        eventType: formData.category, // Using category as eventType for now
+        date: formData.date, // Backend expects 'date' and 'time' separately
+        time: formData.time,
+        endDate: formData.endDate || null,
+        endTime: formData.endTime || null,
+        isOnline: formData.isOnline,
+        venueName: formData.location,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country,
+        meetingLink: formData.meetingLink || null,
+        image: primaryImage,
+        images: formData.images.map(img => img.url),
+        // imageDisplayType removed - not in database schema
+        tags: formData.tags,
+        requirements: formData.requirements || null,
+        refundPolicy: formData.refundPolicy || null,
+        maxAttendees: formData.maxAttendees,
+        hasSeating: formData.hasSeating,
+        // seatingArrangement removed - not in database schema
+        price: ticketTiers.length > 0 ? Math.min(...ticketTiers.map(t => t.price)) : 0,
+        status: mode === 'edit' && eventData?.status ? eventData.status.toUpperCase() : 'DRAFT',
+        ticketTiers: ticketTiers.map(tier => ({
+          name: tier.name,
+          price: tier.price,
+          description: tier.description,
+          quantity: (tier as any).quantity || 0,
+          available: (tier as any).quantity || 0
+        }))
+      }
+
+      let response
+      if (mode === 'edit' && eventData?.id) {
+        // Update existing event
+        response = await fetch(`${apiUrl}/api/events/${eventData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(eventPayload)
+        })
+      } else {
+        // Create new event
+        response = await fetch(`${apiUrl}/api/events`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(eventPayload)
+        })
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to save event' }))
+        throw new Error(errorData.message || `Failed to ${mode === 'edit' ? 'update' : 'create'} event`)
+      }
+
+      const result = await response.json()
+      
+      if (result.success) {
+        // Ticket tiers are already created by the backend in the transaction
+        onSave(result.data)
+        onClose()
+      } else {
+        throw new Error(result.message || 'Failed to save event')
+      }
+    } catch (error: any) {
+      console.error('Error saving event:', error)
+      alert(error.message || 'Failed to save event. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!isOpen) return null
@@ -567,6 +638,7 @@ export default function EventFormModal({
                 onImagesChange={(images) => handleInputChange('images', images)}
                 displayType={formData.imageDisplayType}
                 onDisplayTypeChange={(type) => handleInputChange('imageDisplayType', type)}
+                eventName={formData.title || undefined}
               />
               {errors.images && <p className="text-sm text-red-600 mt-1">{errors.images}</p>}
             </div>
@@ -660,8 +732,8 @@ export default function EventFormModal({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSubmit}>
-              {mode === 'create' ? 'Create Event' : 'Save Changes'}
+            <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create Event' : 'Save Changes')}
             </Button>
           </div>
         </motion.div>

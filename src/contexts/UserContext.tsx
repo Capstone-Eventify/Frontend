@@ -14,6 +14,7 @@ interface User {
   isAdmin: boolean
   avatar?: string
   joinDate: string
+  hasCompletedOnboarding?: boolean
 }
 
 interface UserContextType {
@@ -24,10 +25,12 @@ interface UserContextType {
   canCreateEvents: boolean
   canManageEvents: boolean
   canAccessAdmin: boolean
+  isLoaded: boolean
   login: (userData: User) => void
   logout: () => void
   updateUserRole: (role: UserRole, organizerStatus?: OrganizerStatus) => void
   updateUser: (updates: Partial<User>) => void
+  refreshUser: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -50,32 +53,104 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load user from localStorage on mount
-  useEffect(() => {
+  // Refresh user from API
+  const refreshUser = async () => {
     if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem(STORAGE_KEY)
-      if (storedUser) {
+      const token = localStorage.getItem('token')
+      if (token) {
         try {
-          const parsedUser = JSON.parse(storedUser)
-          // Check if user has been approved as organizer
-          const approvedUsers = JSON.parse(localStorage.getItem('eventify_approved_organizers') || '{}')
-          if (approvedUsers[parsedUser.id]) {
-            parsedUser.role = 'organizer'
-            parsedUser.organizerStatus = 'approved'
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+          const response = await fetch(`${apiUrl}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData && userData.success && userData.data && userData.data.id) {
+              const role = userData.data.role?.toLowerCase() || 'attendee'
+              const updatedUser: User = {
+                id: userData.data.id,
+                name: userData.data.name || `${userData.data.firstName || ''} ${userData.data.lastName || ''}`.trim() || 'User',
+                email: userData.data.email || '',
+                role: role as UserRole,
+                organizerStatus: userData.data.organizerStatus?.toLowerCase() as OrganizerStatus | undefined,
+                isAdmin: userData.data.role === 'ADMIN' || role === 'admin',
+                avatar: userData.data.avatar,
+                joinDate: userData.data.createdAt || userData.data.joinDate || new Date().toISOString(),
+                hasCompletedOnboarding: userData.data.hasCompletedOnboarding || false
+              }
+              setUser(updatedUser)
+              // Save updated user to localStorage
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser))
+            }
+          } else if (response.status === 401) {
+            // Token is invalid, clear user data
+            setUser(null)
+            localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem('token')
           }
-          setUser(parsedUser)
         } catch (error) {
-          console.error('Error parsing stored user data:', error)
-          localStorage.removeItem(STORAGE_KEY)
+          console.error('Error refreshing user:', error)
         }
       }
-      setIsLoaded(true)
+    }
+  }
+
+  // Load user from localStorage on mount and refresh from API
+  useEffect(() => {
+    let isMounted = true
+    
+    // Add a small delay to ensure DOM is ready
+    const initializeUser = () => {
+      if (typeof window !== 'undefined' && isMounted) {
+        try {
+          const storedUser = localStorage.getItem(STORAGE_KEY)
+          if (storedUser && storedUser !== 'null' && storedUser !== 'undefined') {
+            try {
+              const parsedUser = JSON.parse(storedUser)
+              if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && isMounted) {
+                setUser(parsedUser)
+              } else {
+                localStorage.removeItem(STORAGE_KEY)
+              }
+            } catch (error) {
+              console.error('Error parsing stored user data:', error)
+              localStorage.removeItem(STORAGE_KEY)
+            }
+          }
+          
+          if (isMounted) {
+            setIsLoaded(true)
+          }
+          
+          // Refresh user data from API to get latest role
+          const token = localStorage.getItem('token')
+          if (token && isMounted) {
+            refreshUser().catch(err => console.error('Error refreshing user on mount:', err))
+          }
+        } catch (error) {
+          console.error('Error in UserProvider useEffect:', error)
+          if (isMounted) {
+            setIsLoaded(true)
+          }
+        }
+      }
+    }
+    
+    // Use setTimeout to ensure this runs after hydration
+    const timeoutId = setTimeout(initializeUser, 0)
+    
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
     }
   }, [])
 
   const isAuthenticated = !!user
-  const isOrganizer = user?.role === 'organizer' && user?.organizerStatus === 'approved'
-  const isAdmin = user?.isAdmin === true
+  // Backend sets role to 'organizer' (lowercase) when application is approved
+  const isOrganizer = user?.role === 'organizer'
+  const isAdmin = user?.isAdmin === true || user?.role === 'admin'
   const canCreateEvents = isOrganizer || isAdmin
   const canManageEvents = isOrganizer || isAdmin
   const canAccessAdmin = isAdmin
@@ -91,6 +166,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUser(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('token')
     }
   }
 
@@ -129,10 +205,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     canCreateEvents,
     canManageEvents,
     canAccessAdmin,
+    isLoaded,
     login,
     logout,
     updateUserRole,
-    updateUser
+    updateUser,
+    refreshUser
   }
 
   return (

@@ -43,13 +43,28 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     if (!validateEmail()) return
 
     setIsLoading(true)
+    setError('')
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      onResetPassword?.(email)
-      setIsSubmitted(true)
-    } catch (err) {
-      setError('Something went wrong. Please try again.')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const response = await fetch(`${apiUrl}/api/auth/forgotpassword`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        onResetPassword?.(email)
+        setIsSubmitted(true)
+      } else {
+        setError(data.message || 'Something went wrong. Please try again.')
+      }
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(err.message || 'Network error. Please check your connection and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -65,27 +80,27 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           className="bg-gradient-to-br from-primary-50 via-white to-primary-100/30 rounded-3xl shadow-2xl overflow-hidden border border-primary-200/50"
         >
           {/* Header */}
-          <div className="px-8 py-8 text-center border-b border-primary-200/30 bg-gradient-to-r from-green-600 to-green-700 relative overflow-hidden">
+          <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 text-center border-b border-primary-200/30 bg-gradient-to-r from-green-600 to-green-700 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent"></div>
             <div className="relative z-10">
-              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white mb-1">Check Your Email</h1>
-              <p className="text-green-100 text-sm">Password reset link sent</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white mb-1 break-words px-2">Check Your Email</h1>
+              <p className="text-green-100 text-xs sm:text-sm px-2">Password reset link sent</p>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-8 bg-gradient-to-b from-white to-green-50/30 text-center">
-            <p className="text-gray-700 mb-6">
-              We've sent a password reset link to <strong>{email}</strong>
+          <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-white to-green-50/30 text-center">
+            <p className="text-sm sm:text-base text-gray-700 mb-4 sm:mb-6 break-words px-2">
+              We&apos;ve sent a password reset link to <strong className="break-all">{email}</strong>
             </p>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 px-2">
               Please check your email and click the link to reset your password. 
-              If you don't see the email, check your spam folder.
+              If you don&apos;t see the email, check your spam folder.
             </p>
             
             <div className="space-y-4">
@@ -119,25 +134,25 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
         className="bg-gradient-to-br from-primary-50 via-white to-primary-100/30 rounded-3xl shadow-2xl overflow-hidden border border-primary-200/50"
       >
         {/* Header */}
-        <div className="px-8 py-8 text-center border-b border-primary-200/30 bg-gradient-to-r from-primary-600 to-primary-700 relative overflow-hidden">
+        <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 text-center border-b border-primary-200/30 bg-gradient-to-r from-primary-600 to-primary-700 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-transparent"></div>
           <div className="relative z-10">
-            <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary-100 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Forgot Password?</h1>
-            <p className="text-primary-100 text-sm">Enter your email to reset</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1 break-words px-2">Forgot Password?</h1>
+            <p className="text-primary-100 text-xs sm:text-sm px-2">Enter your email to reset</p>
           </div>
         </div>
 
         {/* Form Content */}
-        <div className="p-8 bg-gradient-to-b from-white to-primary-50/30">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-white to-primary-50/30">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Email */}
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-900">
+              <label htmlFor="email" className="block text-xs sm:text-sm font-semibold text-gray-900">
                 Email Address
               </label>
               <input
@@ -147,7 +162,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                 value={email}
                 onChange={handleInputChange}
                 className={cn(
-                  "w-full px-4 py-3.5 border rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-gray-50/50",
+                  "w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border rounded-lg sm:rounded-xl text-sm sm:text-base text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-gray-50/50",
                   error ? "border-red-300 bg-red-50/50" : "border-gray-200 hover:border-gray-300"
                 )}
                 placeholder="john@example.com"
