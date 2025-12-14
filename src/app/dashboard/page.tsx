@@ -170,7 +170,7 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Header Bar - Visible on all pages - Matching sidebar style */}
-      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40" style={{ height: '60px' }}>
         <div className="flex items-center space-x-3">
           {/* Mobile Menu Button */}
           <button
@@ -219,7 +219,7 @@ function DashboardContent() {
 
       <div className="flex">
         {/* Sidebar - Always visible on desktop, collapsible */}
-        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 fixed left-0 top-[60px] bottom-0 ${
+        <div className={`hidden lg:block bg-white border-r border-gray-200 transition-all duration-300 fixed left-0 top-[60px] bottom-0 z-30 ${
           isSidebarCollapsed ? 'w-16' : 'w-64'
         }`}>
           <div className="flex flex-col h-full relative overflow-y-auto">
@@ -364,9 +364,9 @@ function DashboardContent() {
         )}
 
             {/* Main Content */}
-            <div className={`flex-1 flex flex-col ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`} style={{ minHeight: 'calc(100vh - 60px)' }}>
+            <div className={`flex-1 flex flex-col ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} pt-[60px]`}>
               {/* Content Area */}
-              <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto">
+              <main className="flex-1 p-4 lg:p-6 pb-24 overflow-y-auto" style={{ height: 'calc(100vh - 60px)' }}>
             <motion.div
               key={activeSection}
               initial={{ opacity: 0, y: 20 }}
