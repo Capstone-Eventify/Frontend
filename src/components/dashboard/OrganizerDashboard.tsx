@@ -143,91 +143,60 @@ const OrganizerDashboard: React.FC = () => {
   }, [isLoaded, isOrganizer, user?.id]) // Run when user properties change
 
   const handleCreateEvent = () => {
+    console.log('🆕 Creating new event, current showEventForm:', showEventForm)
+    if (showEventForm) {
+      console.log('⚠️ Event form already open, ignoring duplicate request')
+      return
+    }
     setEditingEvent(null)
     setShowEventForm(true)
   }
 
   const handleEditEvent = (event: EventDetail) => {
+    console.log('✏️ Editing event:', event.id, 'current showEventForm:', showEventForm)
+    if (showEventForm) {
+      console.log('⚠️ Event form already open, ignoring duplicate request')
+      return
+    }
     setEditingEvent(event)
     setShowEventForm(true)
   }
 
   const handleEventSave = async (eventData: any) => {
+    console.log('📝 OrganizerDashboard.handleEventSave called with:', eventData)
+    
+    // EventFormModal already made the API call and passed us the result
+    // We just need to refresh the events list and close the modal
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
       if (!token) return
 
-      // Convert frontend event data to API format
-      const apiEventData = {
-        title: eventData.title,
-        description: eventData.description,
-        fullDescription: eventData.fullDescription,
-        category: eventData.category,
-        eventType: eventData.eventType || 'CONFERENCE',
-        startDate: eventData.date,
-        endDate: eventData.endDate,
-        startTime: eventData.time,
-        endTime: eventData.endTime,
-        isOnline: eventData.isOnline,
-        venueName: eventData.venueName,
-        address: eventData.address,
-        city: eventData.city,
-        state: eventData.state,
-        zipCode: eventData.zipCode,
-        country: eventData.country,
-        meetingLink: eventData.meetingLink,
-        price: parseFloat(eventData.price) || 0,
-        maxAttendees: parseInt(eventData.maxAttendees) || 100,
-        image: eventData.image,
-        images: eventData.images || [],
-        tags: eventData.tags || [],
-        requirements: eventData.requirements,
-        refundPolicy: eventData.refundPolicy,
-        status: eventData.status || 'DRAFT'
-      }
-
-      const url = editingEvent 
-        ? `${apiUrl}/api/events/${editingEvent.id}`
-        : `${apiUrl}/api/events`
-      
-      const method = editingEvent ? 'PUT' : 'POST'
-
-      const response = await fetch(url, {
-        method,
+      // Refresh events list to show the new/updated event
+      const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(apiEventData)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          // Refresh events list
-          const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          if (eventsResponse.ok) {
-            const eventsData = await eventsResponse.json()
-            if (eventsData.success) {
-              setOrganizerEvents(eventsData.data || [])
-            }
-          }
-          setShowEventForm(false)
-          setEditingEvent(null)
+          'Authorization': `Bearer ${token}`
         }
-      } else {
-        const data = await response.json()
-        alert(data.message || 'Failed to save event')
+      })
+      
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json()
+        if (eventsData.success) {
+          setOrganizerEvents(eventsData.data || [])
+        }
       }
+      
+      // Close the modal and reset state
+      setShowEventForm(false)
+      setEditingEvent(null)
+      
+      console.log('✅ Event list refreshed and modal closed')
     } catch (error) {
-      console.error('Error saving event:', error)
-      alert('Error saving event. Please try again.')
+      console.error('Error refreshing events list:', error)
+      // Still close the modal even if refresh fails
+      setShowEventForm(false)
+      setEditingEvent(null)
     }
   }
 
@@ -283,19 +252,40 @@ const OrganizerDashboard: React.FC = () => {
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, event?: any) => {
+    // Enhanced status logic with date awareness
+    const now = new Date()
+    let computedStatus = status
+    let label = status.charAt(0).toUpperCase() + status.slice(1)
+    
+    // If event is provided and status is 'live', check timing
+    if (event && status === 'live') {
+      const startDate = new Date(event.date + 'T' + (event.time || '00:00'))
+      const endDate = event.endDate ? new Date(event.endDate + 'T' + (event.endTime || '23:59')) : null
+      
+      if (now < startDate) {
+        computedStatus = 'upcoming'
+        label = 'Live (Upcoming)'
+      } else if (endDate && now > endDate) {
+        computedStatus = 'ended'
+        label = 'Ended'
+      } else {
+        label = 'Live (Active)'
+      }
+    }
+    
     const config = {
       draft: { color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle },
       live: { color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
       upcoming: { color: 'text-blue-600', bgColor: 'bg-blue-50', icon: Clock },
       ended: { color: 'text-gray-600', bgColor: 'bg-gray-50', icon: Calendar }
     }
-    const statusConfig = config[status as keyof typeof config] || config.upcoming
+    const statusConfig = config[computedStatus as keyof typeof config] || config.upcoming
     const Icon = statusConfig.icon
     return (
       <Badge className={`${statusConfig.bgColor} ${statusConfig.color} border-0`}>
         <Icon size={14} className="mr-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {label}
       </Badge>
     )
   }
@@ -305,7 +295,22 @@ const OrganizerDashboard: React.FC = () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
-      if (!token) return
+      if (!token) {
+        alert('Please sign in to publish events')
+        return
+      }
+
+      // Find the event to check if it can be published
+      const event = organizerEvents.find(e => e.id === eventId)
+      if (event) {
+        const now = new Date()
+        const endDate = event.endDate ? new Date(event.endDate + 'T' + (event.endTime || '23:59')) : null
+        
+        if (endDate && now > endDate) {
+          alert('Cannot publish an event that has already ended. Please update the event dates first.')
+          return
+        }
+      }
 
       const response = await fetch(`${apiUrl}/api/events/${eventId}`, {
         method: 'PUT',
@@ -313,10 +318,12 @@ const OrganizerDashboard: React.FC = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'PUBLISHED' })
+        body: JSON.stringify({ status: 'LIVE' })
       })
 
-      if (response.ok) {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         // Refresh events list
         const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
           headers: {
@@ -329,9 +336,14 @@ const OrganizerDashboard: React.FC = () => {
             setOrganizerEvents(eventsData.data || [])
           }
         }
+        alert('Event published successfully!')
+      } else {
+        console.error('Publish failed:', data)
+        alert(data.message || 'Failed to publish event. Please try again.')
       }
     } catch (error) {
       console.error('Error publishing event:', error)
+      alert('Failed to publish event. Please check your connection and try again.')
     }
   }
 
@@ -340,7 +352,10 @@ const OrganizerDashboard: React.FC = () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
       const token = localStorage.getItem('token')
       
-      if (!token) return
+      if (!token) {
+        alert('Please sign in to unpublish events')
+        return
+      }
 
       const response = await fetch(`${apiUrl}/api/events/${eventId}`, {
         method: 'PUT',
@@ -351,7 +366,9 @@ const OrganizerDashboard: React.FC = () => {
         body: JSON.stringify({ status: 'DRAFT' })
       })
 
-      if (response.ok) {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         // Refresh events list
         const eventsResponse = await fetch(`${apiUrl}/api/events/organizer/my-events`, {
           headers: {
@@ -364,9 +381,14 @@ const OrganizerDashboard: React.FC = () => {
             setOrganizerEvents(eventsData.data || [])
           }
         }
+        alert('Event unpublished successfully!')
+      } else {
+        console.error('Unpublish failed:', data)
+        alert(data.message || 'Failed to unpublish event. Please try again.')
       }
     } catch (error) {
       console.error('Error unpublishing event:', error)
+      alert('Failed to unpublish event. Please check your connection and try again.')
     }
   }
 
@@ -775,7 +797,7 @@ const OrganizerDashboard: React.FC = () => {
                           className="w-full h-48 object-cover"
                         />
                         <div className="absolute top-3 right-3">
-                          {getStatusBadge(event.status || 'upcoming')}
+                          {getStatusBadge(event.status || 'upcoming', event)}
                         </div>
                       </div>
                       <div className="p-3 sm:p-4">
@@ -803,7 +825,7 @@ const OrganizerDashboard: React.FC = () => {
                             <Edit size={14} className="mr-1" />
                             Edit
                           </Button>
-                          {((event as any).status === 'draft' || (event as any).status === 'upcoming') ? (
+                          {((event as any).rawStatus === 'DRAFT') ? (
                             <Button 
                               variant="primary" 
                               size="sm"
@@ -817,7 +839,7 @@ const OrganizerDashboard: React.FC = () => {
                               <Globe size={14} className="mr-1" />
                               Publish
                             </Button>
-                          ) : ((event as any).status === 'live' || (event as any).status === 'upcoming' || (event as any).status === 'draft') ? (
+                          ) : ((event as any).rawStatus === 'LIVE') ? (
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -896,7 +918,7 @@ const OrganizerDashboard: React.FC = () => {
           </div>
         </div>
                       <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
-                        {getStatusBadge(event.status || 'upcoming')}
+                        {getStatusBadge(event.status || 'upcoming', event)}
                         <div className="flex space-x-1">
                           <Button 
                             variant="outline" 
@@ -909,7 +931,7 @@ const OrganizerDashboard: React.FC = () => {
                           >
                             <Edit size={14} />
           </Button>
-                          {((event as any).status === 'draft' || (event as any).status === 'upcoming') ? (
+                          {((event as any).rawStatus === 'DRAFT') ? (
                             <Button 
                               variant="primary" 
                               size="sm"
@@ -921,7 +943,7 @@ const OrganizerDashboard: React.FC = () => {
                             >
                               <Globe size={14} />
           </Button>
-                          ) : ((event as any).status === 'live' || (event as any).status === 'upcoming' || (event as any).status === 'draft') ? (
+                          ) : ((event as any).rawStatus === 'LIVE') ? (
                             <Button 
                               variant="outline" 
                               size="sm"

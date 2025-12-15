@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, Download, CheckCircle, Clock, User, Mail, Calendar, Ticket, QrCode } from 'lucide-react'
+import { X, Search, Download, CheckCircle, Clock, User, Mail, Calendar, Ticket, QrCode, UserX, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import QRCodeScanner from './QRCodeScanner'
@@ -17,6 +17,8 @@ interface Attendee {
   checkInStatus: 'pending' | 'checked_in' | 'no_show'
   qrCode: string
   orderNumber: string
+  status: 'CONFIRMED' | 'CANCELLED' | 'PENDING'
+  isNoShow?: boolean
 }
 
 interface AttendeeManagementProps {
@@ -34,15 +36,18 @@ export default function AttendeeManagement({
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all')
   const [showQRScanner, setShowQRScanner] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchAttendees = async () => {
+      setIsLoading(true)
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
         const token = localStorage.getItem('token')
         
         if (!token) {
           setAttendees([])
+          setIsLoading(false)
           return
         }
 
@@ -55,23 +60,39 @@ export default function AttendeeManagement({
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
-            const attendeeList: Attendee[] = (data.data || []).map((ticket: any) => ({
-              id: ticket.id,
-              name: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest',
-              email: ticket.attendee?.email || '',
-              ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
-              purchaseDate: ticket.createdAt,
-              price: ticket.price || 0,
-              checkInStatus: ticket.checkedIn ? 'checked_in' : 'pending',
-              qrCode: ticket.qrCode || ticket.id,
-              orderNumber: ticket.orderNumber
-            }))
+            const attendeeList: Attendee[] = (data.data || []).map((ticket: any) => {
+              const isNoShow = ticket.metadata && ticket.metadata.noShow === true;
+              const isCancelled = ticket.status === 'CANCELLED';
+              
+              let checkInStatus: 'pending' | 'checked_in' | 'no_show' = 'pending';
+              if (ticket.checkedIn) {
+                checkInStatus = 'checked_in';
+              } else if (isNoShow && isCancelled) {
+                checkInStatus = 'no_show';
+              }
+
+              return {
+                id: ticket.id,
+                name: ticket.attendee ? `${ticket.attendee.firstName} ${ticket.attendee.lastName}` : 'Guest',
+                email: ticket.attendee?.email || '',
+                ticketType: ticket.ticketTier?.name || ticket.ticketType || 'General',
+                purchaseDate: ticket.createdAt,
+                price: ticket.price || 0,
+                checkInStatus,
+                qrCode: ticket.qrCode || ticket.id,
+                orderNumber: ticket.orderNumber,
+                status: ticket.status,
+                isNoShow: isNoShow
+              };
+            })
             setAttendees(attendeeList)
           }
         }
       } catch (error) {
         console.error('Error fetching attendees:', error)
         setAttendees([])
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -116,6 +137,125 @@ export default function AttendeeManagement({
     } catch (error) {
       console.error('Error checking in attendee:', error)
       alert('Failed to check in attendee. Please try again.')
+    }
+  }
+
+  const handleNoShow = async (attendeeId: string) => {
+    const attendee = attendees.find(att => att.id === attendeeId)
+    if (!attendee) return
+
+    const confirmed = window.confirm(
+      `Mark ${attendee.name} as no-show?\n\n` +
+      `This will:\n` +
+      `• Cancel their ticket\n` +
+      `• Free up the spot for waitlisted attendees\n` +
+      `• Automatically promote the next person on the waitlist (if any)\n\n` +
+      `This action can be undone if needed.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to manage attendees')
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/tickets/${attendeeId}/no-show`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Update local state
+          const updatedAttendees = attendees.map(att => 
+            att.id === attendeeId 
+              ? { ...att, checkInStatus: 'no_show' as const, status: 'CANCELLED' as const, isNoShow: true }
+              : att
+          )
+          setAttendees(updatedAttendees)
+
+          // Show success message with promotion info
+          let message = `${attendee.name} marked as no-show.`
+          if (data.data.promotedUser) {
+            message += `\n\n🎉 ${data.data.promotedUser.name} has been automatically promoted from the waitlist!`
+          }
+          alert(message)
+
+          // Refresh attendee list to show any newly promoted attendees
+          setTimeout(() => {
+            window.location.reload()
+          }, 2000)
+        } else {
+          alert(data.message || 'Failed to mark attendee as no-show')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to mark attendee as no-show' }))
+        alert(errorData.message || 'Failed to mark attendee as no-show')
+      }
+    } catch (error) {
+      console.error('Error marking attendee as no-show:', error)
+      alert('Failed to mark attendee as no-show. Please try again.')
+    }
+  }
+
+  const handleRestoreTicket = async (attendeeId: string) => {
+    const attendee = attendees.find(att => att.id === attendeeId)
+    if (!attendee) return
+
+    const confirmed = window.confirm(
+      `Restore ${attendee.name}'s ticket?\n\n` +
+      `This will reactivate their ticket and they can attend the event again.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        alert('Please sign in to manage attendees')
+        return
+      }
+
+      const response = await fetch(`${apiUrl}/api/tickets/${attendeeId}/restore`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Update local state
+          const updatedAttendees = attendees.map(att => 
+            att.id === attendeeId 
+              ? { ...att, checkInStatus: 'pending' as const, status: 'CONFIRMED' as const, isNoShow: false }
+              : att
+          )
+          setAttendees(updatedAttendees)
+          alert(`${attendee.name}'s ticket has been restored.`)
+        } else {
+          alert(data.message || 'Failed to restore ticket')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to restore ticket' }))
+        alert(errorData.message || 'Failed to restore ticket')
+      }
+    } catch (error) {
+      console.error('Error restoring ticket:', error)
+      alert('Failed to restore ticket. Please try again.')
     }
   }
 
@@ -213,7 +353,8 @@ export default function AttendeeManagement({
     total: attendees.length,
     checkedIn: attendees.filter(a => a.checkInStatus === 'checked_in').length,
     pending: attendees.filter(a => a.checkInStatus === 'pending').length,
-    revenue: attendees.reduce((sum, a) => sum + a.price, 0)
+    noShow: attendees.filter(a => a.checkInStatus === 'no_show').length,
+    revenue: attendees.filter(a => a.status === 'CONFIRMED').reduce((sum, a) => sum + a.price, 0)
   }
 
   return (
@@ -252,7 +393,7 @@ export default function AttendeeManagement({
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
             <div className="text-center">
               <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Total Attendees</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -264,6 +405,10 @@ export default function AttendeeManagement({
             <div className="text-center">
               <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Pending</p>
               <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.pending}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">No Shows</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.noShow}</p>
             </div>
             <div className="text-center">
               <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Total Revenue</p>
@@ -357,7 +502,12 @@ export default function AttendeeManagement({
 
           {/* Attendees List - Scrollable */}
           <div className="flex-1 overflow-y-auto p-6">
-            {filteredAttendees.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading attendees...</p>
+              </div>
+            ) : filteredAttendees.length === 0 ? (
               <div className="text-center py-12">
                 <User size={48} className="mx-auto text-gray-400 mb-4" />
                 <p className="text-gray-600">No attendees found</p>
@@ -401,18 +551,44 @@ export default function AttendeeManagement({
                           <p className="text-xs text-gray-500">{attendee.orderNumber}</p>
                         </div>
                         {getStatusBadge(attendee.checkInStatus)}
-                        {attendee.checkInStatus === 'pending' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCheckIn(attendee.id)}
-                            className="text-green-600 border-green-300 hover:bg-green-50"
-                            title="Click to check in or press Enter when searching"
-                          >
-                            <CheckCircle size={16} className="mr-2" />
-                            Check In
-                          </Button>
-                        )}
+                        <div className="flex gap-2">
+                          {attendee.checkInStatus === 'pending' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCheckIn(attendee.id)}
+                                className="text-green-600 border-green-300 hover:bg-green-50"
+                                title="Check in attendee"
+                              >
+                                <CheckCircle size={16} className="mr-1" />
+                                Check In
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleNoShow(attendee.id)}
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                title="Mark as no-show (will promote waitlisted users)"
+                              >
+                                <UserX size={16} className="mr-1" />
+                                No Show
+                              </Button>
+                            </>
+                          )}
+                          {attendee.checkInStatus === 'no_show' && attendee.isNoShow && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRestoreTicket(attendee.id)}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              title="Restore ticket (undo no-show)"
+                            >
+                              <RotateCcw size={16} className="mr-1" />
+                              Restore
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
