@@ -4,12 +4,15 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, MapPin, Image as ImageIcon, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import DebouncedButton from '@/components/ui/DebouncedButton'
 import { Badge } from '@/components/ui/Badge'
 import { EventDetail, TicketTier } from '@/types/event'
 import TicketTierBuilder from './TicketTierBuilder'
 import ImageManager from '@/components/events/ImageManager'
 import SeatingArrangementBuilder, { SeatingArrangement } from './SeatingArrangementBuilder'
 import { useUser } from '@/contexts/UserContext'
+import { requestDeduplicator } from '@/utils/requestDeduplication'
+import { modalManager } from '@/utils/modalManager'
 
 interface EventFormModalProps {
   isOpen: boolean
@@ -61,6 +64,8 @@ export default function EventFormModal({
   const [tagInput, setTagInput] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null)
+  const modalId = `event-form-${mode}-${eventData?.id || 'new'}`
 
   useEffect(() => {
     if (eventData && mode === 'edit') {
@@ -182,7 +187,24 @@ export default function EventFormModal({
       return
     }
 
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      console.log('⚠️ Duplicate submission prevented - already submitting')
+      return
+    }
+
+    // Generate unique submission ID to prevent duplicates
+    const submissionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // Check if this is a duplicate submission
+    if (lastSubmissionId && Date.now() - parseInt(lastSubmissionId.split('-')[0]) < 2000) {
+      console.log('⚠️ Duplicate submission prevented - too soon after last submission')
+      return
+    }
+
     setIsSubmitting(true)
+    setLastSubmissionId(submissionId)
+    console.log('🚀 Starting event submission...', { mode, eventId: eventData?.id, submissionId })
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
@@ -199,6 +221,7 @@ export default function EventFormModal({
 
       // Prepare event data for API (matching backend createEvent format)
       const eventPayload: any = {
+        submissionId, // Add unique ID to track this request
         title: formData.title,
         description: formData.description,
         fullDescription: formData.fullDescription || formData.description,
@@ -226,7 +249,7 @@ export default function EventFormModal({
         hasSeating: formData.hasSeating,
         // seatingArrangement removed - not in database schema
         price: ticketTiers.length > 0 ? Math.min(...ticketTiers.map(t => t.price)) : 0,
-        status: mode === 'edit' && eventData?.status ? eventData.status.toUpperCase() : 'DRAFT',
+        status: mode === 'edit' && eventData ? ((eventData as any).rawStatus || eventData.status).toUpperCase() : 'DRAFT',
         ticketTiers: ticketTiers.map(tier => ({
           name: tier.name,
           price: tier.price,
@@ -239,7 +262,8 @@ export default function EventFormModal({
       let response
       if (mode === 'edit' && eventData?.id) {
         // Update existing event
-        response = await fetch(`${apiUrl}/api/events/${eventData.id}`, {
+        console.log('📝 Updating event:', eventData.id)
+        response = await requestDeduplicator.fetch(`${apiUrl}/api/events/${eventData.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -249,7 +273,8 @@ export default function EventFormModal({
         })
       } else {
         // Create new event
-        response = await fetch(`${apiUrl}/api/events`, {
+        console.log('✨ Creating new event with payload:', eventPayload)
+        response = await requestDeduplicator.fetch(`${apiUrl}/api/events`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -265,10 +290,14 @@ export default function EventFormModal({
       }
 
       const result = await response.json()
+      console.log('📊 API Response:', { status: response.status, result })
       
       if (result.success) {
+        console.log('✅ Event saved successfully:', result.data.id)
+        console.log('🔄 Calling onSave callback with event data')
         // Ticket tiers are already created by the backend in the transaction
         onSave(result.data)
+        console.log('🚪 Closing modal')
         onClose()
       } else {
         throw new Error(result.message || 'Failed to save event')
@@ -280,6 +309,24 @@ export default function EventFormModal({
       setIsSubmitting(false)
     }
   }
+
+  // Register modal with modal manager
+  useEffect(() => {
+    if (isOpen) {
+      const canOpen = modalManager.openModal(modalId)
+      if (!canOpen) {
+        console.log('⚠️ Preventing duplicate modal:', modalId)
+        onClose()
+        return
+      }
+    }
+    
+    return () => {
+      if (isOpen) {
+        modalManager.closeModal(modalId)
+      }
+    }
+  }, [isOpen, modalId, onClose])
 
   if (!isOpen) return null
 
@@ -732,9 +779,14 @@ export default function EventFormModal({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
+            <DebouncedButton 
+              variant="primary" 
+              onDebouncedClick={handleSubmit} 
+              disabled={isSubmitting}
+              debounceMs={2000}
+            >
               {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create Event' : 'Save Changes')}
-            </Button>
+            </DebouncedButton>
           </div>
         </motion.div>
       </div>
