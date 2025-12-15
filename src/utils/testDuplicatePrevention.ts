@@ -42,7 +42,7 @@ export const testDuplicatePrevention = () => {
       
       console.log('Test API response status:', response.status)
     } catch (error) {
-      console.log('Test API call failed (expected):', error.message)
+      console.log('Test API call failed (expected):', error instanceof Error ? error.message : String(error))
     }
   }
   

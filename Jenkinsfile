@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-         DEV_SERVER = '18.222.28.164'
+        DEV_SERVER = '18.222.28.164'
         QA_SERVER = '18.222.249.51'
         PROD_SERVER = '18.222.188.84'
         
