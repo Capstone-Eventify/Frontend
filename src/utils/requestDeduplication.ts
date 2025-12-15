@@ -17,11 +17,12 @@ class RequestDeduplicator {
   // Clean up expired requests
   private cleanup(): void {
     const now = Date.now()
-    for (const [key, request] of this.pendingRequests.entries()) {
+    // Use Array.from to avoid TypeScript iteration issues
+    Array.from(this.pendingRequests.entries()).forEach(([key, request]) => {
       if (now - request.timestamp > this.TIMEOUT) {
         this.pendingRequests.delete(key)
       }
-    }
+    })
   }
 
   // Deduplicate fetch requests
